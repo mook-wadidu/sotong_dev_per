@@ -1,0 +1,17 @@
+{
+  "name": "소통 디자이너",
+  "short_name": "소통",
+  "description": "외국인 손님 접수 알림 — 새 손님이 오면 푸시로 알려드려요.",
+  "start_url": "/ko",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#111111",
+  "lang": "ko",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "title": "Sotong Admin",
+  "subtitle": "Salons, intakes & errors",
+  "salonFilter": "Select salon",
+  "allSalons": "All salons",
+  "tabs": {
+    "qr": "QR",
+    "onboarding": "Onboarding",
+    "inquiries": "Intakes",
+    "errors": "Errors"
+  },
+  "stats": {
+    "title": "Today",
+    "total": "All consultations",
+    "waiting": "Waiting",
+    "completed": "Completed",
+    "today": "Today",
+    "errors": "Errors",
+    "salons": "Salons",
+    "inquiries": "Intakes"
+  },
+  "gate": {
+    "title": "Enter admin key",
+    "hint": "An admin key is required to view salons, intakes & errors.",
+    "label": "Admin key",
+    "placeholder": "Enter your admin key",
+    "submit": "Enter"
+  },
+  "authError": {
+    "title": "Can't access",
+    "hint": "The admin key is invalid. Please check and try again.",
+    "retry": "Re-enter key"
+  },
+  "qr": {
+    "title": "Salon QR",
+    "hint": "Place this QR at your entrance or tables. Guests scan it to start instantly.",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "print": "Print",
+    "download": "Save image",
+    "placement": "Placement",
+    "regenerate": "Regenerate QR",
+    "sharedLabel": "Shared (unassigned)"
+  },
+  "inquiries": {
+    "title": "Intakes",
+    "customer": "Guest",
+    "designer": "Designer",
+    "unassigned": "Unassigned",
+    "locale": "Language",
+    "service": "Service",
+    "headline": "Summary",
+    "status": "Status",
+    "phone": "Contact",
+    "createdAt": "Received at",
+    "view": "View",
+    "statusIntake": "Waiting",
+    "statusConsulting": "Consulting",
+    "statusInService": "In service",
+    "statusCompleted": "Completed",
+    "statusCancelled": "Cancelled"
+  },
+  "errors": {
+    "title": "Error log",
+    "severity": "Severity",
+    "message": "Message",
+    "detail": "Detail",
+    "source": "Source",
+    "occurredAt": "Occurred at",
+    "resolve": "Mark resolved",
+    "resolved": "Resolved",
+    "unresolved": "Unresolved",
+    "count": "{count}",
+    "sevError": "Error",
+    "sevWarning": "Warning",
+    "sevInfo": "Info"
+  },
+  "empty": {
+    "inquiries": "No intakes yet",
+    "errors": "No errors recorded",
+    "salons": "No salons registered"
+  },
+  "onboarding": {
+    "salonTitle": "Create salon",
+    "salonHint": "Registering a salon issues an owner console token and a shared QR.",
+    "slug": "slug (identifier)",
+    "slugHint": "URL identifier — lowercase, digits and hyphens only",
+    "salonName": "Salon name",
+    "address": "Address (optional)",
+    "createSalon": "Create salon",
+    "salonCreated": "Salon created",
+    "designerTitle": "Create designer",
+    "designerHint": "Pick a salon and add a designer to issue a staffToken and QR.",
+    "designerNeedsSalon": "Please create a salon first.",
+    "selectSalon": "Select salon",
+    "selectSalonFirst": "Please select a salon first.",
+    "designerName": "Designer name",
+    "rank": "Rank",
+    "noRank": "No rank",
+    "createDesigner": "Create designer",
+    "designerCreated": "Designer created",
+    "created": "Created",
+    "shareHint": "Hand the info below to the salon owner. Keep it secret from guests.",
+    "designerShareHint": "Hand the staffToken/QR below to the designer.",
+    "ownerToken": "Owner console token",
+    "consoleLink": "Owner console link",
+    "staffToken": "Designer inbox token",
+    "inboxLink": "Inbox link",
+    "qrLink": "Designer QR link"
+  },
+  "console": {
+    "title": "Salon console",
+    "subtitle": "Menu, designers & QR",
+    "invalid": {
+      "title": "Can't access",
+      "hint": "The console link is invalid or expired. Please contact your admin."
+    },
+    "tabs": {
+      "menu": "Menu",
+      "designers": "Designers",
+      "qr": "QR",
+      "inquiries": "Intakes / Reports"
+    },
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "Saved",
+    "error": "Something went wrong",
+    "labelKo": "Name (Korean)",
+    "labelJa": "Name (Japanese)",
+    "labelEn": "Name (English)",
+    "menu": {
+      "hint": "Add, edit and delete categories and services.",
+      "addCategory": "Add category",
+      "editCategory": "Edit category",
+      "addService": "Add service",
+      "editService": "Edit service",
+      "emptyCategories": "No categories yet. Please add a category.",
+      "emptyServices": "No services in this category.",
+      "basePrice": "Base starting price (KRW)",
+      "basePriceHint": "Applied when there is no rank-based override",
+      "fromPrice": "from {price} KRW",
+      "rankPrices": "Rank-based prices (optional)",
+      "rankPricesHint": "A rank you enter overrides the base price when entering via that designer. Leave blank to skip.",
+      "rankPricePlaceholder": "not set",
+      "hasRankPrice": "rank price",
+      "activeLabel": "Active (shown in guest menu)",
+      "inactive": "Inactive",
+      "koRequired": "Korean name is required.",
+      "priceInvalid": "Please enter a valid price.",
+      "deleted": "Deleted",
+      "deleteTitle": "Delete service",
+      "deleteConfirm": "Delete the service ‘{name}’?"
+    },
+    "designers": {
+      "hint": "Add designers and assign ranks. Each gets a QR and inbox.",
+      "add": "Add designer",
+      "addTitle": "Add designer",
+      "editTitle": "Edit designer",
+      "empty": "No designers yet.",
+      "name": "Name",
+      "nameRequired": "Name is required.",
+      "rank": "Rank",
+      "noRank": "No rank",
+      "inboxLink": "Open inbox",
+      "qr": "Designer QR"
+    },
+    "qr": {
+      "hint": "Place this QR at your entrance or mirror. Guests scan it to start instantly."
+    }
+  }
+}

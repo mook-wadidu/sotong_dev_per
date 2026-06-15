@@ -1,0 +1,21 @@
+{
+  "appName": "Sotong",
+  "tagline": "Guests in their language, designers in a Korean summary",
+  "back": "Back",
+  "next": "Next",
+  "prev": "Previous",
+  "submit": "Submit",
+  "start": "Start",
+  "loading": "One moment…",
+  "send": "Send",
+  "retry": "Retry",
+  "done": "Done",
+  "skip": "Skip",
+  "optional": "Optional",
+  "required": "Required",
+  "yes": "Yes",
+  "no": "No",
+  "close": "Close",
+  "errorTitle": "Something went wrong",
+  "errorGeneric": "Something went wrong. Please try again in a moment."
+}

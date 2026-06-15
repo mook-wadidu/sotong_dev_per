@@ -1,0 +1,173 @@
+{
+  "title": "소통 관리자",
+  "subtitle": "지점·접수·오류 현황",
+  "salonFilter": "지점 선택",
+  "allSalons": "전체 지점",
+  "tabs": {
+    "qr": "QR",
+    "onboarding": "온보딩",
+    "inquiries": "접수 내역",
+    "errors": "오류"
+  },
+  "stats": {
+    "title": "오늘 현황",
+    "total": "전체 상담",
+    "waiting": "대기",
+    "completed": "완료",
+    "today": "오늘",
+    "errors": "오류",
+    "salons": "지점 수",
+    "inquiries": "접수 수"
+  },
+  "gate": {
+    "title": "관리자 키 입력",
+    "hint": "지점·접수·오류 현황을 보려면 관리자 키가 필요합니다.",
+    "label": "관리자 키",
+    "placeholder": "관리자 키를 입력하세요",
+    "submit": "들어가기"
+  },
+  "authError": {
+    "title": "접근할 수 없어요",
+    "hint": "관리자 키가 올바르지 않습니다. 다시 확인해 주세요.",
+    "retry": "키 다시 입력"
+  },
+  "qr": {
+    "title": "매장 QR",
+    "hint": "이 QR을 입구·테이블에 붙여주세요. 손님이 찍으면 바로 시작됩니다.",
+    "copy": "링크 복사",
+    "copied": "복사됨",
+    "print": "인쇄",
+    "download": "이미지 저장",
+    "placement": "부착 위치",
+    "regenerate": "QR 재발급",
+    "sharedLabel": "공용 (지정없음)"
+  },
+  "inquiries": {
+    "title": "접수 내역",
+    "customer": "손님",
+    "designer": "디자이너",
+    "unassigned": "지정없음",
+    "locale": "언어",
+    "service": "시술",
+    "headline": "요약",
+    "status": "상태",
+    "phone": "연락처",
+    "createdAt": "접수 시각",
+    "view": "보기",
+    "statusIntake": "대기",
+    "statusConsulting": "상담 중",
+    "statusInService": "시술 중",
+    "statusCompleted": "완료",
+    "statusCancelled": "취소"
+  },
+  "errors": {
+    "title": "오류 로그",
+    "severity": "심각도",
+    "message": "내용",
+    "detail": "상세",
+    "source": "발생 위치",
+    "occurredAt": "발생 시각",
+    "resolve": "해결 처리",
+    "resolved": "해결됨",
+    "unresolved": "미해결",
+    "count": "{count}건",
+    "sevError": "오류",
+    "sevWarning": "경고",
+    "sevInfo": "정보"
+  },
+  "empty": {
+    "inquiries": "아직 접수된 상담이 없어요",
+    "errors": "기록된 오류가 없어요",
+    "salons": "등록된 지점이 없어요"
+  },
+  "onboarding": {
+    "salonTitle": "살롱 생성",
+    "salonHint": "새 지점을 등록하면 오너 콘솔 토큰과 공용 QR이 발급됩니다.",
+    "slug": "slug (식별자)",
+    "slugHint": "URL용 식별자 — 소문자/숫자/하이픈만",
+    "salonName": "지점 이름",
+    "address": "주소 (선택)",
+    "createSalon": "살롱 생성",
+    "salonCreated": "살롱을 생성했어요",
+    "designerTitle": "디자이너 생성",
+    "designerHint": "살롱을 고르고 디자이너를 추가하면 staffToken과 QR이 발급됩니다.",
+    "designerNeedsSalon": "먼저 살롱을 생성해 주세요.",
+    "selectSalon": "살롱 선택",
+    "selectSalonFirst": "살롱을 먼저 선택해 주세요.",
+    "designerName": "디자이너 이름",
+    "rank": "직급",
+    "noRank": "직급 없음",
+    "createDesigner": "디자이너 생성",
+    "designerCreated": "디자이너를 생성했어요",
+    "created": "생성됨",
+    "shareHint": "아래 정보를 살롱 오너에게 전달하세요. 손님에게 노출 금지(비밀).",
+    "designerShareHint": "아래 staffToken/QR을 해당 디자이너에게 전달하세요.",
+    "ownerToken": "오너 콘솔 토큰",
+    "consoleLink": "오너 콘솔 링크",
+    "staffToken": "디자이너 인박스 토큰",
+    "inboxLink": "인박스 링크",
+    "qrLink": "디자이너 QR 링크"
+  },
+  "console": {
+    "title": "살롱 콘솔",
+    "subtitle": "메뉴·디자이너·QR 관리",
+    "invalid": {
+      "title": "접근할 수 없어요",
+      "hint": "콘솔 링크가 올바르지 않거나 만료되었습니다. 관리자에게 문의해 주세요."
+    },
+    "tabs": {
+      "menu": "메뉴",
+      "designers": "디자이너",
+      "qr": "QR",
+      "inquiries": "문의/리포트"
+    },
+    "edit": "수정",
+    "delete": "삭제",
+    "save": "저장",
+    "cancel": "취소",
+    "saved": "저장했어요",
+    "error": "처리에 실패했어요",
+    "labelKo": "이름 (한국어)",
+    "labelJa": "이름 (일본어)",
+    "labelEn": "이름 (영어)",
+    "menu": {
+      "hint": "카테고리와 시술을 추가·수정·삭제할 수 있어요.",
+      "addCategory": "카테고리 추가",
+      "editCategory": "카테고리 수정",
+      "addService": "시술 추가",
+      "editService": "시술 수정",
+      "emptyCategories": "아직 카테고리가 없어요. 카테고리를 추가해 주세요.",
+      "emptyServices": "이 카테고리에 시술이 없어요.",
+      "basePrice": "기본 시작가 (원)",
+      "basePriceHint": "직급 보정이 없을 때 적용되는 기본가",
+      "fromPrice": "{price}원~",
+      "rankPrices": "직급별 가격 (선택)",
+      "rankPricesHint": "입력한 직급은 그 디자이너 진입 시 기본가 대신 적용됩니다. 비우면 미적용.",
+      "rankPricePlaceholder": "미적용",
+      "hasRankPrice": "직급가",
+      "activeLabel": "활성 (손님 메뉴에 노출)",
+      "inactive": "비활성",
+      "koRequired": "한국어 이름은 필수예요.",
+      "priceInvalid": "가격을 올바르게 입력해 주세요.",
+      "deleted": "삭제했어요",
+      "deleteTitle": "시술 삭제",
+      "deleteConfirm": "‘{name}’ 시술을 삭제할까요?"
+    },
+    "designers": {
+      "hint": "디자이너를 추가하고 직급을 지정하세요. 각 디자이너 QR/인박스가 발급됩니다.",
+      "add": "디자이너 추가",
+      "addTitle": "디자이너 추가",
+      "editTitle": "디자이너 수정",
+      "empty": "아직 디자이너가 없어요.",
+      "name": "이름",
+      "nameRequired": "이름은 필수예요.",
+      "rank": "직급",
+      "noRank": "직급 없음",
+      "inboxLink": "인박스 열기",
+      "qr": "디자이너 QR"
+    },
+    "qr": {
+      "hint": "이 QR을 입구·거울 앞에 붙여주세요. 손님이 찍으면 바로 시작됩니다."
+    }
+  }
+}

@@ -1,26 +1,198 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
 @import "tailwindcss";
 
+/*
+ * 소통 디자인 토큰 — 순수 흑백 타이포(Phase 3).
+ * 색은 토큰 값으로만 그레이스케일화하고, 토큰명/@theme/클래스는 그대로 유지한다.
+ * 의미 구분은 색이 아니라 채움 vs 외곽선 + 굵기 + 텍스트 라벨로 한다.
+ */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111111;
+
+  --card: #ffffff;
+  --card-foreground: #111111;
+
+  --muted: #f4f4f5;
+  --muted-foreground: #6b7280;
+
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #111111; /* 포커스 링 = 잉크색 */
+
+  --primary: #111111; /* 잉크 */
+  --primary-foreground: #ffffff;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #111111;
+
+  /* 액센트 = 잉크(블랙). 장식이 아니라 채움/외곽선으로 강조한다. */
+  --accent: #111111;
+  --accent-foreground: #ffffff;
+  --accent-soft: #f4f4f5; /* 선택된 칩 배경 (옅은 그레이) */
+
+  /* CTA 면색 — 잉크 + 흰 글자 */
+  --accent-strong: #111111;
+  --accent-strong-foreground: #ffffff;
+  /* 밝은 배경 위 강조 텍스트 — 잉크 */
+  --accent-text: #111111;
+
+  /* 상태색 — 그레이 단계. 의미는 색이 아니라 채움/외곽선 + 텍스트로 구분. */
+  --warning: #111111;
+  --warning-foreground: #ffffff;
+  --info: #52525b;
+  --info-foreground: #ffffff;
+
+  --destructive: #18181b;
+  --destructive-foreground: #ffffff;
+  --success: #3f3f46;
+
+  --radius: 0.9rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-strong-foreground: var(--accent-strong-foreground);
+  --color-accent-text: var(--accent-text);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+
+  --radius-sm: calc(var(--radius) - 0.4rem);
+  --radius-md: calc(var(--radius) - 0.2rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.35rem);
+  --radius-2xl: calc(var(--radius) + 0.7rem);
+
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Noto Sans JP", "Apple SD Gothic Neo", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  color-scheme: light; /* light-only 의도 명시 — UA 다크 반전 방지 */
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* tracking 은 ko/en 라틴·한글에만. CJK 일본어는 아래에서 normal 로. */
+  letter-spacing: -0.01em;
+}
+
+/*
+ * 일본어 — Pretendard 가 한자(漢字)를 한국 자형으로 가로채는 문제 해소.
+ * 일본 자형 폰트를 우선하고, CJK 가독을 위해 tracking 제거 + line-height 확대.
+ */
+html[lang="ja"] {
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP",
+    "Yu Gothic", "Meiryo", "Pretendard Variable", Pretendard, system-ui,
+    sans-serif;
+}
+
+html[lang="ja"] body {
+  letter-spacing: normal;
+  line-height: 1.65; /* CJK 본문 가독 */
+}
+
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 모바일 가로 스크롤 방지 */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* 은은한 등장 애니메이션 유틸 */
+@keyframes sotong-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: sotong-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sotong-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade {
+  animation: sotong-fade 0.3s ease both;
+}
+
+/*
+ * 모션 민감성 가드 (WCAG 2.3.3 / prefers-reduced-motion).
+ * 등장 애니메이션·스크롤 애니메이션·transition 을 무력화하되,
+ * 탭 피드백(active:scale 등)의 "눌림" 신호는 아주 짧게 유지한다.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-rise,
+  .animate-fade {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* 탭 어포던스는 유지 — 매우 짧게 */
+  .active\:scale-\[0\.98\]:active,
+  .active\:scale-\[0\.97\]:active {
+    transition-duration: 60ms !important;
+  }
 }

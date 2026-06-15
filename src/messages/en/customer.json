@@ -1,0 +1,131 @@
+{
+  "langSelect": {
+    "title": "Which language can we help you in?",
+    "subtitle": "No app to install — start right away",
+    "reassure": "Scanning the QR starts everything. No install or login needed.",
+    "continue": "Continue in this language"
+  },
+  "invalid": {
+    "title": "This entry link isn't valid",
+    "body": "This QR or link has expired or isn't correct. Please scan the QR posted in the salon again.",
+    "thread": "We couldn't find this consultation. Please double-check the link you received.",
+    "report": "We couldn't find this report. Please double-check the link you received."
+  },
+  "intake": {
+    "title": "Tell us the style you want",
+    "subtitle": "Just tap to choose, and your designer prepares ahead",
+    "step": {
+      "services": "What service would you like?",
+      "photos": "Reference style photos",
+      "face": "Choose your face shape",
+      "hair": "Tell us about your hair",
+      "concern": "Any usual concerns?",
+      "allergy": "Any scalp or product allergies?",
+      "phone": "Contact (optional)",
+      "consent": "Consent to data collection"
+    },
+    "services": {
+      "hint": "You can pick more than one",
+      "estimate": "Estimated price",
+      "estimateNone": "Pick a service to see the estimated price",
+      "styleNote": "Style note (optional)",
+      "styleNotePlaceholder": "Tell us the length, look, or any reference you have in mind"
+    },
+    "photos": {
+      "hint": "Upload photos of the style you want",
+      "add": "Add photo",
+      "skip": "Continue without photos",
+      "uploading": "Uploading…",
+      "retry": "Upload again",
+      "remove": "Remove"
+    },
+    "face": {
+      "hint": "Pick the closest face shape"
+    },
+    "hair": {
+      "crownVolume": "Crown volume",
+      "density": "Hair density",
+      "type": "Hair type",
+      "cowlickWhorl": "Do you have a cowlick?",
+      "cowlickSticking": "Does your hair stick out?",
+      "cowlick": {
+        "yes": "Yes",
+        "no": "No",
+        "unknown": "Not sure"
+      },
+      "history": "Recent treatment history",
+      "historyHint": "Pick the treatments you had recently",
+      "historyRecency": "{type} — when did you have it?"
+    },
+    "concern": {
+      "title": "Anything you feel self-conscious about or would like us to pay attention to?",
+      "hint": "Skip if none",
+      "notePlaceholder": "Tell us any other concerns (optional)"
+    },
+    "allergy": {
+      "question": "Do you have any allergies?",
+      "has": "Yes",
+      "none": "No",
+      "notePlaceholder": "Tell us which allergy (optional)"
+    },
+    "phone": {
+      "hint": "Leave blank if you have no Korean number",
+      "benefit": "Leave your number to keep and manage your past reports, and pick up the conversation when you return.",
+      "placeholder": "010-0000-0000",
+      "optOut": "No contact number (traveler)"
+    },
+    "consent": {
+      "label": "I agree to the collection of my information and photos for style consultation.",
+      "detail": "Your information is used only for consultation and records, and is deleted after a set period following service.",
+      "required": "Consent is required to continue"
+    },
+    "back": "Back",
+    "next": "Next",
+    "submit": "Send to designer",
+    "skip": "Skip",
+    "submitting": "Sending…",
+    "stepOf": "Step {current} of {total}",
+    "needService": "Please pick at least one service",
+    "submitError": "Couldn't send. Please try again in a moment.",
+    "submitted": "Sent to your designer"
+  },
+  "thread": {
+    "title": "Chat with your designer",
+    "placeholder": "Type a message",
+    "send": "Send",
+    "waiting": "Your designer will reply shortly",
+    "connecting": "Connecting…",
+    "you": "You",
+    "designer": "Designer",
+    "translatedNote": "Sent with automatic translation",
+    "empty": "Your consultation has started. Ask anything.",
+    "sending": "Sending…",
+    "sendError": "Couldn't send your message"
+  },
+  "report": {
+    "title": "Hair InBody Report",
+    "subtitle": "Today's service record",
+    "salon": "Salon",
+    "designer": "Your designer",
+    "date": "Service date",
+    "service": "Services received",
+    "products": "Products used",
+    "hairState": "Hair condition",
+    "homeCare": "Home care guide",
+    "nextVisit": "Recommended next visit",
+    "before": "Before",
+    "after": "After",
+    "scoreLabel": "{score} pts",
+    "book": "Book next visit",
+    "bookToast": "Booking request received. The salon will contact you soon.",
+    "save": "Save as image",
+    "saveToast": "Report saved",
+    "share": "Share",
+    "shareToast": "Share link copied",
+    "grade": {
+      "high": "Good",
+      "mid": "Fair",
+      "low": "Needs care"
+    }
+  }
+}

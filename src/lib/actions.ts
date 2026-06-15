@@ -1,0 +1,229 @@
+"use server";
+
+import {
+  adminCreateDesigner as adminCreateDesignerSvc,
+  adminCreateSalon as adminCreateSalonSvc,
+  assignConsultation as assignConsultationSvc,
+  completeConsultation,
+  getAdminData as getAdminDataSvc,
+  getDesignerInbox as getDesignerInboxSvc,
+  getIntakeMenu as getIntakeMenuSvc,
+  getMessagesSince,
+  getSalonConsole as getSalonConsoleSvc,
+  getSalonInfo,
+  getSalonInfoByEntry,
+  postMessage,
+  saveDesignerPush,
+  salonDeleteService as salonDeleteServiceSvc,
+  salonUpsertCategory as salonUpsertCategorySvc,
+  salonUpsertDesigner as salonUpsertDesignerSvc,
+  salonUpsertService as salonUpsertServiceSvc,
+  startConsultation,
+  logIssue,
+  type AdminViewData,
+  type CreatedDesignerResult,
+  type CreatedSalonResult,
+  type IntakeMenu,
+  type SalonConsoleData,
+} from "@/lib/service";
+import type {
+  IntakeDraft,
+  Locale,
+  LocalizedText,
+  Message,
+  QuickReplyIntent,
+  ThreeLevel,
+} from "@/lib/domain/types";
+import type {
+  ConsultationListItem,
+  Designer,
+  Salon,
+  SalonService,
+  SalonServiceCategory,
+} from "@/lib/db/types";
+
+/* ── 살롱 공개 정보 (어드민/내부) ───────────────────────── */
+export async function getSalon(slug: string): Promise<Salon | null> {
+  return getSalonInfo(slug);
+}
+
+/* ── 살롱 공개 정보 (C1 진입 — 입장 토큰 검증 후) ───────── */
+export async function getSalonByEntry(
+  entryToken: string,
+): Promise<{ salon: Salon | null; designer?: Designer }> {
+  return getSalonInfoByEntry(entryToken);
+}
+
+/* ── 손님: 인테이크 메뉴 (살롱별 편집 카탈로그, 입장 토큰 검증 후) ── */
+export async function getIntakeMenu(
+  entryToken: string,
+): Promise<IntakeMenu | null> {
+  return getIntakeMenuSvc(entryToken);
+}
+
+/* ── 손님: 인테이크 제출 (입장 토큰만 신뢰, salonSlug 미수신) ── */
+export async function submitIntake(input: {
+  entryToken: string;
+  customerLocale: Locale;
+  isReturning: boolean;
+  intake: IntakeDraft;
+}) {
+  return startConsultation(input);
+}
+
+/* ── 스레드: 메시지 전송 / 폴링 ────────────────────────── */
+export async function sendMessage(input: {
+  token: string;
+  role: "customer" | "designer";
+  text?: string;
+  intent?: QuickReplyIntent;
+  replyId?: string;
+  value?: string;
+}): Promise<Message | null> {
+  return postMessage(input);
+}
+
+export async function pollMessages(input: {
+  token: string;
+  role: "customer" | "designer";
+  sinceIso?: string;
+}): Promise<Message[]> {
+  return getMessagesSince(input);
+}
+
+/* ── 디자이너: 시술 완료 → 리포트 발송 ─────────────────── */
+export async function finishAndSendReport(input: {
+  designerToken: string;
+  record?: { products: string[]; stateGrade?: ThreeLevel };
+  beforePhotoUrl?: string;
+  afterPhotoUrl?: string;
+}) {
+  return completeConsultation(input);
+}
+
+/* ── 디자이너: 개인 인박스 (디자이너 staffToken) ─────────── */
+export async function getDesignerInbox(staffToken: string): Promise<{
+  designer: Designer;
+  salon: Salon;
+  mine: ConsultationListItem[];
+  unassigned: ConsultationListItem[];
+} | null> {
+  return getDesignerInboxSvc(staffToken);
+}
+
+/* ── 디자이너: 웹푸시 구독 저장 (PWA 알림 켜기) ──────────── */
+export async function savePushSubscription(
+  staffToken: string,
+  subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+): Promise<{ ok: boolean }> {
+  return saveDesignerPush(staffToken, subscription);
+}
+
+/* ── 디자이너: 미배정 상담 '내 손님으로 가져오기' ─────────── */
+export async function assignConsultation(
+  staffToken: string,
+  consultationToken: string,
+): Promise<{ ok: boolean }> {
+  return assignConsultationSvc(staffToken, consultationToken);
+}
+
+/* ── 어드민: 지점·문의·에러 한 번에 (인증 필수) ─────────── */
+export type AdminData = AdminViewData;
+
+export async function getAdminData(
+  adminKey: string | undefined | null,
+  salonSlug?: string,
+): Promise<AdminData> {
+  return getAdminDataSvc(adminKey, salonSlug);
+}
+
+/* ── 클라이언트 에러 리포트 (에러 바운더리에서 호출) ───── */
+export async function reportClientError(input: {
+  salonSlug?: string;
+  message: string;
+  detail?: string;
+  source?: string;
+}): Promise<void> {
+  await logIssue({
+    salonSlug: input.salonSlug,
+    severity: "error",
+    source: input.source ?? "client",
+    message: input.message,
+    detail: input.detail,
+  });
+}
+
+/* ── 살롱 콘솔: 초기 데이터 (ownerToken 검증) ───────────── */
+export type SalonConsole = SalonConsoleData;
+
+export async function getSalonConsole(
+  ownerToken: string,
+): Promise<SalonConsole | null> {
+  return getSalonConsoleSvc(ownerToken);
+}
+
+/* ── 살롱 콘솔: 메뉴 편집 (ownerToken 검증, 서버에서 살롱 스코프 강제) ── */
+export async function salonUpsertCategory(input: {
+  ownerToken: string;
+  id?: string;
+  label: LocalizedText;
+  sort?: number;
+}): Promise<{ ok: boolean; category?: SalonServiceCategory }> {
+  return salonUpsertCategorySvc(input);
+}
+
+export async function salonUpsertService(input: {
+  ownerToken: string;
+  id?: string;
+  categoryId: string;
+  label: LocalizedText;
+  basePriceFrom: number;
+  rankPrices?: Record<string, number>;
+  active?: boolean;
+}): Promise<{ ok: boolean; service?: SalonService }> {
+  return salonUpsertServiceSvc(input);
+}
+
+export async function salonDeleteService(input: {
+  ownerToken: string;
+  id: string;
+}): Promise<{ ok: boolean }> {
+  return salonDeleteServiceSvc(input);
+}
+
+/* ── 살롱 콘솔: 디자이너 편집 (ownerToken 검증) ─────────── */
+export async function salonUpsertDesigner(input: {
+  ownerToken: string;
+  id?: string;
+  name: string;
+  rankId?: string;
+}): Promise<{ ok: boolean; designer?: Designer }> {
+  return salonUpsertDesignerSvc(input);
+}
+
+/* ── 플랫폼 어드민: 살롱/디자이너 생성 (adminKey 검증) ──── */
+export async function adminCreateSalon(
+  adminKey: string | undefined | null,
+  input: { slug: string; name: string; address?: string },
+): Promise<{ ok: true; result: CreatedSalonResult } | { ok: false; error: string }> {
+  try {
+    const result = await adminCreateSalonSvc(adminKey, input);
+    return { ok: true, result };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "생성 실패" };
+  }
+}
+
+export async function adminCreateDesigner(
+  adminKey: string | undefined | null,
+  input: { salonSlug: string; name: string; rankId?: string },
+): Promise<
+  { ok: true; result: CreatedDesignerResult } | { ok: false; error: string }
+> {
+  try {
+    const result = await adminCreateDesignerSvc(adminKey, input);
+    return { ok: true, result };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "생성 실패" };
+  }
+}

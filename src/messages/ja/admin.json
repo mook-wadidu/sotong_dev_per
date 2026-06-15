@@ -1,0 +1,173 @@
+{
+  "title": "Sotong 管理者",
+  "subtitle": "店舗・受付・エラーの状況",
+  "salonFilter": "店舗を選択",
+  "allSalons": "すべての店舗",
+  "tabs": {
+    "qr": "QR",
+    "onboarding": "オンボーディング",
+    "inquiries": "受付履歴",
+    "errors": "エラー"
+  },
+  "stats": {
+    "title": "本日の状況",
+    "total": "全相談",
+    "waiting": "待機",
+    "completed": "完了",
+    "today": "本日",
+    "errors": "エラー",
+    "salons": "店舗数",
+    "inquiries": "受付数"
+  },
+  "gate": {
+    "title": "管理者キーを入力",
+    "hint": "店舗・受付・エラーの状況を見るには管理者キーが必要です。",
+    "label": "管理者キー",
+    "placeholder": "管理者キーを入力してください",
+    "submit": "入る"
+  },
+  "authError": {
+    "title": "アクセスできません",
+    "hint": "管理者キーが正しくありません。もう一度ご確認ください。",
+    "retry": "キーを再入力"
+  },
+  "qr": {
+    "title": "店舗QR",
+    "hint": "このQRを入口やテーブルに貼ってください。お客様が読み取るとすぐに始まります。",
+    "copy": "リンクをコピー",
+    "copied": "コピーしました",
+    "print": "印刷",
+    "download": "画像を保存",
+    "placement": "設置場所",
+    "regenerate": "QRを再発行",
+    "sharedLabel": "共用（指定なし）"
+  },
+  "inquiries": {
+    "title": "受付履歴",
+    "customer": "お客様",
+    "designer": "デザイナー",
+    "unassigned": "指定なし",
+    "locale": "言語",
+    "service": "施術",
+    "headline": "要約",
+    "status": "状態",
+    "phone": "連絡先",
+    "createdAt": "受付時刻",
+    "view": "表示",
+    "statusIntake": "待機",
+    "statusConsulting": "相談中",
+    "statusInService": "施術中",
+    "statusCompleted": "完了",
+    "statusCancelled": "キャンセル"
+  },
+  "errors": {
+    "title": "エラーログ",
+    "severity": "深刻度",
+    "message": "内容",
+    "detail": "詳細",
+    "source": "発生箇所",
+    "occurredAt": "発生時刻",
+    "resolve": "解決済みにする",
+    "resolved": "解決済み",
+    "unresolved": "未解決",
+    "count": "{count}件",
+    "sevError": "エラー",
+    "sevWarning": "警告",
+    "sevInfo": "情報"
+  },
+  "empty": {
+    "inquiries": "まだ受付された相談はありません",
+    "errors": "記録されたエラーはありません",
+    "salons": "登録された店舗はありません"
+  },
+  "onboarding": {
+    "salonTitle": "サロン作成",
+    "salonHint": "新店舗を登録するとオーナーコンソールトークンと共用QRが発行されます。",
+    "slug": "slug（識別子）",
+    "slugHint": "URL用識別子 — 小文字・数字・ハイフンのみ",
+    "salonName": "店舗名",
+    "address": "住所（任意）",
+    "createSalon": "サロンを作成",
+    "salonCreated": "サロンを作成しました",
+    "designerTitle": "デザイナー作成",
+    "designerHint": "サロンを選んでデザイナーを追加すると、staffTokenとQRが発行されます。",
+    "designerNeedsSalon": "先にサロンを作成してください。",
+    "selectSalon": "サロンを選択",
+    "selectSalonFirst": "先にサロンを選択してください。",
+    "designerName": "デザイナー名",
+    "rank": "役職",
+    "noRank": "役職なし",
+    "createDesigner": "デザイナーを作成",
+    "designerCreated": "デザイナーを作成しました",
+    "created": "作成済み",
+    "shareHint": "以下の情報をサロンオーナーに渡してください。お客様には非公開（秘密）。",
+    "designerShareHint": "以下のstaffToken/QRを該当デザイナーに渡してください。",
+    "ownerToken": "オーナーコンソールトークン",
+    "consoleLink": "オーナーコンソールリンク",
+    "staffToken": "デザイナー受信箱トークン",
+    "inboxLink": "受信箱リンク",
+    "qrLink": "デザイナーQRリンク"
+  },
+  "console": {
+    "title": "サロンコンソール",
+    "subtitle": "メニュー・デザイナー・QR管理",
+    "invalid": {
+      "title": "アクセスできません",
+      "hint": "コンソールリンクが正しくないか期限切れです。管理者にお問い合わせください。"
+    },
+    "tabs": {
+      "menu": "メニュー",
+      "designers": "デザイナー",
+      "qr": "QR",
+      "inquiries": "問い合わせ/レポート"
+    },
+    "edit": "編集",
+    "delete": "削除",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "saved": "保存しました",
+    "error": "処理に失敗しました",
+    "labelKo": "名称（韓国語）",
+    "labelJa": "名称（日本語）",
+    "labelEn": "名称（英語）",
+    "menu": {
+      "hint": "カテゴリと施術を追加・編集・削除できます。",
+      "addCategory": "カテゴリ追加",
+      "editCategory": "カテゴリ編集",
+      "addService": "施術追加",
+      "editService": "施術編集",
+      "emptyCategories": "まだカテゴリがありません。カテゴリを追加してください。",
+      "emptyServices": "このカテゴリに施術がありません。",
+      "basePrice": "基本開始価格（ウォン）",
+      "basePriceHint": "役職補正がない場合に適用される基本価格",
+      "fromPrice": "{price}ウォン〜",
+      "rankPrices": "役職別価格（任意）",
+      "rankPricesHint": "入力した役職は、そのデザイナー経由の入場時に基本価格の代わりに適用されます。空欄なら未適用。",
+      "rankPricePlaceholder": "未適用",
+      "hasRankPrice": "役職価格",
+      "activeLabel": "有効（お客様メニューに表示）",
+      "inactive": "無効",
+      "koRequired": "韓国語の名称は必須です。",
+      "priceInvalid": "価格を正しく入力してください。",
+      "deleted": "削除しました",
+      "deleteTitle": "施術の削除",
+      "deleteConfirm": "「{name}」を削除しますか？"
+    },
+    "designers": {
+      "hint": "デザイナーを追加し役職を指定してください。各デザイナーのQR/受信箱が発行されます。",
+      "add": "デザイナー追加",
+      "addTitle": "デザイナー追加",
+      "editTitle": "デザイナー編集",
+      "empty": "まだデザイナーがいません。",
+      "name": "名前",
+      "nameRequired": "名前は必須です。",
+      "rank": "役職",
+      "noRank": "役職なし",
+      "inboxLink": "受信箱を開く",
+      "qr": "デザイナーQR"
+    },
+    "qr": {
+      "hint": "このQRを入口や鏡の前に貼ってください。お客様が読み取るとすぐに始まります。"
+    }
+  }
+}

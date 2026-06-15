@@ -1,0 +1,69 @@
+import { getTranslations } from "next-intl/server";
+import { getDesignerView } from "@/lib/service";
+import {
+  MobileFrame,
+  ScreenHeader,
+  ScreenBody,
+} from "@/components/ui";
+import { RecordForm } from "@/components/designer/record-form";
+
+/**
+ * D5 — 30초 기록 → 리포트 발송(ko 고정).
+ * 사용 약제(PRODUCTS) / 모발상태(상·중·하) / before·after 사진.
+ * 발송 후 손님 locale 의 리포트 링크 노출.
+ */
+export default async function DesignerReportPage({
+  params,
+}: {
+  params: Promise<{ locale: string; token: string }>;
+}) {
+  const { token } = await params;
+  const t = await getTranslations("Designer");
+  const view = await getDesignerView(token);
+
+  if (!view) {
+    return (
+      <MobileFrame tone="muted">
+        <ScreenHeader title={t("record.title")} />
+        <ScreenBody className="flex flex-1 items-center justify-center text-center">
+          <p className="text-sm text-muted-foreground">
+            {t("summary.notFound")}
+          </p>
+        </ScreenBody>
+      </MobileFrame>
+    );
+  }
+
+  const { consultation } = view;
+
+  return (
+    <MobileFrame tone="muted">
+      <ScreenHeader title={t("record.title")} subtitle={t("record.subtitle")} />
+      <ScreenBody>
+        <RecordForm
+          token={token}
+          customerLocale={consultation.customerLocale}
+          labels={{
+            products: t("record.products"),
+            productsHint: t("record.productsHint"),
+            addProduct: t("record.addProduct"),
+            addProductPlaceholder: t("record.addProductPlaceholder"),
+            stateGrade: t("record.stateGrade"),
+            beforePhoto: t("record.beforePhoto"),
+            afterPhoto: t("record.afterPhoto"),
+            addPhoto: t("record.addPhoto"),
+            removePhoto: t("record.removePhoto"),
+            finish: t("record.finish"),
+            finishing: t("record.finishing"),
+            sent: t("record.sent"),
+            failed: t("record.failed"),
+            openReport: t("record.openReport"),
+            gradeHigh: t("record.grade.high"),
+            gradeMid: t("record.grade.mid"),
+            gradeLow: t("record.grade.low"),
+          }}
+        />
+      </ScreenBody>
+    </MobileFrame>
+  );
+}

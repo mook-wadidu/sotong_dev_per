@@ -1,0 +1,21 @@
+{
+  "appName": "Sotong",
+  "tagline": "お客様は母国語で、デザイナーは韓国語の要約で",
+  "back": "戻る",
+  "next": "次へ",
+  "prev": "前へ",
+  "submit": "送信",
+  "start": "はじめる",
+  "loading": "少々お待ちください…",
+  "send": "送信",
+  "retry": "再試行",
+  "done": "完了",
+  "skip": "スキップ",
+  "optional": "任意",
+  "required": "必須",
+  "yes": "はい",
+  "no": "いいえ",
+  "close": "閉じる",
+  "errorTitle": "問題が発生しました",
+  "errorGeneric": "問題が発生しました。しばらくしてからもう一度お試しください。"
+}

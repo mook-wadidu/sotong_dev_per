@@ -1,0 +1,21 @@
+{
+  "appName": "소통",
+  "tagline": "손님은 자기 언어로, 디자이너는 한국어 요약으로",
+  "back": "뒤로",
+  "next": "다음",
+  "prev": "이전",
+  "submit": "제출",
+  "start": "시작하기",
+  "loading": "잠시만요…",
+  "send": "보내기",
+  "retry": "다시 시도",
+  "done": "완료",
+  "skip": "건너뛰기",
+  "optional": "선택",
+  "required": "필수",
+  "yes": "예",
+  "no": "아니요",
+  "close": "닫기",
+  "errorTitle": "문제가 발생했어요",
+  "errorGeneric": "문제가 발생했어요. 잠시 후 다시 시도해주세요."
+}

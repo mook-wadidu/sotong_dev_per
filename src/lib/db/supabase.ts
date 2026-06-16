@@ -42,6 +42,7 @@ import type {
   SalonService,
   SalonServiceCategory,
 } from "./types";
+import { DEFAULT_DESIGNER_RANKS } from "./types";
 
 /**
  * SupabaseRepo — Postgres 영속 드라이버 (실 구현).
@@ -479,7 +480,8 @@ export class SupabaseRepo implements Repo {
       business_hours: input.businessHours ?? null,
       placement_label: input.placementLabel ?? null,
       entry_key_version: 1,
-      designer_ranks: input.designerRanks ?? [],
+      // 빈 직급이면 콘솔 디자이너 추가 직급 선택이 비어버린다 → 기본 직급으로 폴백.
+      designer_ranks: input.designerRanks ?? DEFAULT_DESIGNER_RANKS,
       owner_token: `owner_${token()}`,
     };
     const { data, error } = await this.client

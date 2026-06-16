@@ -20,6 +20,17 @@ export interface DesignerRank {
 }
 
 /**
+ * 신규 살롱 기본 직급 — 한국 살롱 표준(원장/실장/디자이너).
+ * createSalon 이 designerRanks 를 안 받으면 이 값으로 채운다(빈 직급이면
+ * 콘솔 "디자이너 추가" 의 직급 선택이 비어버리는 버그 방지). 단일 진실원천.
+ */
+export const DEFAULT_DESIGNER_RANKS: DesignerRank[] = [
+  { id: "director", label: "원장" },
+  { id: "senior", label: "실장" },
+  { id: "designer", label: "디자이너" },
+];
+
+/**
  * 살롱별 시술 카테고리 — 콘솔에서 편집 가능(전역 catalog/data.ts 대체).
  */
 export interface SalonServiceCategory {

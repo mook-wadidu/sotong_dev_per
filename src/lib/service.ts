@@ -1,6 +1,7 @@
 import "server-only";
 import { getRepo } from "@/lib/db";
 import {
+  DEFAULT_DESIGNER_RANKS,
   toPublicSalon,
   type AdminDesigner,
   type AdminSalon,
@@ -1768,6 +1769,9 @@ export async function adminCreateSalon(
     slug,
     name,
     address: input.address?.trim() || undefined,
+    // 기본 직급(원장/실장/디자이너) 명시 — 드라이버 무관하게 항상 채워 콘솔
+    // "디자이너 추가" 직급 선택이 비지 않게 한다.
+    designerRanks: DEFAULT_DESIGNER_RANKS,
   });
 
   // 신규 살롱에 기본 카테고리 1개를 깔아 콘솔에서 곧바로 시술 추가가 가능하게 한다.

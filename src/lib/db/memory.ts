@@ -29,6 +29,7 @@ import type {
   SalonService,
   SalonServiceCategory,
 } from "./types";
+import { DEFAULT_DESIGNER_RANKS } from "./types";
 
 /**
  * 인메모리 Repo — 제로 셋업 기본 드라이버. `pnpm dev` 만으로 핵심 루프가 돈다.
@@ -54,12 +55,8 @@ interface Store {
   treatmentRecords: Map<string, TreatmentRecord>; // recordId -> TreatmentRecord
 }
 
-// 직급(rank) — 양 살롱 동일(데모). director/senior/designer.
-const DEMO_RANKS: DesignerRank[] = [
-  { id: "director", label: "원장" },
-  { id: "senior", label: "실장" },
-  { id: "designer", label: "디자이너" },
-];
+// 직급(rank) — 양 살롱 동일(데모). 신규 살롱 기본값과 동일 진실원천.
+const DEMO_RANKS: DesignerRank[] = DEFAULT_DESIGNER_RANKS;
 
 // 살롱은 그룹 메타 + 직급 + 오너 콘솔 토큰. 고정값(데모 결정적).
 const DEMO_SALONS: Salon[] = [

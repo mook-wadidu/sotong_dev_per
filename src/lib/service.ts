@@ -1127,7 +1127,12 @@ export async function getReturningContext(entryToken: string): Promise<{
 export async function getCustomerHistory(
   ownerToken: string,
   customerId: string,
-): Promise<{ customer: Customer; treatments: TreatmentRecord[] } | null> {
+): Promise<{
+  customer: Customer;
+  treatments: TreatmentRecord[];
+  /** 살롱 메뉴 id → 다국어 라벨(카르테의 살롱-프리픽스 serviceId 를 콘솔 로케일로 표기) */
+  serviceLabels: Record<string, LocalizedText>;
+} | null> {
   const salon = await authorizeConsole(ownerToken, "console");
   if (!salon) return null;
   const repo = getRepo();
@@ -1159,7 +1164,17 @@ export async function getCustomerHistory(
     createdAt: scoped[scoped.length - 1]?.visitedAt ?? new Date().toISOString(),
   };
 
-  return { customer, treatments: scoped };
+  // 살롱 메뉴 라벨맵 — 카르테 serviceId 는 `${salonSlug}:${catalogId}` 형식이라
+  // 전역 카탈로그로는 못 푼다. 살롱 서비스에서 id→다국어 라벨을 만들어 내려준다.
+  // 실제 카르테에 등장한 serviceId 만 추려 클라 props 를 가볍게 유지.
+  const neededIds = new Set(scoped.flatMap((tr) => tr.serviceIds));
+  const salonServices = await repo.listServices(salon.slug);
+  const serviceLabels: Record<string, LocalizedText> = {};
+  for (const s of salonServices) {
+    if (neededIds.has(s.id)) serviceLabels[s.id] = s.label;
+  }
+
+  return { customer, treatments: scoped, serviceLabels };
 }
 
 /** 손님 대면 가격(formatPrice) 헬퍼 — FE 가 손님 로케일로 표기할 때 사용. */

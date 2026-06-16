@@ -66,6 +66,7 @@ export default async function CustomerHistoryPage({
       <CustomerHistory
         locale={locale as Locale}
         treatments={data.treatments}
+        serviceLabelMap={data.serviceLabels}
       />
     </AdminShell>
   );

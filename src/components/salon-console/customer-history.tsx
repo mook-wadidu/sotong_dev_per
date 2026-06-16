@@ -4,7 +4,12 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Badge, Card, CardContent } from "@/components/ui";
 import { serviceLabels } from "@/lib/catalog";
-import type { Locale, ThreeLevel, TreatmentRecord } from "@/lib/domain/types";
+import type {
+  Locale,
+  LocalizedText,
+  ThreeLevel,
+  TreatmentRecord,
+} from "@/lib/domain/types";
 
 const INTL_LOCALE: Record<Locale, string> = {
   ko: "ko-KR",
@@ -33,9 +38,12 @@ function formatVisitedAt(iso: string, locale: Locale): string {
 export function CustomerHistory({
   locale,
   treatments,
+  serviceLabelMap,
 }: {
   locale: Locale;
   treatments: TreatmentRecord[];
+  /** 살롱 메뉴 id → 다국어 라벨(살롱-프리픽스 serviceId 해석용). 전역 카탈로그보다 우선. */
+  serviceLabelMap?: Record<string, LocalizedText>;
 }) {
   const t = useTranslations("Admin");
 
@@ -59,10 +67,13 @@ export function CustomerHistory({
       </p>
       <ol className="space-y-3">
         {treatments.map((rec, i) => {
-          // serviceLabels 는 카탈로그에 없는 id 를 떨어뜨리므로, 전부 미스면 raw id 폴백.
-          const labels = serviceLabels(rec.serviceIds, locale);
-          const services =
-            labels.length > 0 ? labels : rec.serviceIds;
+          // serviceId 는 `${salonSlug}:${catalogId}` 형식 → 살롱 라벨맵을 우선 사용,
+          // 없으면 전역 카탈로그, 그래도 없으면 raw id 폴백.
+          const services = rec.serviceIds.map((id) => {
+            const loc = serviceLabelMap?.[id];
+            if (loc) return loc[locale] ?? loc.ko;
+            return serviceLabels([id], locale)[0] ?? id;
+          });
           const grade = gradeLabel(rec.stateGrade);
           return (
             <li key={rec.id}>

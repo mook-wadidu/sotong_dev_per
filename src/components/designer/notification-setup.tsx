@@ -22,7 +22,13 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return output;
 }
 
-type Status = "loading" | "unsupported" | "off" | "on" | "denied";
+type Status =
+  | "loading"
+  | "unsupported"
+  | "needsInstall"
+  | "off"
+  | "on"
+  | "denied";
 
 export function NotificationSetup({
   staffToken,
@@ -35,13 +41,29 @@ export function NotificationSetup({
   const t = useTranslations("Designer");
   const [status, setStatus] = React.useState<Status>("loading");
   const [pending, setPending] = React.useState(false);
-  const [needsInstall, setNeedsInstall] = React.useState(false);
 
   // 마운트 시: 지원 여부 + 현재 권한/구독 상태 점검.
   React.useEffect(() => {
     let cancelled = false;
     // 지원/권한/구독 점검은 외부 시스템 조회 → effect 비동기 분기에서 setState.
     (async () => {
+      // iOS 는 '홈 화면에 추가'한 PWA(standalone)에서만 웹푸시가 동작한다.
+      // Safari 탭에선 PushManager 자체가 없어 supported=false 가 되므로, 그 전에
+      // iOS 를 먼저 가려 "지원 안 함"이 아니라 "설치 안내"를 띄운다.
+      const ua = navigator.userAgent || "";
+      const isIOS =
+        /iPhone|iPad|iPod/.test(ua) ||
+        // iPadOS 13+ 는 UA 가 Mac 으로 보고됨 → 터치 지원으로 식별
+        (navigator.platform === "MacIntel" &&
+          (navigator.maxTouchPoints ?? 0) > 1);
+      const standalone =
+        window.matchMedia?.("(display-mode: standalone)").matches ||
+        (navigator as Navigator & { standalone?: boolean }).standalone === true;
+      if (isIOS && !standalone) {
+        if (!cancelled) setStatus("needsInstall");
+        return;
+      }
+
       const supported =
         typeof navigator !== "undefined" &&
         "serviceWorker" in navigator &&
@@ -52,14 +74,6 @@ export function NotificationSetup({
         if (!cancelled) setStatus("unsupported");
         return;
       }
-
-      // iOS 는 홈 화면 설치(standalone) 후에만 푸시가 동작한다.
-      const ua = navigator.userAgent || "";
-      const isIOS = /iPhone|iPad|iPod/.test(ua);
-      const standalone =
-        window.matchMedia?.("(display-mode: standalone)").matches ||
-        (navigator as Navigator & { standalone?: boolean }).standalone === true;
-      if (isIOS && !standalone && !cancelled) setNeedsInstall(true);
 
       if (Notification.permission === "denied") {
         if (!cancelled) setStatus("denied");
@@ -149,24 +163,25 @@ export function NotificationSetup({
         </p>
       )}
 
-      {status === "off" &&
-        (needsInstall ? (
-          <p className="mt-3 text-xs text-muted-foreground">
-            {t("notify.iosHint")}
-          </p>
-        ) : (
-          <div className="mt-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={enable}
-              disabled={pending}
-            >
-              {pending ? t("notify.enabling") : t("notify.enable")}
-            </Button>
-          </div>
-        ))}
+      {status === "needsInstall" && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          {t("notify.iosHint")}
+        </p>
+      )}
+
+      {status === "off" && (
+        <div className="mt-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={enable}
+            disabled={pending}
+          >
+            {pending ? t("notify.enabling") : t("notify.enable")}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

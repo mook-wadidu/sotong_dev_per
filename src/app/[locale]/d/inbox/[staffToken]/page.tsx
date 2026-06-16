@@ -17,6 +17,21 @@ import type {
 import type { ConsultationStatus } from "@/lib/domain/types";
 
 /**
+ * 인박스별 매니페스트 링크 — '홈 화면에 추가'로 만든 PWA 가 이 인박스로 열리게 한다
+ * (전역 매니페스트의 start_url=/ko 덮어쓰기). iOS 16.4+ 가 start_url 을 사용.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; staffToken: string }>;
+}) {
+  const { locale, staffToken } = await params;
+  return {
+    manifest: `/${locale}/d/inbox/${staffToken}/manifest.webmanifest`,
+  };
+}
+
+/**
  * D1 — 디자이너 개인 인박스 (디자이너 staffToken).
  * 서버 컴포넌트: getDesignerInbox(staffToken) → null 이면 안내.
  * '내 손님'(mine) + '미배정'(unassigned, 각 항목에 '내 손님으로 가져오기').

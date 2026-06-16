@@ -346,6 +346,16 @@ export class MemoryRepo implements Repo {
     }
   }
 
+  async updateSalonOwnerToken(
+    salonSlug: string,
+    ownerToken: string,
+  ): Promise<void> {
+    const salon = store.salons.get(salonSlug);
+    // 살롱은 slug 로 보관되고 ownerToken 은 필드 — getSalonByOwnerToken 은 스캔이라
+    // 필드만 바꾸면 새 토큰으로 조회되고 옛 토큰은 자동 무효화된다.
+    if (salon) store.salons.set(salonSlug, { ...salon, ownerToken });
+  }
+
   async getDesignerByStaffToken(t: string): Promise<Designer | null> {
     if (!t) return null;
     for (const d of store.designers.values()) {

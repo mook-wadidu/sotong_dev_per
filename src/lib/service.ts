@@ -1,4 +1,5 @@
 import "server-only";
+import { randomBytes } from "node:crypto";
 import { getRepo } from "@/lib/db";
 import {
   DEFAULT_DESIGNER_RANKS,
@@ -1798,6 +1799,23 @@ export async function rotateSalonEntryKey(
     entryPath: customerEntryPath(entryToken, "ja"),
     version,
   };
+}
+
+/**
+ * 오너 콘솔 접근 토큰(ownerToken) 회전 — 새 강한 랜덤으로 교체.
+ * 기존 콘솔 링크(/ko/s/{old})는 즉시 무효화된다(유출 대응/재발급).
+ * authorizeConsole 게이트(기존 토큰 보유자=어드민 패널 또는 오너만 호출 가능).
+ * 살롱은 slug 로 식별되므로 어드민 패널은 회전 후 재조회(by slug)로 새 토큰을 받는다.
+ */
+export async function rotateOwnerToken(
+  ownerToken: string,
+): Promise<{ ok: boolean; ownerToken?: string; consolePath?: string }> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return { ok: false };
+  const repo = getRepo();
+  const next = `owner_${randomBytes(24).toString("base64url")}`;
+  await repo.updateSalonOwnerToken(salon.slug, next);
+  return { ok: true, ownerToken: next, consolePath: salonConsolePath(next) };
 }
 
 /** 디자이너 QR 재발급(콘솔) — 그 살롱 소속 디자이너만, entryKeyVersion+1. */

@@ -7,6 +7,7 @@ import { SalonQR } from "@/components/admin/salon-qr";
 import {
   rotateSalonEntryKey,
   rotateDesignerEntryKey,
+  rotateOwnerToken,
 } from "@/lib/actions";
 import { salonConsolePath } from "@/lib/links";
 import type { AdminSalon } from "@/lib/db/types";
@@ -58,6 +59,21 @@ export function SalonManage({
   const [rotatingDesigner, setRotatingDesigner] = React.useState<string | null>(
     null,
   );
+  const [rotatingOwner, setRotatingOwner] = React.useState(false);
+
+  const onRotateOwner = async () => {
+    if (!window.confirm(t("manage.rotateOwnerConfirm"))) return;
+    setRotatingOwner(true);
+    const res = await rotateOwnerToken(ownerToken);
+    setRotatingOwner(false);
+    if (res.ok) {
+      toast.success(t("manage.ownerRotated"));
+      // 살롱은 slug 로 식별 → 어드민 페이지 재조회 시 새 ownerToken 으로 패널 갱신.
+      onChanged();
+    } else {
+      toast.error(t("console.error"));
+    }
+  };
 
   const onRotateSalon = async () => {
     if (!window.confirm(t("manage.rotateConfirm"))) return;
@@ -100,6 +116,17 @@ export function SalonManage({
       <div className="mt-4 space-y-2">
         <CredRow label={t("manage.ownerToken")} value={ownerToken} />
         <CredRow label={t("manage.consoleLink")} value={consoleUrl} />
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onRotateOwner}
+            disabled={rotatingOwner}
+          >
+            {t("manage.rotateOwner")}
+          </Button>
+        </div>
       </div>
 
       {/* QR */}

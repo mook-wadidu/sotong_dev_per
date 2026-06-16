@@ -30,6 +30,9 @@
     "rotate": "Regenerate QR",
     "rotateConfirm": "Regenerating the QR will break the existing QR/link. Continue?",
     "rotated": "QR regenerated",
+    "rotateOwner": "Regenerate console token",
+    "rotateOwnerConfirm": "Regenerating the console token will break the existing console link. You'll need to re-share the new link with the salon. Continue?",
+    "ownerRotated": "Console token regenerated",
     "selectTitle": "Select a salon to manage",
     "selectHint": "Pick a salon to see its access info and full editing (menu, designers, ranks, QR, intakes).",
     "notFound": "Salon not found."

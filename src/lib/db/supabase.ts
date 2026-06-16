@@ -515,6 +515,17 @@ export class SupabaseRepo implements Repo {
     if (error) fail("updateSalonRanks", error);
   }
 
+  async updateSalonOwnerToken(
+    salonSlug: string,
+    ownerToken: string,
+  ): Promise<void> {
+    const { error } = await this.client
+      .from("salons")
+      .update({ owner_token: ownerToken })
+      .eq("slug", salonSlug);
+    if (error) fail("updateSalonOwnerToken", error);
+  }
+
   /* ── 디자이너(스태프) ──────────────────────────────────── */
   async getDesignerByStaffToken(t: string): Promise<Designer | null> {
     if (!t) return null;

@@ -18,6 +18,7 @@ import {
   saveDesignerPush,
   rotateSalonEntryKey as rotateSalonEntryKeySvc,
   rotateDesignerEntryKey as rotateDesignerEntryKeySvc,
+  rotateOwnerToken as rotateOwnerTokenSvc,
   salonDeleteService as salonDeleteServiceSvc,
   salonUpdateRanks as salonUpdateRanksSvc,
   salonUpsertCategory as salonUpsertCategorySvc,
@@ -262,6 +263,13 @@ export async function rotateDesignerEntryKey(input: {
   designerId: string;
 }): Promise<{ ok: boolean; entryToken?: string; entryPath?: string; version?: number }> {
   return rotateDesignerEntryKeySvc(input);
+}
+
+/** 오너 콘솔 토큰 회전 — 새 랜덤 ownerToken 발급(기존 콘솔 링크 무효화). */
+export async function rotateOwnerToken(
+  ownerToken: string,
+): Promise<{ ok: boolean; ownerToken?: string; consolePath?: string }> {
+  return rotateOwnerTokenSvc(ownerToken);
 }
 
 /* ── 플랫폼 어드민: 살롱/디자이너 생성 (adminKey 검증) ──── */

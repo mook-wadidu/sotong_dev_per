@@ -318,6 +318,8 @@ export interface Repo {
   updateSalonEntryKeyVersion(slug: string, version: number): Promise<void>;
   /** 살롱 디자이너 직급 정의 교체(콘솔 직급 편집) — designer_ranks 통째 갱신 */
   updateSalonRanks(salonSlug: string, ranks: DesignerRank[]): Promise<void>;
+  /** 오너 콘솔 접근 토큰 회전 — 유출 시 새 랜덤으로 교체(기존 콘솔 링크 무효화) */
+  updateSalonOwnerToken(salonSlug: string, ownerToken: string): Promise<void>;
 
   /** 디자이너 조회 (살롱 1 : 디자이너 N) */
   getDesignerByStaffToken(token: string): Promise<Designer | null>;

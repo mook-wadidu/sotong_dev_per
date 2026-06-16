@@ -380,6 +380,17 @@ export class SupabaseRepo implements Repo {
     return toSalon(data as SalonRow);
   }
 
+  async updateSalonEntryKeyVersion(
+    slug: string,
+    version: number,
+  ): Promise<void> {
+    const { error } = await this.client
+      .from("salons")
+      .update({ entry_key_version: version })
+      .eq("slug", slug);
+    if (error) fail("updateSalonEntryKeyVersion", error);
+  }
+
   /* ── 디자이너(스태프) ──────────────────────────────────── */
   async getDesignerByStaffToken(t: string): Promise<Designer | null> {
     if (!t) return null;
@@ -630,6 +641,15 @@ export class SupabaseRepo implements Repo {
     if (error) fail("setReportToken", error);
   }
 
+  async scrubConsultationPii(redacted: Consultation): Promise<void> {
+    // 전화 컬럼 + intake JSONB 를 마스킹된 값으로 덮어쓴다(사진·자유텍스트 제거).
+    const { error } = await this.client
+      .from("consultations")
+      .update({ phone: redacted.phone ?? null, intake: redacted.intake })
+      .eq("id", redacted.id);
+    if (error) fail("scrubConsultationPii", error);
+  }
+
   /* ── 메시지 ───────────────────────────────────────────── */
   async addMessage(msg: NewMessage): Promise<Message> {
     const row = {
@@ -764,5 +784,23 @@ export class SupabaseRepo implements Repo {
     const { data, error } = await q;
     if (error) fail("listErrors", error);
     return ((data ?? []) as ErrorLogRow[]).map(toErrorLog);
+  }
+
+  /**
+   * 고정 윈도우 레이트리밋(P0) — 0003_rate_limits.sql 의 rate_limit_hit() RPC 로
+   * (bucket, window_start) 행을 원자적으로 +1 하고 증가 후 count 를 반환.
+   * 서버리스 멀티인스턴스에서도 공유 카운터가 보장된다.
+   * 실패(권한/네트워크 등) 시 0 을 돌려 서비스 차단을 유발하지 않는다(가용성 우선).
+   */
+  async rateLimitHit(bucket: string, windowStartMs: number): Promise<number> {
+    const { data, error } = await this.client.rpc("rate_limit_hit", {
+      p_bucket: bucket,
+      p_window_start: new Date(windowStartMs).toISOString(),
+    });
+    if (error) {
+      console.error("[sotong] rateLimitHit RPC failed", error);
+      return 0;
+    }
+    return typeof data === "number" ? data : 0;
   }
 }

@@ -58,10 +58,11 @@ export function MessageBubble({
           <p
             lang={originalLang}
             className={cn(
-              "mt-1.5 border-t pt-1.5 text-xs",
+              // 원문 가독성 상향(AUDIT UX P2): 크기·대비 소폭 올림.
+              "mt-1.5 border-t pt-1.5 text-[0.8rem] leading-snug",
               isMe
-                ? "border-white/30 text-white/85"
-                : "border-border text-muted-foreground",
+                ? "border-white/35 text-white/90"
+                : "border-border text-foreground/75",
             )}
           >
             {original}

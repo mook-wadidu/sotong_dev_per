@@ -42,6 +42,7 @@ interface Store {
   reports: Map<string, HairReport>; // reportToken -> report
   pushSubs: Map<string, PushSub>; // endpoint -> subscription
   errors: ErrorLog[];
+  rateBuckets: Map<string, number>; // `${bucket}|${windowStart}` -> count
 }
 
 // 직급(rank) — 양 살롱 동일(데모). director/senior/designer.
@@ -262,6 +263,7 @@ function freshStore(): Store {
     reports: new Map(),
     pushSubs: new Map(),
     errors: [],
+    rateBuckets: new Map(),
   };
 }
 
@@ -309,6 +311,14 @@ export class MemoryRepo implements Repo {
     };
     store.salons.set(salon.slug, salon);
     return salon;
+  }
+
+  async updateSalonEntryKeyVersion(
+    slug: string,
+    version: number,
+  ): Promise<void> {
+    const salon = store.salons.get(slug);
+    if (salon) store.salons.set(slug, { ...salon, entryKeyVersion: version });
   }
 
   async getDesignerByStaffToken(t: string): Promise<Designer | null> {
@@ -458,6 +468,13 @@ export class MemoryRepo implements Repo {
     }
   }
 
+  async scrubConsultationPii(redacted: Consultation): Promise<void> {
+    // 마스킹된 상담으로 store 항목을 교체(전화·사진·자유텍스트 제거 영속화).
+    if (store.consultations.has(redacted.id)) {
+      store.consultations.set(redacted.id, redacted);
+    }
+  }
+
   async addMessage(msg: NewMessage): Promise<Message> {
     const message: Message = {
       ...msg,
@@ -527,5 +544,19 @@ export class MemoryRepo implements Repo {
     if (opts?.salonSlug)
       list = list.filter((e) => e.salonSlug === opts.salonSlug);
     return opts?.limit ? list.slice(0, opts.limit) : [...list];
+  }
+
+  async rateLimitHit(bucket: string, windowStartMs: number): Promise<number> {
+    const key = `${bucket}|${windowStartMs}`;
+    const next = (store.rateBuckets.get(key) ?? 0) + 1;
+    store.rateBuckets.set(key, next);
+    // 가벼운 GC: 맵이 너무 커지면 현재 윈도우보다 오래된 키만 부분 삭제(전체 clear 회피).
+    if (store.rateBuckets.size > 5000) {
+      for (const k of store.rateBuckets.keys()) {
+        const ws = Number(k.slice(k.lastIndexOf("|") + 1));
+        if (ws < windowStartMs) store.rateBuckets.delete(k);
+      }
+    }
+    return next;
   }
 }

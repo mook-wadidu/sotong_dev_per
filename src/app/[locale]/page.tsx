@@ -5,7 +5,7 @@ import { routing } from "@/i18n/routing";
 import { config } from "@/lib/config";
 import { makeSalonEntryToken } from "@/lib/entry";
 import { getSalonInfo } from "@/lib/service";
-import { customerEntryPath, adminPath } from "@/lib/links";
+import { customerEntryPath, adminGatePath } from "@/lib/links";
 import { buttonVariants } from "@/components/ui/button";
 import { MobileFrame, ScreenBody } from "@/components/ui/mobile-frame";
 import { GlobeIcon } from "@/components/icons";
@@ -93,7 +93,7 @@ export default async function Home({
         {/* 직원/운영자 진입 (부차적, 손님 혼란 방지 위해 약하게) */}
         <div className="animate-fade text-center">
           <Link
-            href={adminPath(config.adminToken)}
+            href={adminGatePath(locale as Locale)}
             className={cn(
               buttonVariants({ variant: "link", size: "sm" }),
               "text-muted-foreground hover:text-accent-text",

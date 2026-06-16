@@ -37,6 +37,7 @@
       "skip": "Continue without photos",
       "uploading": "Uploading…",
       "retry": "Upload again",
+      "someFailed": "Couldn't upload {failed} of {total} photo(s). Please try again.",
       "remove": "Remove"
     },
     "face": {
@@ -76,7 +77,9 @@
     },
     "consent": {
       "label": "I agree to the collection of my information and photos for style consultation.",
-      "detail": "Your information is used only for consultation and records, and is deleted after a set period following service.",
+      "detail": "Your information (including contact and photos) is used only for consultation and records. It is kept for about 90 days after the consultation, after which your contact and photos are deleted or masked.",
+      "crossBorder": "To enable smooth multilingual consultation, your input is automatically translated and summarized, which transfers it abroad to Google LLC's Gemini AI (USA). Data storage is entrusted to Supabase.",
+      "policyLink": "See our Privacy Policy for details.",
       "required": "Consent is required to continue"
     },
     "back": "Back",

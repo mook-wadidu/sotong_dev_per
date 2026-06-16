@@ -6,6 +6,7 @@ import {
   ScreenBody,
 } from "@/components/ui";
 import { RecordForm } from "@/components/designer/record-form";
+import { BackToInbox } from "@/components/designer/back-to-inbox";
 
 /**
  * D5 — 30초 기록 → 리포트 발송(ko 고정).
@@ -34,11 +35,17 @@ export default async function DesignerReportPage({
     );
   }
 
-  const { consultation } = view;
+  const { consultation, staffToken } = view;
 
   return (
     <MobileFrame tone="muted">
-      <ScreenHeader title={t("record.title")} subtitle={t("record.subtitle")} />
+      <ScreenHeader
+        title={t("record.title")}
+        subtitle={t("record.subtitle")}
+        leading={
+          <BackToInbox staffToken={staffToken} label={t("inbox.backToInbox")} />
+        }
+      />
       <ScreenBody>
         <RecordForm
           token={token}
@@ -57,6 +64,7 @@ export default async function DesignerReportPage({
             finishing: t("record.finishing"),
             sent: t("record.sent"),
             failed: t("record.failed"),
+            needInput: t("record.needInput"),
             openReport: t("record.openReport"),
             gradeHigh: t("record.grade.high"),
             gradeMid: t("record.grade.mid"),

@@ -9,6 +9,7 @@ import {
 import { ConsultationListItem } from "@/components/designer/consultation-list-item";
 import { AssignButton } from "@/components/designer/assign-button";
 import { NotificationSetup } from "@/components/designer/notification-setup";
+import { InboxRefresh } from "@/components/designer/inbox-refresh";
 import { config } from "@/lib/config";
 import type {
   ConsultationListItem as Item,
@@ -69,7 +70,16 @@ export default async function DesignerInboxPage({
 
   return (
     <MobileFrame tone="muted">
-      <ScreenHeader title={salon.name} subtitle={designer.name} />
+      <ScreenHeader
+        title={salon.name}
+        subtitle={designer.name}
+        trailing={
+          <InboxRefresh
+            label={t("inbox.refresh")}
+            refreshingLabel={t("inbox.refreshing")}
+          />
+        }
+      />
       <ScreenBody className="space-y-5">
         {/* 웹푸시 알림 설정 (PWA) */}
         <NotificationSetup

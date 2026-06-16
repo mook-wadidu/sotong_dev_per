@@ -1,16 +1,18 @@
 import "server-only";
 import { getRepo } from "@/lib/db";
-import type {
-  AdminDesigner,
-  AdminSalon,
-  ConsultationListItem,
-  Designer,
-  DesignerRank,
-  ErrorLog,
-  ErrorSeverity,
-  Salon,
-  SalonService,
-  SalonServiceCategory,
+import {
+  toPublicSalon,
+  type AdminDesigner,
+  type AdminSalon,
+  type ConsultationListItem,
+  type Designer,
+  type DesignerRank,
+  type ErrorLog,
+  type ErrorSeverity,
+  type PublicSalon,
+  type Salon,
+  type SalonService,
+  type SalonServiceCategory,
 } from "@/lib/db/types";
 import type { LocalizedText } from "@/lib/domain/types";
 import { getAi } from "@/lib/ai";
@@ -55,11 +57,11 @@ import {
   type YesNoUnknown,
 } from "@/lib/domain/types";
 
-/* ── 레이트리밋 (인메모리 슬라이딩 윈도우) ─────────────────
- * QR 토큰/세션당 분당 상한으로 위조·어뷰즈 폭주를 차단(P0-10).
- * 단일 프로세스 한정(memory 드라이버와 동일 가정). supabase 전환 시 별도 보강 필요. */
-const RATE_BUCKETS = new Map<string, number[]>();
-
+/* ── 레이트리밋 (고정 윈도우, 공유 스토어) ─────────────────────
+ * QR 토큰/세션당 윈도우 상한으로 위조·어뷰즈 폭주를 차단(P0).
+ * 저장은 repo.rateLimitHit 에 위임 — supabase 드라이버는 DB 백드(서버리스 멀티인스턴스
+ * 공유), memory 드라이버는 인프로세스 폴백. 윈도우 시작을 floor 로 양자화해
+ * 같은 키의 같은 윈도우가 모든 인스턴스에서 동일 버킷을 쓰도록 한다. */
 class RateLimitError extends Error {
   constructor(msg = "요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.") {
     super(msg);
@@ -67,38 +69,91 @@ class RateLimitError extends Error {
   }
 }
 
-/** key 에 대해 windowMs 내 최대 max 회 허용. 초과 시 false. */
-function rateAllow(key: string, max: number, windowMs: number): boolean {
-  const nowMs = Date.now();
-  const cutoff = nowMs - windowMs;
-  const hits = (RATE_BUCKETS.get(key) ?? []).filter((t) => t > cutoff);
-  if (hits.length >= max) {
-    RATE_BUCKETS.set(key, hits);
-    return false;
-  }
-  hits.push(nowMs);
-  RATE_BUCKETS.set(key, hits);
-  // 가벼운 GC: 버킷이 너무 커지면 자른다.
-  if (RATE_BUCKETS.size > 5000) RATE_BUCKETS.clear();
-  return true;
-}
-
+/**
+ * key 에 대해 windowMs 윈도우 내 최대 max 회 허용. 초과 시 logIssue + throw.
+ * repo.rateLimitHit 의 증가 후 count 가 max 를 넘으면 차단한다.
+ */
 async function enforceRate(
   key: string,
   max: number,
   windowMs: number,
   ctx: { salonSlug?: string; source: string; consultationId?: string },
 ): Promise<void> {
-  if (rateAllow(key, max, windowMs)) return;
+  const windowStart = Math.floor(Date.now() / windowMs) * windowMs;
+  let count: number;
+  try {
+    count = await getRepo().rateLimitHit(key, windowStart);
+  } catch (e) {
+    // 리미터 자체 실패는 서비스를 막지 않는다(가용성 우선) — 흔적만 남긴다.
+    console.error("[sotong] enforceRate failed (allowing)", e);
+    return;
+  }
+  // count===0 은 리미터 비가용(폴백 통과). 정상 경로는 1 이상.
+  if (count === 0 || count <= max) return;
   await logIssue({
     salonSlug: ctx.salonSlug,
     severity: "warning",
     source: ctx.source,
     message: "레이트리밋 초과",
-    detail: `key=${key} max=${max}/${windowMs}ms`,
+    detail: `key=${key} count=${count} max=${max}/${windowMs}ms`,
     consultationId: ctx.consultationId,
   });
   throw new RateLimitError();
+}
+
+/* ── 사진 dataURL 검증 (서버 입력 경계, P0) ───────────────────
+ * 클라가 서버액션을 직접 호출해 거대/임의 dataURL 을 무제한 저장하는 어뷰즈를 막는다.
+ * - 개수 ≤ MAX_PHOTOS
+ * - 각 dataURL 길이 ≤ MAX_DATAURL_LEN (~1.5MB; base64 는 원본의 ~1.33배)
+ * - MIME 화이트리스트: jpeg/png/webp 만(svg+xml 등 거부) */
+const MAX_PHOTOS = 5;
+const MAX_DATAURL_LEN = 1_500_000;
+const DATAURL_RE = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+
+/** 단일 사진 dataURL 검증 — 통과 시 true. */
+function isValidPhotoDataUrl(url: unknown): url is string {
+  return (
+    typeof url === "string" &&
+    url.length <= MAX_DATAURL_LEN &&
+    DATAURL_RE.test(url)
+  );
+}
+
+class PhotoValidationError extends Error {
+  constructor(msg = "사진 형식이 올바르지 않습니다.") {
+    super(msg);
+    this.name = "PhotoValidationError";
+  }
+}
+
+/**
+ * 사진 배열 검증 — 개수/길이/MIME 위반 시 logIssue + throw.
+ * undefined 는 허용(사진 없음). 위반 1건이라도 있으면 전체 거부(부분 저장 방지).
+ */
+async function assertValidPhotos(
+  urls: string[] | undefined,
+  ctx: { salonSlug?: string; source: string; consultationId?: string },
+): Promise<void> {
+  if (!urls || urls.length === 0) return;
+  const reject = async (reason: string): Promise<never> => {
+    await logIssue({
+      salonSlug: ctx.salonSlug,
+      severity: "warning",
+      source: ctx.source,
+      message: "사진 dataURL 검증 실패(거부)",
+      detail: reason,
+      consultationId: ctx.consultationId,
+    });
+    throw new PhotoValidationError();
+  };
+  if (urls.length > MAX_PHOTOS) {
+    return reject(`개수 초과 ${urls.length}>${MAX_PHOTOS}`);
+  }
+  for (const url of urls) {
+    if (!isValidPhotoDataUrl(url)) {
+      return reject(`형식/길이 위반 len=${(url as string)?.length ?? 0}`);
+    }
+  }
 }
 
 /* ── 에러 로깅 (어드민 모니터링용) ─────────────────────── */
@@ -134,6 +189,9 @@ export async function saveDesignerPush(
   subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
 ): Promise<{ ok: boolean }> {
   const repo = getRepo();
+  // 레이트리밋(P0) — staffToken 당 분당 구독 저장 상한(구독 행 폭증 방지).
+  // 초과 시 logIssue+throw 대신 메인 플로우 보호 차원에서 throw 를 그대로 전파(어뷰즈 차단).
+  await enforceRate(`push:${staffToken}`, 20, 60_000, { source: "push" });
   const designer = await repo.getDesignerByStaffToken(staffToken);
   if (!designer) {
     await logIssue({
@@ -298,6 +356,10 @@ export async function getIntakeMenu(
   entryToken: string,
 ): Promise<IntakeMenu | null> {
   const repo = getRepo();
+  // 레이트리밋(P0) — 입장 토큰당 분당 메뉴 조회 상한.
+  await enforceRate(`intake-menu:${entryToken}`, 60, 60_000, {
+    source: "intake-menu",
+  });
   const resolved = await resolveEntry(entryToken, "intake-menu");
   if (!resolved) return null;
   const salon = await repo.getSalon(resolved.salonSlug);
@@ -416,6 +478,12 @@ export async function startConsultation(input: {
 
   // 2) 레이트리밋 — 입장 토큰당 분당 상담 생성 상한
   await enforceRate(`intake:${input.entryToken}`, 8, 60_000, {
+    salonSlug,
+    source: "intake",
+  });
+
+  // 2.5) 사진 dataURL 검증(P0) — 개수/길이/MIME 위반 시 거부(거대·임의 dataURL 어뷰즈 차단)
+  await assertValidPhotos(input.intake.stylePhotoUrls, {
     salonSlug,
     source: "intake",
   });
@@ -539,6 +607,8 @@ export async function getSalonInfo(slug: string): Promise<Salon | null> {
 export async function getSalonInfoByEntry(
   entryToken: string,
 ): Promise<{ salon: Salon | null; designer?: Designer }> {
+  // 레이트리밋(P0) — 입장 토큰당 분당 C1 조회 상한(토큰 위조 스캔/폭주 방지).
+  await enforceRate(`entry:${entryToken}`, 60, 60_000, { source: "C1" });
   const resolved = await resolveEntry(entryToken, "C1");
   if (!resolved) return { salon: null };
   const salon = await getRepo().getSalon(resolved.salonSlug);
@@ -548,9 +618,16 @@ export async function getSalonInfoByEntry(
 
 /* ── 손님/디자이너 뷰 ──────────────────────────────────── */
 export interface ConsultationView {
-  salon: Salon | null;
+  /** 비밀(ownerToken 등) 제거 투영 — 서버컴포넌트 경유라도 살롱 비밀은 싣지 않는다. */
+  salon: PublicSalon | null;
   consultation: Consultation;
   messages: Message[];
+}
+
+/** 디자이너 뷰 — 인박스 백버튼 동선을 위해 그 디자이너 staffToken 을 함께 반환(UX). */
+export interface DesignerConsultationView extends ConsultationView {
+  /** 배정된 디자이너의 staffToken(인박스 링크용). 미배정이면 undefined. */
+  staffToken?: string;
 }
 
 export async function getCustomerView(
@@ -559,8 +636,9 @@ export async function getCustomerView(
   const repo = getRepo();
   const c = await repo.getByConsultationToken(consultationToken);
   if (!c) return null;
+  const salon = await repo.getSalon(c.salonSlug);
   return {
-    salon: await repo.getSalon(c.salonSlug),
+    salon: salon ? toPublicSalon(salon) : null,
     // 손님 뷰는 phone 미반환(PII, P1-37). intake.phone 도 함께 제거.
     consultation: stripPhone(c),
     messages: await repo.listMessages(c.id),
@@ -578,14 +656,23 @@ function stripPhone(c: Consultation): Consultation {
 
 export async function getDesignerView(
   designerToken: string,
-): Promise<ConsultationView | null> {
+): Promise<DesignerConsultationView | null> {
   const repo = getRepo();
   const c = await repo.getByDesignerToken(designerToken);
   if (!c) return null;
+  const salon = await repo.getSalon(c.salonSlug);
+  // 배정된 디자이너면 인박스 백버튼용 staffToken 을 함께 반환(UX). 미배정이면 생략.
+  // 주의: staffToken 은 인박스 접근 비밀이므로 디자이너 인박스 경로 외 클라 노출 금지.
+  let staffToken: string | undefined;
+  if (c.designerId) {
+    const designer = await repo.getDesignerById(c.designerId);
+    staffToken = designer?.staffToken;
+  }
   return {
-    salon: await repo.getSalon(c.salonSlug),
+    salon: salon ? toPublicSalon(salon) : null,
     consultation: c,
     messages: await repo.listMessages(c.id),
+    staffToken,
   };
 }
 
@@ -732,6 +819,11 @@ export async function getMessagesSince(input: {
   sinceIso?: string;
 }): Promise<Message[]> {
   const repo = getRepo();
+  // 폴링 레이트리밋(P0) — 토큰+역할당 분당 상한. 폴 폭주로 커넥션풀 고갈 방지.
+  // 정상 폴 간격(클라 POLL_MS) 대비 넉넉히 두되 폭주는 차단.
+  await enforceRate(`poll:${input.role}:${input.token}`, 120, 60_000, {
+    source: "poll",
+  });
   const c =
     input.role === "customer"
       ? await repo.getByConsultationToken(input.token)
@@ -750,6 +842,22 @@ export async function completeConsultation(input: {
   const repo = getRepo();
   const c = await repo.getByDesignerToken(input.designerToken);
   if (!c || !c.summary) return null;
+
+  // 레이트리밋(P0) — designerToken 당 분당 완료/리포트 시도 상한.
+  // 반복 호출로 Gemini draftReport 과금/커넥션 폭주를 막는다.
+  await enforceRate(`complete:${input.designerToken}`, 6, 60_000, {
+    salonSlug: c.salonSlug,
+    source: "report",
+    consultationId: c.id,
+  });
+
+  // 사진 dataURL 검증(P0) — before/after 각각 개수/길이/MIME 화이트리스트.
+  await assertValidPhotos(
+    [input.beforePhotoUrl, input.afterPhotoUrl].filter(
+      (u): u is string => typeof u === "string",
+    ),
+    { salonSlug: c.salonSlug, source: "report", consultationId: c.id },
+  );
 
   // 상태 전이 가드(P1): in_service / consulting 에서만 완료로 진행.
   if (c.status !== "in_service" && c.status !== "consulting") {
@@ -812,6 +920,8 @@ export async function completeConsultation(input: {
 export async function getReportView(
   reportToken: string,
 ): Promise<HairReport | null> {
+  // 레이트리밋(P0) — 리포트 토큰당 분당 조회 상한(capability URL 스캔/폭주 방지).
+  await enforceRate(`report:${reportToken}`, 60, 60_000, { source: "report" });
   return getRepo().getReport(reportToken);
 }
 
@@ -948,7 +1058,7 @@ export async function getAdminData(
  */
 export async function getDesignerInbox(staffToken: string): Promise<{
   designer: Designer;
-  salon: Salon;
+  salon: PublicSalon;
   mine: ConsultationListItem[];
   unassigned: ConsultationListItem[];
 } | null> {
@@ -982,7 +1092,7 @@ export async function getDesignerInbox(staffToken: string): Promise<{
   ]);
   return {
     designer,
-    salon,
+    salon: toPublicSalon(salon),
     mine: mine.map(toListItem),
     unassigned: unassigned.map(toListItem),
   };
@@ -1304,6 +1414,61 @@ export async function salonUpsertDesigner(input: {
     rankId,
   });
   return { ok: true, designer };
+}
+
+/* ──────────────────────────────────────────────────────────────
+ * QR 재발급(키 회전) — entryKeyVersion + 1 (P1).
+ * 유출/퇴사 QR 을 앱에서 폐기한다. 회전 후 기존 QR 은 resolveEntry 의
+ * 버전 대조에서 무효 처리되고, 새 토큰은 회전된 version 으로 재발급한다.
+ * 오너 콘솔(ownerToken) 권한으로 살롱·소속 디자이너 QR 을 재발급.
+ * ──────────────────────────────────────────────────────────────── */
+
+/** 살롱 공용 QR 재발급(콘솔) — entryKeyVersion+1 후 새 입장 토큰/경로 반환. */
+export async function rotateSalonEntryKey(
+  ownerToken: string,
+): Promise<{ ok: boolean; entryToken?: string; entryPath?: string; version?: number }> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return { ok: false };
+  const repo = getRepo();
+  const version = salon.entryKeyVersion + 1;
+  await repo.updateSalonEntryKeyVersion(salon.slug, version);
+  const entryToken = makeSalonEntryToken(salon.slug, version);
+  return {
+    ok: true,
+    entryToken,
+    entryPath: customerEntryPath(entryToken, "ja"),
+    version,
+  };
+}
+
+/** 디자이너 QR 재발급(콘솔) — 그 살롱 소속 디자이너만, entryKeyVersion+1. */
+export async function rotateDesignerEntryKey(input: {
+  ownerToken: string;
+  designerId: string;
+}): Promise<{ ok: boolean; entryToken?: string; entryPath?: string; version?: number }> {
+  const salon = await authorizeConsole(input.ownerToken, "console");
+  if (!salon) return { ok: false };
+  const repo = getRepo();
+  const existing = await repo.getDesignerById(input.designerId);
+  if (!existing || existing.salonSlug !== salon.slug) {
+    await logIssue({
+      salonSlug: salon.slug,
+      severity: "warning",
+      source: "console",
+      message: "디자이너 QR 재발급 대상 불일치(타 살롱/없음)",
+      detail: `id=${input.designerId}`,
+    });
+    return { ok: false };
+  }
+  const version = existing.entryKeyVersion + 1;
+  await repo.updateDesigner({ ...existing, entryKeyVersion: version });
+  const entryToken = makeDesignerEntryToken(existing.id, version);
+  return {
+    ok: true,
+    entryToken,
+    entryPath: customerEntryPath(entryToken, "ja"),
+    version,
+  };
 }
 
 /* ──────────────────────────────────────────────────────────────

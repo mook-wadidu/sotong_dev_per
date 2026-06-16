@@ -9,13 +9,20 @@ export function MobileFrame({
   className,
   children,
   tone = "default",
+  lang,
 }: {
   className?: string;
   children: React.ReactNode;
   tone?: "default" | "muted";
+  /**
+   * 콘텐츠 언어가 라우트 locale 과 다를 때 컨테이너 lang 을 덮어쓴다
+   * (예: ja 리포트가 /ko URL 로 열릴 때 — 자형/스크린리더 정확도, AUDIT C4).
+   */
+  lang?: string;
 }) {
   return (
     <div
+      lang={lang}
       className={cn(
         "mx-auto flex min-h-dvh w-full max-w-md flex-col",
         tone === "muted" ? "bg-muted" : "bg-background",

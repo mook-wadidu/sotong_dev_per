@@ -326,7 +326,7 @@ export function DesignerThread({
         open={valueSheet === "price"}
         onOpenChange={(o) => !o && setValueSheet(null)}
       >
-        <SheetContent>
+        <SheetContent closeLabel="닫기">
           <SheetHeader>
             <SheetTitle>{labels.pricePrompt}</SheetTitle>
             <SheetDescription>{labels.translatedNote}</SheetDescription>
@@ -362,7 +362,7 @@ export function DesignerThread({
         open={valueSheet === "time"}
         onOpenChange={(o) => !o && setValueSheet(null)}
       >
-        <SheetContent>
+        <SheetContent closeLabel="닫기">
           <SheetHeader>
             <SheetTitle>{labels.timePrompt}</SheetTitle>
             <SheetDescription>{labels.translatedNote}</SheetDescription>

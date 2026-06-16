@@ -49,6 +49,7 @@ type Labels = {
   finishing: string;
   sent: string;
   failed: string;
+  needInput: string;
   openReport: string;
   gradeHigh: string;
   gradeMid: string;
@@ -106,7 +107,19 @@ export function RecordForm({
     }
   };
 
+  // 최소 1개 필드는 채워야 발송(빈 리포트 전송 방지, AUDIT UX P2).
+  const hasAnyInput =
+    productIds.length > 0 ||
+    customProducts.length > 0 ||
+    grade !== null ||
+    Boolean(beforeUrl) ||
+    Boolean(afterUrl);
+
   const submit = () => {
+    if (!hasAnyInput) {
+      toast.error(labels.needInput);
+      return;
+    }
     startTransition(async () => {
       try {
         const res = await finishAndSendReport({

@@ -58,6 +58,12 @@ enabled = true
 schema_paths = []
 
 [db.seed]
+# ⚠️ 로컬/데모 전용. seed.sql 은 공개 평문 owner/staff 토큰을 포함하므로
+#    운영 reset 경로에 자동 적용되면 안 된다.
+#    - 로컬: `supabase db reset` 이 이 시드를 로드(데모 데이터 편의).
+#    - 운영: 링크된 운영 프로젝트에서 `db reset` 을 돌리지 말 것(데이터 파기 + 평문 토큰 시드).
+#      운영 마이그레이션은 `supabase db push` 로 스키마만 반영하고, 시드는 적용하지 않는다.
+#      운영 살롱/디자이너는 어드민 온보딩으로 강한 랜덤 토큰을 발급/회전한다.
 # If enabled, seeds the database after migrations during a db reset.
 enabled = true
 # Specifies an ordered list of seed files to load during db reset.

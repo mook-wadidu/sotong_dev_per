@@ -105,6 +105,7 @@ export function SalonQR({
           className="flex-1"
           onClick={onCopy}
           disabled={!url}
+          aria-label={`${salonName} ${labels.copy}`}
         >
           {copied ? labels.copied : labels.copy}
         </Button>
@@ -115,6 +116,7 @@ export function SalonQR({
           className="flex-1"
           onClick={onPrint}
           disabled={!url}
+          aria-label={`${salonName} ${labels.print}`}
         >
           {labels.print}
         </Button>

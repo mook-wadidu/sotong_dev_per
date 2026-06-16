@@ -189,13 +189,17 @@ export function IntakeStepper({
         }
       />
 
-      <div className="px-4 pt-3">
+      <div className="space-y-1.5 px-4 pt-3">
         <ProgressSteps
           total={TOTAL_STEPS}
           current={step}
           label={t("intake.title")}
           valueText={t("intake.stepOf", { current: step, total: TOTAL_STEPS })}
         />
+        {/* 가시 단계 카운터 — 막대만으로는 8스텝 길이 인지가 약함(AUDIT UX P2). */}
+        <p className="text-right text-xs font-medium tabular-nums text-muted-foreground">
+          {t("intake.stepOf", { current: step, total: TOTAL_STEPS })}
+        </p>
       </div>
 
       <ScreenBody className="space-y-5 pb-6">
@@ -390,14 +394,21 @@ function PhotosStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patc
       const room = MAX_PHOTOS - photos.length;
       const picked = Array.from(files).slice(0, Math.max(0, room));
       const urls: string[] = [];
+      let failed = 0;
       for (const f of picked) {
         try {
           urls.push(await resizeImageToDataUrl(f));
         } catch {
-          toast.error(t("intake.photos.retry"));
+          failed += 1;
         }
       }
       if (urls.length) patch({ stylePhotoUrls: [...photos, ...urls] });
+      // 파일마다 토스트를 띄우지 않고 1회로 집계(AUDIT UX P2) — 부분 누락 인지 쉽게.
+      if (failed > 0) {
+        toast.error(
+          t("intake.photos.someFailed", { failed, total: picked.length }),
+        );
+      }
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -423,7 +434,7 @@ function PhotosStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patc
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={url}
-              alt=""
+              alt={`${t("intake.step.photos")} ${i + 1}`}
               className="size-full object-cover"
             />
             <button
@@ -809,6 +820,7 @@ function ConsentStep({
   error: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const tCommon = useTranslations("Common");
   const [open, setOpen] = React.useState(false);
   return (
     <div className="space-y-3">
@@ -834,11 +846,19 @@ function ConsentStep({
       )}
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent>
+        <SheetContent closeLabel={tCommon("close")}>
           <SheetHeader>
             <SheetTitle>{t("intake.step.consent")}</SheetTitle>
             <SheetDescription>{t("intake.consent.detail")}</SheetDescription>
           </SheetHeader>
+          <div className="mt-4 space-y-3">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {t("intake.consent.crossBorder")}
+            </p>
+            <p className="text-xs font-medium text-muted-foreground">
+              {t("intake.consent.policyLink")}
+            </p>
+          </div>
         </SheetContent>
       </Sheet>
     </div>

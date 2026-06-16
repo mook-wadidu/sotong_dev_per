@@ -40,6 +40,9 @@ import type {
  *
  * 차별점(PRD §2.4): 미용 도메인 힌트를 프롬프트에 주입해 용어/톤을 맞춘다.
  */
+/** Gemini fetch 타임아웃(ms) — 초과 시 abort → catch → mock 폴백(무한 hang 방지, P0). */
+const GEMINI_TIMEOUT_MS = 9000;
+
 export class GeminiProvider implements AiProvider {
   readonly name = "gemini";
   private fallback = new MockProvider();
@@ -136,13 +139,28 @@ export class GeminiProvider implements AiProvider {
       generationConfig,
     };
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      // 외부 LLM 응답은 캐싱하지 않는다.
-      cache: "no-store",
-    });
+    // 타임아웃 가드(P0): Gemini 지연 시 무한 await 를 막고 catch→mock 폴백으로 흘린다.
+    // (운영 AI 지연 순간 손님/디자이너가 무한 스피너에 갇히지 않도록.)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        // 외부 LLM 응답은 캐싱하지 않는다.
+        cache: "no-store",
+        signal: controller.signal,
+      });
+    } catch (e) {
+      if (controller.signal.aborted) {
+        throw new Error(`Gemini timeout after ${GEMINI_TIMEOUT_MS}ms`);
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!res.ok) {
       const detail = await safeText(res);

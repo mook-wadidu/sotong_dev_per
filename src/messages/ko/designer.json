@@ -19,7 +19,10 @@
     "assign": "내 손님으로 가져오기",
     "assigning": "가져오는 중…",
     "assigned": "내 손님으로 가져왔어요",
-    "assignFailed": "가져오지 못했어요. 다시 시도해 주세요."
+    "assignFailed": "가져오지 못했어요. 다시 시도해 주세요.",
+    "refresh": "새로고침",
+    "refreshing": "새로고침 중…",
+    "backToInbox": "인박스"
   },
   "notify": {
     "title": "새 손님 알림",
@@ -36,6 +39,7 @@
   },
   "summary": {
     "title": "손님 요약",
+    "untitled": "상담 요약",
     "notFound": "상담을 찾을 수 없어요. 링크를 다시 확인해 주세요.",
     "nationality": "국적",
     "visit": "방문",
@@ -62,7 +66,7 @@
     "customer": "손님",
     "me": "나",
     "pending": "전송 중…",
-    "reportCta": "종료",
+    "reportCta": "시술 기록",
     "translatedNote": "손님 언어로 자동 번역됩니다",
     "sendError": "메시지를 보내지 못했어요. 다시 시도해 주세요.",
     "quickReplies": {
@@ -91,6 +95,7 @@
     "finishing": "발송 중…",
     "sent": "리포트를 발송했어요",
     "failed": "발송에 실패했어요. 다시 시도해 주세요.",
+    "needInput": "기록할 내용을 하나 이상 입력해 주세요.",
     "openReport": "손님 리포트 열기",
     "grade": {
       "high": "상",

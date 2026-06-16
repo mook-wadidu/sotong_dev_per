@@ -74,7 +74,13 @@ function CredRow({
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
         <p className="truncate font-mono text-xs text-foreground">{value}</p>
       </div>
-      <Button type="button" size="sm" variant="ghost" onClick={onCopy}>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        onClick={onCopy}
+        aria-label={`${label} ${t("qr.copy")}`}
+      >
         {t("qr.copy")}
       </Button>
     </div>

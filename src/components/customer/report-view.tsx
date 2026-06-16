@@ -85,7 +85,7 @@ export function ReportView({
   };
 
   return (
-    <MobileFrame tone="muted">
+    <MobileFrame tone="muted" lang={report.locale}>
       <ScreenHeader title={labels.title} subtitle={labels.subtitle} />
 
       <ScreenBody className="space-y-4 pb-8">

@@ -13,6 +13,7 @@ import {
   buttonVariants,
 } from "@/components/ui";
 import { StatusBadge } from "@/components/designer/status-badge";
+import { BackToInbox } from "@/components/designer/back-to-inbox";
 import {
   AlertIcon,
   SparkleIcon,
@@ -20,6 +21,7 @@ import {
   PriceTagIcon,
 } from "@/components/icons";
 import { designerThreadPath } from "@/lib/links";
+import { serviceLabels } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 import type { ConsultationStatus } from "@/lib/domain/types";
 
@@ -48,10 +50,18 @@ export default async function DesignerSummaryPage({
     );
   }
 
-  const { salon, consultation } = view;
+  const { salon, consultation, staffToken } = view;
   const s = consultation.summary;
   const intake = consultation.intake;
   const status = consultation.status;
+
+  // AI 요약 실패 시에도 'cut_women' 같은 raw id 가 제목으로 노출되지 않게(AUDIT UX P2):
+  // 카탈로그 라벨(ko) → 없으면 요약 시술명 → 그래도 없으면 안내 문구.
+  const headline =
+    s?.headline?.trim() ||
+    serviceLabels(intake.serviceIds, "ko").join(", ") ||
+    s?.services?.join(", ") ||
+    t("summary.untitled");
 
   const statusLabel = (st: ConsultationStatus): string => {
     switch (st) {
@@ -73,6 +83,9 @@ export default async function DesignerSummaryPage({
       <ScreenHeader
         title={salon?.name ?? t("summary.title")}
         subtitle={t("summary.title")}
+        leading={
+          <BackToInbox staffToken={staffToken} label={t("inbox.backToInbox")} />
+        }
         trailing={<StatusBadge status={status} label={statusLabel(status)} />}
       />
 
@@ -80,7 +93,7 @@ export default async function DesignerSummaryPage({
         {/* 헤드라인 + 핵심 배지 */}
         <div className="space-y-2.5">
           <h1 className="text-xl font-bold leading-snug tracking-tight">
-            {s?.headline ?? consultation.intake.serviceIds.join(", ")}
+            {headline}
           </h1>
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="outline">

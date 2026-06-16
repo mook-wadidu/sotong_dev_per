@@ -7,6 +7,7 @@ import {
   Badge,
 } from "@/components/ui";
 import { DesignerThread } from "@/components/designer/designer-thread";
+import { BackToInbox } from "@/components/designer/back-to-inbox";
 
 /**
  * D3 — 디자이너 ↔ 손님 번역 스레드(ko 고정).
@@ -34,7 +35,7 @@ export default async function DesignerThreadPage({
     );
   }
 
-  const { consultation, messages } = view;
+  const { consultation, messages, staffToken } = view;
   const s = consultation.summary;
 
   // price 칩 자동 프리필용 예상가(KRW won) — 인테이크 시술 합산.
@@ -49,6 +50,9 @@ export default async function DesignerThreadPage({
       <ScreenHeader
         title={t("thread.title")}
         subtitle={miniSubtitle}
+        leading={
+          <BackToInbox staffToken={staffToken} label={t("inbox.backToInbox")} />
+        }
         trailing={
           <div className="flex items-center gap-1">
             <Badge variant="outline">

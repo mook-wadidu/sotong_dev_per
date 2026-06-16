@@ -32,8 +32,10 @@ export const SheetContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     hideClose?: boolean;
+    /** 닫기 버튼 aria-label (i18n). 미지정 시 'Close'. */
+    closeLabel?: string;
   }
->(({ className, children, hideClose, ...props }, ref) => (
+>(({ className, children, hideClose, closeLabel = "Close", ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
     <DialogPrimitive.Content
@@ -53,7 +55,7 @@ export const SheetContent = React.forwardRef<
       {!hideClose ? (
         <DialogPrimitive.Close
           className="absolute right-3.5 top-3.5 inline-flex size-8 items-center justify-center rounded-full text-lg font-medium leading-none text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
-          aria-label="Close"
+          aria-label={closeLabel}
         >
           <span aria-hidden="true">×</span>
         </DialogPrimitive.Close>

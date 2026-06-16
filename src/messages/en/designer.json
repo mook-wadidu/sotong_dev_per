@@ -19,7 +19,10 @@
     "assign": "Take as my guest",
     "assigning": "Taking…",
     "assigned": "Added to your guests",
-    "assignFailed": "Couldn't take it. Please try again."
+    "assignFailed": "Couldn't take it. Please try again.",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…",
+    "backToInbox": "Inbox"
   },
   "notify": {
     "title": "새 손님 알림",
@@ -36,6 +39,7 @@
   },
   "summary": {
     "title": "Guest summary",
+    "untitled": "Consultation summary",
     "notFound": "Consultation not found. Please check the link.",
     "nationality": "Nationality",
     "visit": "Visit",
@@ -62,7 +66,7 @@
     "customer": "Guest",
     "me": "Me",
     "pending": "Sending…",
-    "reportCta": "Finish",
+    "reportCta": "Record service",
     "translatedNote": "Automatically translated into the guest's language",
     "sendError": "Couldn't send the message. Please try again.",
     "quickReplies": {
@@ -91,6 +95,7 @@
     "finishing": "Sending…",
     "sent": "Report sent",
     "failed": "Failed to send. Please try again.",
+    "needInput": "Please enter at least one detail to record.",
     "openReport": "Open guest report",
     "grade": {
       "high": "High",

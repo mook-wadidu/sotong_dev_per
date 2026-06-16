@@ -1,5 +1,12 @@
 -- 소통(Sotong) — seed
 -- 0001_core.sql 적용 후 로드 (config.toml [db.seed] sql_paths = ["./seed.sql"]).
+--
+-- ⚠️ 로컬/데모 전용. 운영 DB 에 절대 적용 금지.
+--   아래 owner_token / staff_token 은 공개 repo 에 박힌 고정 평문이라 "비밀"이 아니다.
+--   `supabase db reset` 의 [db.seed] 자동 로드는 로컬 한정으로만 사용하고,
+--   운영 환경에는 이 파일을 시드하지 말 것(운영 토큰은 어드민 온보딩으로 강한 랜덤 발급/회전).
+--   운영에 실수로 적용됐다면 즉시 owner_token/staff_token 을 회전해야 한다.
+--
 -- 정합 기준:
 --   * 살롱(그룹)  ← src/lib/db/memory.ts DEMO_SALONS (slug·이름·메타 고정값 동일)
 --   * 디자이너    ← src/lib/db/memory.ts DEMO_DESIGNERS (id·이름·staff_token 고정값 동일, 살롱당 2명)

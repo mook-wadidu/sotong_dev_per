@@ -48,7 +48,16 @@ export function salonConsolePath(ownerToken: string) {
   return `/ko/s/${ownerToken}`;
 }
 
-/** 어드민 경로 (key 필수 — MVP 단일 공유 키) */
+/**
+ * 어드민 키 입력 게이트 경로 (키 미포함 — 공개 링크용).
+ * 홈/공개 페이지에서는 adminPath(key) 대신 이 경로로만 링크해 키 노출을 막는다(P0).
+ */
+export function adminGatePath(locale: Locale = "ko") {
+  // 어드민 UI 는 ko 고정이지만, 게이트 진입 자체는 현재 locale 유지.
+  return `/${locale}/admin`;
+}
+
+/** 어드민 경로 (key 필수 — MVP 단일 공유 키). 게이트 통과 후 내부 네비게이션 전용. */
 export function adminPath(key: string, salonSlug?: string) {
   const q = new URLSearchParams({ key });
   if (salonSlug) q.set("salon", salonSlug);

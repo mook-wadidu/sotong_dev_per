@@ -14,6 +14,8 @@ import {
   getSalonInfoByEntry,
   postMessage,
   saveDesignerPush,
+  rotateSalonEntryKey as rotateSalonEntryKeySvc,
+  rotateDesignerEntryKey as rotateDesignerEntryKeySvc,
   salonDeleteService as salonDeleteServiceSvc,
   salonUpsertCategory as salonUpsertCategorySvc,
   salonUpsertDesigner as salonUpsertDesignerSvc,
@@ -34,24 +36,32 @@ import type {
   QuickReplyIntent,
   ThreeLevel,
 } from "@/lib/domain/types";
-import type {
-  ConsultationListItem,
-  Designer,
-  Salon,
-  SalonService,
-  SalonServiceCategory,
+import {
+  toPublicSalon,
+  toPublicDesigner,
+  type ConsultationListItem,
+  type Designer,
+  type PublicDesigner,
+  type PublicSalon,
+  type SalonService,
+  type SalonServiceCategory,
 } from "@/lib/db/types";
 
-/* ── 살롱 공개 정보 (어드민/내부) ───────────────────────── */
-export async function getSalon(slug: string): Promise<Salon | null> {
-  return getSalonInfo(slug);
+/* ── 살롱 공개 정보 (클라 도달 — 비밀 제거 투영) ─────────── */
+export async function getSalon(slug: string): Promise<PublicSalon | null> {
+  const salon = await getSalonInfo(slug);
+  return salon ? toPublicSalon(salon) : null;
 }
 
-/* ── 살롱 공개 정보 (C1 진입 — 입장 토큰 검증 후) ───────── */
+/* ── 살롱 공개 정보 (C1 진입 — 입장 토큰 검증 후, 비밀 제거 투영) ── */
 export async function getSalonByEntry(
   entryToken: string,
-): Promise<{ salon: Salon | null; designer?: Designer }> {
-  return getSalonInfoByEntry(entryToken);
+): Promise<{ salon: PublicSalon | null; designer?: PublicDesigner }> {
+  const { salon, designer } = await getSalonInfoByEntry(entryToken);
+  return {
+    salon: salon ? toPublicSalon(salon) : null,
+    designer: designer ? toPublicDesigner(designer) : undefined,
+  };
 }
 
 /* ── 손님: 인테이크 메뉴 (살롱별 편집 카탈로그, 입장 토큰 검증 후) ── */
@@ -104,7 +114,7 @@ export async function finishAndSendReport(input: {
 /* ── 디자이너: 개인 인박스 (디자이너 staffToken) ─────────── */
 export async function getDesignerInbox(staffToken: string): Promise<{
   designer: Designer;
-  salon: Salon;
+  salon: PublicSalon;
   mine: ConsultationListItem[];
   unassigned: ConsultationListItem[];
 } | null> {
@@ -199,6 +209,20 @@ export async function salonUpsertDesigner(input: {
   rankId?: string;
 }): Promise<{ ok: boolean; designer?: Designer }> {
   return salonUpsertDesignerSvc(input);
+}
+
+/* ── 살롱 콘솔: QR 재발급(키 회전, ownerToken 검증) ───────── */
+export async function rotateSalonEntryKey(
+  ownerToken: string,
+): Promise<{ ok: boolean; entryToken?: string; entryPath?: string; version?: number }> {
+  return rotateSalonEntryKeySvc(ownerToken);
+}
+
+export async function rotateDesignerEntryKey(input: {
+  ownerToken: string;
+  designerId: string;
+}): Promise<{ ok: boolean; entryToken?: string; entryPath?: string; version?: number }> {
+  return rotateDesignerEntryKeySvc(input);
 }
 
 /* ── 플랫폼 어드민: 살롱/디자이너 생성 (adminKey 검증) ──── */

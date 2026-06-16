@@ -19,7 +19,10 @@
     "assign": "担当として引き受ける",
     "assigning": "引き受け中…",
     "assigned": "担当として引き受けました",
-    "assignFailed": "引き受けできませんでした。もう一度お試しください。"
+    "assignFailed": "引き受けできませんでした。もう一度お試しください。",
+    "refresh": "更新",
+    "refreshing": "更新中…",
+    "backToInbox": "受信箱"
   },
   "notify": {
     "title": "새 손님 알림",
@@ -36,6 +39,7 @@
   },
   "summary": {
     "title": "お客様の要約",
+    "untitled": "相談の要約",
     "notFound": "相談が見つかりません。リンクをご確認ください。",
     "nationality": "国籍",
     "visit": "来店",
@@ -62,7 +66,7 @@
     "customer": "お客様",
     "me": "自分",
     "pending": "送信中…",
-    "reportCta": "終了",
+    "reportCta": "施術記録",
     "translatedNote": "お客様の言語へ自動翻訳されます",
     "sendError": "メッセージを送信できませんでした。もう一度お試しください。",
     "quickReplies": {
@@ -91,6 +95,7 @@
     "finishing": "送信中…",
     "sent": "レポートを送信しました",
     "failed": "送信に失敗しました。もう一度お試しください。",
+    "needInput": "記録する内容を1つ以上入力してください。",
     "openReport": "お客様レポートを開く",
     "grade": {
       "high": "上",

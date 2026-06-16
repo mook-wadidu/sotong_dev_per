@@ -165,6 +165,8 @@ export interface Consultation {
   /** 배정된 디자이너 (살롱 공용 QR 진입은 미배정 = undefined) */
   designerId?: string;
   designerName?: string;
+  /** 기기 토큰으로 식별된 손님(살롱별 유일). 미식별(쿠키 없음) 진입은 undefined. */
+  customerId?: string;
   customerLocale: Locale;
   status: ConsultationStatus;
   phone?: string;
@@ -176,6 +178,68 @@ export interface Consultation {
   designerToken: string;
   reportToken?: string;
   createdAt: string;
+}
+
+/* ── 손님(customer) — 기기 토큰으로 식별, 살롱별 유일 ──────── */
+/**
+ * 손님 — 데이터 엔진의 신원 앵커. (salonSlug, deviceToken) 으로 살롱별 유일.
+ * deviceToken = httpOnly secure 쿠키(sotong_did). 미인증 전화번호는 신원 앵커가 아니다
+ * (phone 은 라벨 only — 절대 이력 조회/바인딩에 쓰지 않는다).
+ */
+export interface Customer {
+  id: string;
+  salonSlug: string;
+  /** 기기 토큰(쿠키 값). 신원 앵커. */
+  deviceToken?: string;
+  /** 선택 — 라벨 only(이력 조회에 쓰지 않음) */
+  phone?: string;
+  contactOptOut: boolean;
+  locale: Locale;
+  /** 같은 (salonSlug, deviceToken) 으로 기존 손님이 조회되면 true */
+  isReturning: boolean;
+  createdAt: string;
+}
+
+/**
+ * 손님 모발 프로필 — IntakeDraft 의 프로필 부분 집합을 customer 밑에 영속.
+ * 재방문 프리필("지난번처럼")의 소스. customerId 로 1:N(최신 1건 사용).
+ */
+export interface CustomerHairProfile {
+  customerId: string;
+  faceShape?: FaceShape;
+  crownVolume?: ThreeLevel;
+  hairDensity?: ThreeLevel;
+  hairType?: HairType;
+  cowlickWhorl?: YesNoUnknown;
+  cowlickSticking?: YesNoUnknown;
+  treatmentHistory: TreatmentHistoryItem[];
+  concernIds: string[];
+  styleNote?: string;
+  concernNote?: string;
+  allergy: boolean;
+  allergyNote?: string;
+  createdAt: string;
+}
+
+/**
+ * 시술 기록(카르테) — 방문 1건 = treatment_record 1행. customer 밑에 누적.
+ * completeConsultation 에서 영속. 사장 콘솔 회원별 타임라인의 데이터 소스.
+ */
+export interface TreatmentRecord {
+  id: string;
+  consultationId: string;
+  /** 기기 토큰으로 식별된 손님. 미식별 진입은 undefined. */
+  customerId?: string;
+  salonSlug: string;
+  designerId?: string;
+  designerName?: string;
+  serviceIds: string[];
+  products: string[];
+  stateGrade?: ThreeLevel;
+  /** 실제 캡처한 만족도/결과 점수(AI 추론값 아님) */
+  satisfactionScore?: number;
+  note?: string;
+  visitedAt: string;
 }
 
 /** 국적 라벨 (요약·리포트 표기에 사용) */

@@ -8,7 +8,9 @@ import {
   getAdminData as getAdminDataSvc,
   getDesignerInbox as getDesignerInboxSvc,
   getIntakeMenu as getIntakeMenuSvc,
+  getCustomerHistory as getCustomerHistorySvc,
   getMessagesSince,
+  getReturningContext as getReturningContextSvc,
   getSalonConsole as getSalonConsoleSvc,
   getSalonInfo,
   getSalonInfoByEntry,
@@ -29,12 +31,15 @@ import {
   type SalonConsoleData,
 } from "@/lib/service";
 import type {
+  Customer,
+  CustomerHairProfile,
   IntakeDraft,
   Locale,
   LocalizedText,
   Message,
   QuickReplyIntent,
   ThreeLevel,
+  TreatmentRecord,
 } from "@/lib/domain/types";
 import {
   toPublicSalon,
@@ -101,14 +106,38 @@ export async function pollMessages(input: {
   return getMessagesSince(input);
 }
 
-/* ── 디자이너: 시술 완료 → 리포트 발송 ─────────────────── */
+/* ── 디자이너: 시술 완료 → 리포트 발송 (+카르테 영속) ───────── */
 export async function finishAndSendReport(input: {
   designerToken: string;
-  record?: { products: string[]; stateGrade?: ThreeLevel };
+  record?: {
+    products: string[];
+    stateGrade?: ThreeLevel;
+    /** 실제 캡처한 만족도/결과 점수(AI 추론값 아님) — 카르테에 영속 */
+    satisfactionScore?: number;
+  };
   beforePhotoUrl?: string;
   afterPhotoUrl?: string;
 }) {
   return completeConsultation(input);
+}
+
+/* ── 손님: 재방문 프리필 컨텍스트 (입장 토큰 검증 후, 쿠키 읽기 전용) ──
+ * 서버컴포넌트에서 직접 호출해도 되지만, 클라 폴백용 thin wrapper 도 노출한다. */
+export async function getReturningContext(entryToken: string): Promise<{
+  isReturning: boolean;
+  profile?: CustomerHairProfile;
+  lastServiceIds?: string[];
+  lastVisitedAt?: string;
+} | null> {
+  return getReturningContextSvc(entryToken);
+}
+
+/* ── 사장: 회원별 시술 이력 (ownerToken 검증, 살롱 스코프 강제) ── */
+export async function getCustomerHistory(
+  ownerToken: string,
+  customerId: string,
+): Promise<{ customer: Customer; treatments: TreatmentRecord[] } | null> {
+  return getCustomerHistorySvc(ownerToken, customerId);
 }
 
 /* ── 디자이너: 개인 인박스 (디자이너 staffToken) ─────────── */

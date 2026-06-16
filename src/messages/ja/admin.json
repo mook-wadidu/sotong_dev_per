@@ -168,6 +168,32 @@
     },
     "qr": {
       "hint": "このQRを入口や鏡の前に貼ってください。お客様が読み取るとすぐに始まります。"
+    },
+    "customers": {
+      "title": "会員の施術履歴",
+      "subtitle": "このお客様のご来店が積み重なったカルテです",
+      "back": "コンソールに戻る",
+      "visitCount": "来店{count}回",
+      "visit": "来店",
+      "visitedAt": "来店日",
+      "designer": "担当",
+      "services": "施術",
+      "products": "使用薬剤",
+      "stateGrade": "髪の状態",
+      "satisfaction": "満足度",
+      "satisfactionScore": "{score}点",
+      "unassigned": "指定なし",
+      "none": "—",
+      "empty": "まだ施術履歴がありません。",
+      "invalid": {
+        "title": "履歴が見つかりません",
+        "hint": "このお客様の施術履歴がないか、別のサロンの会員です。"
+      },
+      "grade": {
+        "high": "上",
+        "mid": "中",
+        "low": "下"
+      }
     }
   }
 }

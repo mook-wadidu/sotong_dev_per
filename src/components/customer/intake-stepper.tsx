@@ -46,6 +46,7 @@ import {
 import { customerThreadPath } from "@/lib/links";
 import {
   emptyIntake,
+  type CustomerHairProfile,
   type FaceShape,
   type IntakeDraft,
   type Locale,
@@ -95,21 +96,70 @@ const COWLICK_OPTIONS: { id: YesNoUnknown; key: string }[] = [
   { id: "unknown", key: "unknown" },
 ];
 
+/** 서버(getReturningContext)가 넘기는 재방문 프리필 컨텍스트. */
+export interface ReturningContext {
+  isReturning: boolean;
+  profile?: CustomerHairProfile;
+  lastServiceIds?: string[];
+  lastVisitedAt?: string;
+}
+
+/**
+ * 재방문 프리필 — 지난 모발 프로필 + 마지막 시술을 emptyIntake 위에 덮어쓴다.
+ * 안 변하는 프로필 부분집합만 채우고, 사진/연락처/동의/메모성 1회성 입력은 비워 둔다
+ * (styleNote/concernNote 는 매번 달라질 수 있으니 프리필 제외 — 손님이 새로 적게).
+ * lastServiceIds 는 살롱 메뉴에 아직 존재하는 id 만 남긴다.
+ */
+function prefilledDraft(
+  ctx: ReturningContext,
+  services: IntakeMenuService[],
+): IntakeDraft {
+  const base = emptyIntake();
+  const p = ctx.profile;
+  const validIds = new Set(services.map((s) => s.id));
+  const serviceIds = (ctx.lastServiceIds ?? []).filter((id) => validIds.has(id));
+  return {
+    ...base,
+    serviceIds,
+    faceShape: p?.faceShape ?? base.faceShape,
+    crownVolume: p?.crownVolume ?? base.crownVolume,
+    hairDensity: p?.hairDensity ?? base.hairDensity,
+    hairType: p?.hairType ?? base.hairType,
+    cowlickWhorl: p?.cowlickWhorl ?? base.cowlickWhorl,
+    cowlickSticking: p?.cowlickSticking ?? base.cowlickSticking,
+    treatmentHistory: p?.treatmentHistory ?? base.treatmentHistory,
+    concernIds: p?.concernIds ?? base.concernIds,
+    allergy: p?.allergy ?? base.allergy,
+    allergyNote: p?.allergyNote ?? base.allergyNote,
+  };
+}
+
 export function IntakeStepper({
   entryToken,
   locale,
   salonName,
   categories,
   services,
+  returning,
 }: {
   entryToken: string;
   locale: Locale;
   salonName: string;
   categories: IntakeMenuCategory[];
   services: IntakeMenuService[];
+  returning?: ReturningContext;
 }) {
   const t = useTranslations("Customer");
   const router = useRouter();
+
+  // 재방문(기기 토큰 매칭)이면 인테이크 전에 분기 화면("지난번처럼 / 새 스타일")을 띄운다.
+  const isReturning = !!returning?.isReturning;
+  // "지난번처럼"을 고르기 전까지는 분기 화면(intro)에서 대기. 신규는 곧장 스텝 1.
+  const [phase, setPhase] = React.useState<"intro" | "form">(
+    isReturning ? "intro" : "form",
+  );
+  // "지난번처럼"으로 들어왔는지 — 프리필 + 프로필 재질문 스킵 옵션 노출에 사용.
+  const [prefilled, setPrefilled] = React.useState(false);
 
   const [step, setStep] = React.useState(1);
   const [draft, setDraft] = React.useState<IntakeDraft>(() => emptyIntake());
@@ -118,16 +168,31 @@ export function IntakeStepper({
   const [submitting, setSubmitting] = React.useState(false);
   const titleRef = React.useRef<HTMLHeadingElement>(null);
 
+  // "지난번처럼" — 프리필 후 폼 진입. "새 스타일" — 빈 폼으로 진입.
+  const startSameAsBefore = () => {
+    if (returning) setDraft(prefilledDraft(returning, services));
+    setPrefilled(true);
+    setStep(1);
+    setPhase("form");
+  };
+  const startNewStyle = () => {
+    setDraft(emptyIntake());
+    setPrefilled(false);
+    setStep(1);
+    setPhase("form");
+  };
+
   const patch = React.useCallback(
     (p: Partial<IntakeDraft>) => setDraft((d) => ({ ...d, ...p })),
     [],
   );
 
-  // 단계 이동 시 본문 스크롤 위 + 새 단계 제목으로 포커스 이동 (a11y)
+  // 단계 이동(또는 intro→form 전환) 시 본문 스크롤 위 + 제목으로 포커스 이동 (a11y).
+  // phase 도 의존성에 넣어, 이미 step 1 인 상태로 폼에 진입해도 새 제목으로 포커스가 간다.
   React.useEffect(() => {
     window.scrollTo({ top: 0 });
     titleRef.current?.focus();
-  }, [step]);
+  }, [step, phase]);
 
   const canSubmit = draft.serviceIds.length >= 1 && consent;
 
@@ -158,8 +223,10 @@ export function IntakeStepper({
     try {
       const res = await submitIntake({
         entryToken,
+        // 서버(startConsultation)가 기기 토큰으로 최종 판정하므로 이 값은 참고용.
+        // 그래도 클라가 아는 한 진실한 값(재방문 컨텍스트)을 보낸다.
         customerLocale: locale,
-        isReturning: false,
+        isReturning,
         intake: { ...draft, consentedAt: new Date().toISOString() },
       });
       toast.success(t("intake.submitted"));
@@ -171,6 +238,64 @@ export function IntakeStepper({
   };
 
   const stepTitleKey = STEP_TITLE_KEYS[step - 1];
+
+  // 재방문 분기 화면 — "지난번처럼 / 새 스타일" 선택 전까지 폼을 가린다.
+  if (phase === "intro") {
+    const lastVisit = returning?.lastVisitedAt
+      ? formatLastVisit(returning.lastVisitedAt, locale)
+      : undefined;
+    return (
+      <MobileFrame tone="muted">
+        <ScreenHeader title={salonName} />
+        <ScreenBody className="flex flex-1 flex-col justify-center space-y-5 pb-6">
+          <div className="space-y-1.5">
+            <h1
+              ref={titleRef}
+              tabIndex={-1}
+              className="text-2xl font-bold leading-snug tracking-tight text-foreground outline-none"
+            >
+              {t("intake.returning.title")}
+            </h1>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {t("intake.returning.subtitle")}
+            </p>
+            {lastVisit ? (
+              <p className="text-xs font-medium tabular-nums text-muted-foreground">
+                {t("intake.returning.lastVisit", { date: lastVisit })}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={startSameAsBefore}
+              className="w-full rounded-2xl border-2 border-foreground bg-card px-5 py-4 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <p className="text-base font-bold text-foreground">
+                {t("intake.returning.sameAsBefore")}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {t("intake.returning.sameHint")}
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={startNewStyle}
+              className="w-full rounded-2xl border border-border bg-card px-5 py-4 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <p className="text-base font-bold text-foreground">
+                {t("intake.returning.newStyle")}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {t("intake.returning.newHint")}
+              </p>
+            </button>
+          </div>
+        </ScreenBody>
+      </MobileFrame>
+    );
+  }
 
   return (
     <MobileFrame tone="muted">
@@ -210,6 +335,13 @@ export function IntakeStepper({
         >
           {t(stepTitleKey)}
         </h1>
+
+        {/* "지난번처럼" 진입 시 프리필 안내 — 바뀐 부분만 고치면 된다고 알림. */}
+        {prefilled ? (
+          <p className="-mt-2 rounded-xl border border-border bg-accent-soft/60 px-3.5 py-2.5 text-sm leading-relaxed text-accent-text">
+            {t("intake.returning.prefilled")}
+          </p>
+        ) : null}
 
         {step === 1 && (
           <ServicesStep
@@ -284,6 +416,23 @@ export function IntakeStepper({
 
 type T = ReturnType<typeof useTranslations<"Customer">>;
 type Patch = (p: Partial<IntakeDraft>) => void;
+
+const INTL_LOCALE: Record<Locale, string> = {
+  ko: "ko-KR",
+  ja: "ja-JP",
+  en: "en-US",
+};
+
+/** 지난 방문일(ISO)을 손님 로케일로 — 날짜만. 잘못된 입력이면 빈 문자열. */
+function formatLastVisit(iso: string, locale: Locale): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(d);
+}
 
 const STEP_TITLE_KEYS = [
   "intake.step.services",

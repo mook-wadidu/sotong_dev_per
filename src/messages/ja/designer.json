@@ -87,6 +87,17 @@
     "addProduct": "追加",
     "addProductPlaceholder": "自由に追加（例：〇〇トリートメント）",
     "stateGrade": "髪の状態",
+    "satisfaction": "満足度",
+    "satisfactionHint": "お客様の反応を1〜5で残してください（任意）",
+    "satisfactionClear": "選択を解除",
+    "satisfactionScore": "{score}点",
+    "satisfactionLevel": {
+      "1": "とても不満",
+      "2": "やや不満",
+      "3": "普通",
+      "4": "満足",
+      "5": "大変満足"
+    },
     "beforePhoto": "施術前の写真",
     "afterPhoto": "施術後の写真",
     "addPhoto": "写真を追加",

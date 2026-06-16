@@ -2,14 +2,20 @@ import { randomBytes, randomUUID } from "node:crypto";
 import type {
   Consultation,
   ConsultationStatus,
+  Customer,
+  CustomerHairProfile,
   DesignerSummary,
   HairReport,
   Message,
+  TreatmentRecord,
 } from "@/lib/domain/types";
 import type {
   CreateConsultationInput,
+  CreateCustomerInput,
   CreateDesignerInput,
   CreateSalonInput,
+  CreateTreatmentRecordInput,
+  CustomerHairProfileInput,
   Designer,
   DesignerRank,
   ErrorLog,
@@ -43,6 +49,9 @@ interface Store {
   pushSubs: Map<string, PushSub>; // endpoint -> subscription
   errors: ErrorLog[];
   rateBuckets: Map<string, number>; // `${bucket}|${windowStart}` -> count
+  customers: Map<string, Customer>; // customerId -> Customer
+  hairProfiles: Map<string, CustomerHairProfile>; // customerId -> 최신 프로필
+  treatmentRecords: Map<string, TreatmentRecord>; // recordId -> TreatmentRecord
 }
 
 // 직급(rank) — 양 살롱 동일(데모). director/senior/designer.
@@ -264,6 +273,9 @@ function freshStore(): Store {
     pushSubs: new Map(),
     errors: [],
     rateBuckets: new Map(),
+    customers: new Map(),
+    hairProfiles: new Map(),
+    treatmentRecords: new Map(),
   };
 }
 
@@ -271,6 +283,9 @@ const g = globalThis as unknown as { __sotongStore?: Store };
 const store: Store = (g.__sotongStore ??= freshStore());
 // HMR 로 살아남은 구버전 store 호환 — 새 필드가 없으면 깐다.
 store.pushSubs ??= new Map();
+store.customers ??= new Map();
+store.hairProfiles ??= new Map();
+store.treatmentRecords ??= new Map();
 
 /** 무인증 접근 토큰 — 절단 없이 192bit 랜덤(base64url). 추측/열거 차단(P0/P1-36). */
 const token = () => randomBytes(24).toString("base64url");
@@ -395,6 +410,7 @@ export class MemoryRepo implements Repo {
       salonSlug: input.salonSlug,
       designerId: input.designerId,
       designerName: input.designerName,
+      customerId: input.customerId,
       customerLocale: input.customerLocale,
       status: "intake",
       phone: input.phone,
@@ -473,6 +489,95 @@ export class MemoryRepo implements Repo {
     if (store.consultations.has(redacted.id)) {
       store.consultations.set(redacted.id, redacted);
     }
+  }
+
+  /* ── 데이터 엔진: 손님 식별 / 카르테 ──────────────────────── */
+  async getCustomerByDeviceToken(
+    salonSlug: string,
+    deviceToken: string,
+  ): Promise<Customer | null> {
+    if (!salonSlug || !deviceToken) return null;
+    for (const c of store.customers.values()) {
+      if (c.salonSlug === salonSlug && c.deviceToken === deviceToken) {
+        // 조회된 손님은 항상 재방문(신원 앵커 매칭).
+        return { ...c, isReturning: true };
+      }
+    }
+    return null;
+  }
+
+  async createCustomer(input: CreateCustomerInput): Promise<Customer> {
+    const customer: Customer = {
+      id: randomUUID(),
+      salonSlug: input.salonSlug,
+      deviceToken: input.deviceToken,
+      phone: input.phone,
+      contactOptOut: input.contactOptOut,
+      locale: input.locale,
+      isReturning: false,
+      createdAt: now(),
+    };
+    store.customers.set(customer.id, customer);
+    return customer;
+  }
+
+  async upsertCustomerHairProfile(
+    customerId: string,
+    _salonSlug: string,
+    profile: CustomerHairProfileInput,
+  ): Promise<void> {
+    // 최신 프로필 1건만 보존(customerId 키 덮어쓰기).
+    store.hairProfiles.set(customerId, {
+      ...profile,
+      customerId,
+      createdAt: now(),
+    });
+  }
+
+  async getCustomerHairProfile(
+    customerId: string,
+  ): Promise<CustomerHairProfile | null> {
+    return store.hairProfiles.get(customerId) ?? null;
+  }
+
+  async createTreatmentRecord(
+    input: CreateTreatmentRecordInput,
+  ): Promise<TreatmentRecord> {
+    const record: TreatmentRecord = {
+      id: randomUUID(),
+      consultationId: input.consultationId,
+      customerId: input.customerId,
+      salonSlug: input.salonSlug,
+      designerId: input.designerId,
+      designerName: input.designerName,
+      serviceIds: input.serviceIds,
+      products: input.products,
+      stateGrade: input.stateGrade,
+      satisfactionScore: input.satisfactionScore,
+      note: input.note,
+      visitedAt: now(),
+    };
+    store.treatmentRecords.set(record.id, record);
+    return record;
+  }
+
+  async listCustomerTreatments(
+    customerId: string,
+  ): Promise<TreatmentRecord[]> {
+    if (!customerId) return [];
+    return [...store.treatmentRecords.values()]
+      .filter((r) => r.customerId === customerId)
+      .sort((a, b) => (a.visitedAt < b.visitedAt ? 1 : -1));
+  }
+
+  async getLastConsultationForCustomer(
+    customerId: string,
+  ): Promise<Consultation | null> {
+    if (!customerId) return null;
+    const list = [...store.consultations.values()]
+      .filter((c) => c.customerId === customerId)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    return list[0] ?? null;
   }
 
   async addMessage(msg: NewMessage): Promise<Message> {

@@ -74,7 +74,10 @@ export function SalonConsole({
       </TabsContent>
 
       <TabsContent value="inquiries">
-        <ConsoleInquiriesTab consultations={data.consultations} />
+        <ConsoleInquiriesTab
+          consultations={data.consultations}
+          ownerToken={ownerToken}
+        />
       </TabsContent>
     </Tabs>
   );

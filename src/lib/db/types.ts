@@ -1,12 +1,16 @@
 import type {
   Consultation,
   ConsultationStatus,
+  Customer,
+  CustomerHairProfile,
   DesignerSummary,
   HairReport,
   IntakeDraft,
   Locale,
   LocalizedText,
   Message,
+  ThreeLevel,
+  TreatmentRecord,
 } from "@/lib/domain/types";
 
 /** 디자이너 직급(rank) — 살롱이 정의, 직급별 가격 보정에 사용 */
@@ -164,6 +168,8 @@ export interface ConsultationListItem {
   /** 배정된 디자이너 (살롱 공용 QR 진입은 미배정 = undefined) */
   designerId?: string;
   designerName?: string;
+  /** 기기 토큰으로 식별된 손님(있으면 콘솔에서 회원 카르테로 진입) */
+  customerId?: string;
 }
 
 export interface CreateConsultationInput {
@@ -175,6 +181,41 @@ export interface CreateConsultationInput {
   /** 디자이너 QR 진입이면 배정, 살롱 공용 QR 진입이면 미배정 */
   designerId?: string;
   designerName?: string;
+  /** 기기 토큰으로 식별/생성된 손님 바인딩(있으면 Consultation.customerId 로 보존) */
+  customerId?: string;
+}
+
+/** 손님 생성 입력 — id/createdAt/isReturning 은 repo 가 발급(신규=항상 false). */
+export interface CreateCustomerInput {
+  salonSlug: string;
+  /** 기기 토큰(쿠키 값). 신원 앵커. (salonSlug, deviceToken) 으로 유일. */
+  deviceToken: string;
+  phone?: string;
+  contactOptOut: boolean;
+  locale: Locale;
+}
+
+/**
+ * 손님 모발 프로필 입력 — customerId/createdAt 제외한 CustomerHairProfile 본문.
+ * upsertCustomerHairProfile 가 customerId/salonSlug 를 별도 인자로 받는다.
+ */
+export type CustomerHairProfileInput = Omit<
+  CustomerHairProfile,
+  "customerId" | "createdAt"
+>;
+
+/** 시술 기록 생성 입력 — id/visitedAt 은 repo 가 발급(visitedAt=now). */
+export interface CreateTreatmentRecordInput {
+  consultationId: string;
+  customerId?: string;
+  salonSlug: string;
+  designerId?: string;
+  designerName?: string;
+  serviceIds: string[];
+  products: string[];
+  stateGrade?: ThreeLevel;
+  satisfactionScore?: number;
+  note?: string;
 }
 
 export type NewMessage = Omit<Message, "id" | "createdAt"> & {
@@ -296,6 +337,36 @@ export interface Repo {
   updateStatus(id: string, status: ConsultationStatus): Promise<void>;
   setSummary(id: string, summary: DesignerSummary): Promise<void>;
   setReportToken(id: string, reportToken: string): Promise<void>;
+
+  /* ── 데이터 엔진: 손님 식별 / 카르테 누적 ─────────────────── */
+  /** 기기 토큰으로 살롱별 손님 조회. (salonSlug, deviceToken) 매칭. 없으면 null. */
+  getCustomerByDeviceToken(
+    salonSlug: string,
+    deviceToken: string,
+  ): Promise<Customer | null>;
+  /** 신규 손님 생성(첫 인테이크 제출 시). isReturning 은 항상 false 로 발급. */
+  createCustomer(input: CreateCustomerInput): Promise<Customer>;
+  /** 손님 모발 프로필 영속(재방문 프리필 소스). 최신 1건이 유효. */
+  upsertCustomerHairProfile(
+    customerId: string,
+    salonSlug: string,
+    profile: CustomerHairProfileInput,
+  ): Promise<void>;
+  /** 손님의 최신 모발 프로필. 없으면 null. */
+  getCustomerHairProfile(customerId: string): Promise<CustomerHairProfile | null>;
+  /** 시술 기록(카르테) 1건 영속. visitedAt=now, id 는 repo 발급. */
+  createTreatmentRecord(
+    input: CreateTreatmentRecordInput,
+  ): Promise<TreatmentRecord>;
+  /** 손님의 시술 기록 목록 — visitedAt desc. */
+  listCustomerTreatments(customerId: string): Promise<TreatmentRecord[]>;
+  /**
+   * 손님의 마지막 상담(단골 라우팅용 — 지난 담당 designerId 식별).
+   * createdAt desc 의 최신 1건. 없으면 null.
+   */
+  getLastConsultationForCustomer(
+    customerId: string,
+  ): Promise<Consultation | null>;
 
   /**
    * PII 파기(PIPA 보관/파기) — 보관기간 경과 상담의 전화·사진·자유텍스트를

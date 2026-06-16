@@ -4,19 +4,30 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Consultation,
   ConsultationStatus,
+  Customer,
+  CustomerHairProfile,
   DesignerSummary,
+  FaceShape,
   HairReport,
+  HairType,
   IntakeDraft,
   Locale,
   LocalizedText,
   Message,
   MessageSender,
   QuickReplyIntent,
+  ThreeLevel,
+  TreatmentHistoryItem,
+  TreatmentRecord,
+  YesNoUnknown,
 } from "@/lib/domain/types";
 import type {
   CreateConsultationInput,
+  CreateCustomerInput,
   CreateDesignerInput,
   CreateSalonInput,
+  CreateTreatmentRecordInput,
+  CustomerHairProfileInput,
   Designer,
   DesignerRank,
   ErrorLog,
@@ -94,6 +105,7 @@ interface ConsultationRow {
   salon_slug: string;
   designer_id: string | null;
   designer_name: string | null;
+  customer_id: string | null;
   customer_locale: Locale;
   status: ConsultationStatus;
   phone: string | null;
@@ -104,6 +116,49 @@ interface ConsultationRow {
   designer_token: string;
   report_token: string | null;
   created_at: string;
+}
+
+interface CustomerRow {
+  id: string;
+  salon_slug: string;
+  device_token: string | null;
+  phone: string | null;
+  contact_opt_out: boolean;
+  locale: Locale;
+  is_returning: boolean;
+  created_at: string;
+}
+
+interface CustomerHairProfileRow {
+  customer_id: string;
+  face_shape: FaceShape | null;
+  crown_volume: ThreeLevel | null;
+  hair_density: ThreeLevel | null;
+  hair_type: HairType | null;
+  cowlick_whorl: string | null;
+  cowlick_sticking: string | null;
+  treatment_history: TreatmentHistoryItem[] | null;
+  concern_ids: string[] | null;
+  style_note: string | null;
+  concern_note: string | null;
+  allergy: boolean;
+  allergy_note: string | null;
+  created_at: string;
+}
+
+interface TreatmentRecordRow {
+  id: string;
+  consultation_id: string;
+  customer_id: string | null;
+  salon_slug: string | null;
+  designer_id: string | null;
+  designer_name: string | null;
+  service_ids: string[] | null;
+  products: string[] | null;
+  state_grade: ThreeLevel | null;
+  satisfaction_score: number | null;
+  note: string | null;
+  visited_at: string;
 }
 
 interface MessageRow {
@@ -163,7 +218,13 @@ const SALON_SERVICE_CATEGORY_COLS =
 const SALON_SERVICE_COLS =
   "id,salon_slug,category_id,label_ko,label_translations,base_price_from,rank_prices,active";
 const CONSULTATION_COLS =
-  "id,salon_slug,designer_id,designer_name,customer_locale,status,phone,is_returning,intake,summary,consultation_token,designer_token,report_token,created_at";
+  "id,salon_slug,designer_id,designer_name,customer_id,customer_locale,status,phone,is_returning,intake,summary,consultation_token,designer_token,report_token,created_at";
+const CUSTOMER_COLS =
+  "id,salon_slug,device_token,phone,contact_opt_out,locale,is_returning,created_at";
+const CUSTOMER_HAIR_PROFILE_COLS =
+  "customer_id,face_shape,crown_volume,hair_density,hair_type,cowlick_whorl,cowlick_sticking,treatment_history,concern_ids,style_note,concern_note,allergy,allergy_note,created_at";
+const TREATMENT_RECORD_COLS =
+  "id,consultation_id,customer_id,salon_slug,designer_id,designer_name,service_ids,products,state_grade,satisfaction_score,note,visited_at";
 const MESSAGE_COLS =
   "id,consultation_id,sender,source_text,source_locale,intent,translations,created_at";
 const REPORT_COLS =
@@ -251,6 +312,7 @@ function toConsultation(r: ConsultationRow): Consultation {
     salonSlug: r.salon_slug,
     designerId: r.designer_id ?? undefined,
     designerName: r.designer_name ?? undefined,
+    customerId: r.customer_id ?? undefined,
     customerLocale: r.customer_locale,
     status: r.status,
     phone: r.phone ?? undefined,
@@ -261,6 +323,55 @@ function toConsultation(r: ConsultationRow): Consultation {
     designerToken: r.designer_token,
     reportToken: r.report_token ?? undefined,
     createdAt: r.created_at,
+  };
+}
+
+function toCustomer(r: CustomerRow): Customer {
+  return {
+    id: r.id,
+    salonSlug: r.salon_slug,
+    deviceToken: r.device_token ?? undefined,
+    phone: r.phone ?? undefined,
+    contactOptOut: r.contact_opt_out ?? false,
+    locale: r.locale,
+    isReturning: r.is_returning ?? false,
+    createdAt: r.created_at,
+  };
+}
+
+function toCustomerHairProfile(r: CustomerHairProfileRow): CustomerHairProfile {
+  return {
+    customerId: r.customer_id,
+    faceShape: r.face_shape ?? undefined,
+    crownVolume: r.crown_volume ?? undefined,
+    hairDensity: r.hair_density ?? undefined,
+    hairType: r.hair_type ?? undefined,
+    cowlickWhorl: (r.cowlick_whorl as YesNoUnknown | null) ?? undefined,
+    cowlickSticking: (r.cowlick_sticking as YesNoUnknown | null) ?? undefined,
+    treatmentHistory: r.treatment_history ?? [],
+    concernIds: r.concern_ids ?? [],
+    styleNote: r.style_note ?? undefined,
+    concernNote: r.concern_note ?? undefined,
+    allergy: r.allergy ?? false,
+    allergyNote: r.allergy_note ?? undefined,
+    createdAt: r.created_at,
+  };
+}
+
+function toTreatmentRecord(r: TreatmentRecordRow): TreatmentRecord {
+  return {
+    id: r.id,
+    consultationId: r.consultation_id,
+    customerId: r.customer_id ?? undefined,
+    salonSlug: r.salon_slug ?? "",
+    designerId: r.designer_id ?? undefined,
+    designerName: r.designer_name ?? undefined,
+    serviceIds: r.service_ids ?? [],
+    products: r.products ?? [],
+    stateGrade: r.state_grade ?? undefined,
+    satisfactionScore: r.satisfaction_score ?? undefined,
+    note: r.note ?? undefined,
+    visitedAt: r.visited_at,
   };
 }
 
@@ -548,6 +659,7 @@ export class SupabaseRepo implements Repo {
       salon_slug: input.salonSlug,
       designer_id: input.designerId ?? null,
       designer_name: input.designerName ?? null,
+      customer_id: input.customerId ?? null,
       customer_locale: input.customerLocale,
       status: "intake" as ConsultationStatus,
       phone: input.phone ?? null,
@@ -648,6 +760,156 @@ export class SupabaseRepo implements Repo {
       .update({ phone: redacted.phone ?? null, intake: redacted.intake })
       .eq("id", redacted.id);
     if (error) fail("scrubConsultationPii", error);
+  }
+
+  /* ── 데이터 엔진: 손님 식별 / 카르테 ──────────────────────── */
+  /** salonSlug → salon_id(uuid FK). 미존재 살롱이면 throw. */
+  private async resolveSalonId(salonSlug: string): Promise<string> {
+    const { data, error } = await this.client
+      .from("salons")
+      .select("id")
+      .eq("slug", salonSlug)
+      .maybeSingle();
+    if (error) fail("resolveSalonId", error);
+    if (!data)
+      throw new Error(`[supabase] resolveSalonId: unknown salon slug ${salonSlug}`);
+    return (data as { id: string }).id;
+  }
+
+  async getCustomerByDeviceToken(
+    salonSlug: string,
+    deviceToken: string,
+  ): Promise<Customer | null> {
+    if (!salonSlug || !deviceToken) return null;
+    const { data, error } = await this.client
+      .from("customers")
+      .select(CUSTOMER_COLS)
+      .eq("salon_slug", salonSlug)
+      .eq("device_token", deviceToken)
+      .maybeSingle();
+    if (error) fail("getCustomerByDeviceToken", error);
+    if (!data) return null;
+    // 조회된 손님은 항상 재방문(신원 앵커 매칭).
+    return { ...toCustomer(data as CustomerRow), isReturning: true };
+  }
+
+  async createCustomer(input: CreateCustomerInput): Promise<Customer> {
+    const salonId = await this.resolveSalonId(input.salonSlug);
+    const row = {
+      salon_id: salonId,
+      salon_slug: input.salonSlug,
+      device_token: input.deviceToken,
+      phone: input.phone ?? null,
+      contact_opt_out: input.contactOptOut,
+      locale: input.locale,
+      is_returning: false,
+    };
+    const { data, error } = await this.client
+      .from("customers")
+      .insert(row)
+      .select(CUSTOMER_COLS)
+      .single();
+    if (error) fail("createCustomer", error);
+    return toCustomer(data as CustomerRow);
+  }
+
+  async upsertCustomerHairProfile(
+    customerId: string,
+    salonSlug: string,
+    profile: CustomerHairProfileInput,
+  ): Promise<void> {
+    const salonId = await this.resolveSalonId(salonSlug);
+    // customer_hair_profiles 는 customer 당 1:N(이력) — 최신 1건을 새로 insert.
+    // getCustomerHairProfile 가 created_at desc 로 최신을 읽는다.
+    const row = {
+      customer_id: customerId,
+      salon_id: salonId,
+      face_shape: profile.faceShape ?? null,
+      crown_volume: profile.crownVolume ?? null,
+      hair_density: profile.hairDensity ?? null,
+      hair_type: profile.hairType ?? null,
+      cowlick_whorl: profile.cowlickWhorl ?? null,
+      cowlick_sticking: profile.cowlickSticking ?? null,
+      treatment_history: profile.treatmentHistory ?? [],
+      concern_ids: profile.concernIds ?? [],
+      style_note: profile.styleNote ?? null,
+      concern_note: profile.concernNote ?? null,
+      allergy: profile.allergy,
+      allergy_note: profile.allergyNote ?? null,
+    };
+    const { error } = await this.client
+      .from("customer_hair_profiles")
+      .insert(row);
+    if (error) fail("upsertCustomerHairProfile", error);
+  }
+
+  async getCustomerHairProfile(
+    customerId: string,
+  ): Promise<CustomerHairProfile | null> {
+    if (!customerId) return null;
+    const { data, error } = await this.client
+      .from("customer_hair_profiles")
+      .select(CUSTOMER_HAIR_PROFILE_COLS)
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) fail("getCustomerHairProfile", error);
+    return data ? toCustomerHairProfile(data as CustomerHairProfileRow) : null;
+  }
+
+  async createTreatmentRecord(
+    input: CreateTreatmentRecordInput,
+  ): Promise<TreatmentRecord> {
+    const salonId = await this.resolveSalonId(input.salonSlug);
+    const row = {
+      consultation_id: input.consultationId,
+      customer_id: input.customerId ?? null,
+      salon_id: salonId,
+      salon_slug: input.salonSlug,
+      designer_id: input.designerId ?? null,
+      designer_name: input.designerName ?? null,
+      service_ids: input.serviceIds,
+      products: input.products,
+      state_grade: input.stateGrade ?? null,
+      satisfaction_score: input.satisfactionScore ?? null,
+      note: input.note ?? null,
+    };
+    const { data, error } = await this.client
+      .from("treatment_records")
+      .insert(row)
+      .select(TREATMENT_RECORD_COLS)
+      .single();
+    if (error) fail("createTreatmentRecord", error);
+    return toTreatmentRecord(data as TreatmentRecordRow);
+  }
+
+  async listCustomerTreatments(
+    customerId: string,
+  ): Promise<TreatmentRecord[]> {
+    if (!customerId) return [];
+    const { data, error } = await this.client
+      .from("treatment_records")
+      .select(TREATMENT_RECORD_COLS)
+      .eq("customer_id", customerId)
+      .order("visited_at", { ascending: false });
+    if (error) fail("listCustomerTreatments", error);
+    return ((data ?? []) as TreatmentRecordRow[]).map(toTreatmentRecord);
+  }
+
+  async getLastConsultationForCustomer(
+    customerId: string,
+  ): Promise<Consultation | null> {
+    if (!customerId) return null;
+    const { data, error } = await this.client
+      .from("consultations")
+      .select(CONSULTATION_COLS)
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) fail("getLastConsultationForCustomer", error);
+    return data ? toConsultation(data as ConsultationRow) : null;
   }
 
   /* ── 메시지 ───────────────────────────────────────────── */

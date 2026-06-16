@@ -42,9 +42,12 @@ import {
   salonConsolePath,
 } from "@/lib/links";
 import { sendWebPush } from "@/lib/push";
+import { ensureDeviceToken, readDeviceToken } from "@/lib/device";
 import {
   NATIONALITY_BY_LOCALE,
   type Consultation,
+  type Customer,
+  type CustomerHairProfile,
   type HairReport,
   type IntakeDraft,
   type Locale,
@@ -53,6 +56,7 @@ import {
   type ThreeLevel,
   type TreatmentHistoryItem,
   type TreatmentRecency,
+  type TreatmentRecord,
   type TreatmentType,
   type YesNoUnknown,
 } from "@/lib/domain/types";
@@ -298,6 +302,29 @@ function cowlickKo(
   return parts.length ? parts.join(" · ") : undefined;
 }
 
+/* ── 인테이크 → 손님 모발 프로필(재방문 프리필 소스) ──────────
+ * IntakeDraft 의 프로필 부분집합만 추출(연락/사진/동의/서비스 선택 제외).
+ * upsertCustomerHairProfile 의 CustomerHairProfileInput 형태로 반환. */
+function intakeToHairProfile(intake: IntakeDraft): Omit<
+  CustomerHairProfile,
+  "customerId" | "createdAt"
+> {
+  return {
+    faceShape: intake.faceShape,
+    crownVolume: intake.crownVolume,
+    hairDensity: intake.hairDensity,
+    hairType: intake.hairType,
+    cowlickWhorl: intake.cowlickWhorl,
+    cowlickSticking: intake.cowlickSticking,
+    treatmentHistory: intake.treatmentHistory,
+    concernIds: intake.concernIds,
+    styleNote: intake.styleNote,
+    concernNote: intake.concernNote,
+    allergy: intake.allergy,
+    allergyNote: intake.allergyNote,
+  };
+}
+
 /* ── 살롱별 메뉴 해석 (전역 catalog 대체) ─────────────────────
  * 디자이너가 배정되면 그 디자이너 rankId 의 rankPrices 를 우선,
  * 없으면 basePriceFrom. serviceIds(살롱 서비스 id) 기준. */
@@ -505,16 +532,79 @@ export async function startConsultation(input: {
       ? undefined
       : input.intake.phone.trim();
 
+  // 4.5) 기기 토큰 식별(신원 앵커) — 클라 input.isReturning 은 무시(서버 권위).
+  //   매칭 customer 있으면 재방문(isReturning=true), 없으면 신규 생성.
+  //   토큰/조회 실패는 메인 플로우를 막지 않는다(best-effort) — 미식별로 진행.
+  let customer: Customer | null = null;
+  let isReturning = false;
+  try {
+    const deviceToken = await ensureDeviceToken();
+    customer = await repo.getCustomerByDeviceToken(salonSlug, deviceToken);
+    if (customer) {
+      isReturning = true; // getCustomerByDeviceToken 매칭 → 항상 재방문
+    } else {
+      customer = await repo.createCustomer({
+        salonSlug,
+        deviceToken,
+        phone,
+        contactOptOut: !!input.intake.contactOptOut,
+        locale: input.customerLocale,
+      });
+      isReturning = false;
+    }
+  } catch (e) {
+    await logIssue({
+      salonSlug,
+      severity: "warning",
+      source: "intake",
+      message: "기기 토큰 식별 실패(미식별로 진행)",
+      detail: e instanceof Error ? e.message : String(e),
+    });
+  }
+
+  // 4.6) 단골 라우팅용 '지난 담당' 포착 — **이번 상담 생성 전에** 조회해야 정확하다.
+  //   (생성 후엔 방금 만든 미배정 상담이 최신이 되어 지난 담당을 못 잡는다.)
+  let priorDesignerId: string | undefined;
+  if (customer && isReturning) {
+    try {
+      const last = await repo.getLastConsultationForCustomer(customer.id);
+      priorDesignerId = last?.designerId;
+    } catch {
+      // best-effort — 실패 시 단골 라우팅 없이 진행.
+    }
+  }
+
   try {
     const consultation = await repo.createConsultation({
       salonSlug,
       designerId,
       designerName,
       customerLocale: input.customerLocale,
-      isReturning: input.isReturning,
+      isReturning,
       phone,
       intake: input.intake,
+      customerId: customer?.id,
     });
+
+    // 손님 모발 프로필 영속(재방문 프리필 소스) — best-effort(실패해도 상담은 진행).
+    if (customer) {
+      try {
+        await repo.upsertCustomerHairProfile(
+          customer.id,
+          salonSlug,
+          intakeToHairProfile(input.intake),
+        );
+      } catch (e) {
+        await logIssue({
+          salonSlug,
+          severity: "warning",
+          source: "intake",
+          message: "손님 모발 프로필 저장 실패",
+          detail: e instanceof Error ? e.message : String(e),
+          consultationId: consultation.id,
+        });
+      }
+    }
 
     // 살롱 메뉴 기준으로 라벨/예상가 해석(전역 catalog 대신 listServices).
     const salonServices = await repo.listServices(salonSlug);
@@ -532,7 +622,7 @@ export async function startConsultation(input: {
     const ai = getAi();
     const summary = await ai.summarizeIntake({
       customerLocale: input.customerLocale,
-      isReturning: input.isReturning,
+      isReturning,
       intake: input.intake,
       serviceLabelsKo,
       concernLabelsKo: concernLabels(input.intake.concernIds, "ko"),
@@ -565,17 +655,52 @@ export async function startConsultation(input: {
         url: designerSummaryPath(consultation.designerToken),
       });
     } else {
-      // 살롱 공용(미배정) → 그 살롱 디자이너 전원에게 미배정 손님 알림(인박스로).
+      // 살롱 공용(미배정) — 단골 자동 라우팅을 우선 시도한다(best-effort).
       const designers = await repo.listDesigners(salonSlug);
-      await Promise.all(
-        designers.map((d) =>
-          notifyDesigner(d.id, {
-            title: "새 미배정 손님",
-            body: summary.headline ?? "",
-            url: designerInboxPath(d.staffToken),
-          }),
-        ),
-      );
+
+      // 우선 디자이너 결정: ① 재방문이면 지난 담당(active 한정, 4.6 에서 포착) ② 살롱 디자이너 1명이면 그 1명.
+      let preferred: Designer | undefined;
+      if (priorDesignerId) {
+        preferred = designers.find((d) => d.id === priorDesignerId);
+      }
+      if (!preferred && designers.length === 1) {
+        preferred = designers[0];
+      }
+
+      if (preferred) {
+        // 단골/단일 디자이너 → 선 배정(best-effort) 후 그 디자이너에게만 알림(요약 화면으로).
+        try {
+          await repo.assignConsultation(consultation.id, {
+            id: preferred.id,
+            name: preferred.name,
+          });
+        } catch (e) {
+          await logIssue({
+            salonSlug,
+            severity: "warning",
+            source: "intake",
+            message: "단골 자동 배정 실패(알림은 진행)",
+            detail: e instanceof Error ? e.message : String(e),
+            consultationId: consultation.id,
+          });
+        }
+        await notifyDesigner(preferred.id, {
+          title: isReturning ? "단골 손님 재방문" : "새 손님 접수",
+          body: summary.headline ?? "새 상담",
+          url: designerSummaryPath(consultation.designerToken),
+        });
+      } else {
+        // 폴백: 그 살롱 디자이너 전원에게 미배정 손님 알림(인박스로).
+        await Promise.all(
+          designers.map((d) =>
+            notifyDesigner(d.id, {
+              title: "새 미배정 손님",
+              body: summary.headline ?? "",
+              url: designerInboxPath(d.staffToken),
+            }),
+          ),
+        );
+      }
     }
 
     return {
@@ -835,7 +960,12 @@ export async function getMessagesSince(input: {
 /* ── 시술 완료 → 리포트 발송 ───────────────────────────── */
 export async function completeConsultation(input: {
   designerToken: string;
-  record?: { products: string[]; stateGrade?: ThreeLevel };
+  record?: {
+    products: string[];
+    stateGrade?: ThreeLevel;
+    /** 실제 캡처한 만족도/결과 점수(AI 추론값 아님) — 카르테에 영속. */
+    satisfactionScore?: number;
+  };
   beforePhotoUrl?: string;
   afterPhotoUrl?: string;
 }): Promise<{ reportToken: string } | null> {
@@ -904,6 +1034,33 @@ export async function completeConsultation(input: {
     await repo.saveReport(report);
     await repo.setReportToken(c.id, reportToken);
     await repo.updateStatus(c.id, "completed");
+
+    // 카르테(treatment_record) 영속 — 방문 1건을 customer 밑에 누적.
+    // best-effort: 실패해도 이미 발송된 리포트를 망치지 않는다(try/catch + logIssue).
+    try {
+      await repo.createTreatmentRecord({
+        consultationId: c.id,
+        customerId: c.customerId,
+        salonSlug: c.salonSlug,
+        designerId: c.designerId,
+        designerName: c.designerName,
+        serviceIds: c.intake.serviceIds,
+        products: input.record?.products ?? [],
+        stateGrade: input.record?.stateGrade,
+        satisfactionScore: input.record?.satisfactionScore,
+        note: undefined,
+      });
+    } catch (e) {
+      await logIssue({
+        salonSlug: c.salonSlug,
+        severity: "warning",
+        source: "report",
+        message: "시술 기록(카르테) 영속 실패",
+        detail: e instanceof Error ? e.message : String(e),
+        consultationId: c.id,
+      });
+    }
+
     return { reportToken };
   } catch (e) {
     await logIssue({
@@ -923,6 +1080,86 @@ export async function getReportView(
   // 레이트리밋(P0) — 리포트 토큰당 분당 조회 상한(capability URL 스캔/폭주 방지).
   await enforceRate(`report:${reportToken}`, 60, 60_000, { source: "report" });
   return getRepo().getReport(reportToken);
+}
+
+/* ── 재방문 프리필 컨텍스트 (인테이크 진입 — 읽기 전용) ──────────
+ * resolveEntry 로 살롱 확정 → 쿠키 기기 토큰 읽기 → 매칭 customer 가 있으면
+ * 지난 모발 프로필 + 마지막 시술의 serviceIds/날짜를 "지난번처럼" 프리필 소스로 돌려준다.
+ * 쿠키를 set 하지 않으므로 서버컴포넌트에서 호출 가능(발급은 startConsultation 이 전담).
+ * 무효 토큰/미식별이면 { isReturning: false }, resolveEntry 실패면 null. */
+export async function getReturningContext(entryToken: string): Promise<{
+  isReturning: boolean;
+  profile?: CustomerHairProfile;
+  lastServiceIds?: string[];
+  lastVisitedAt?: string;
+} | null> {
+  const repo = getRepo();
+  const resolved = await resolveEntry(entryToken, "returning-context");
+  if (!resolved) return null;
+
+  const deviceToken = await readDeviceToken();
+  if (!deviceToken) return { isReturning: false };
+
+  const customer = await repo.getCustomerByDeviceToken(
+    resolved.salonSlug,
+    deviceToken,
+  );
+  if (!customer) return { isReturning: false };
+
+  const [profile, treatments] = await Promise.all([
+    repo.getCustomerHairProfile(customer.id),
+    repo.listCustomerTreatments(customer.id),
+  ]);
+  const last = treatments[0]; // visitedAt desc → 첫 항목이 최신
+
+  return {
+    isReturning: true,
+    profile: profile ?? undefined,
+    lastServiceIds: last?.serviceIds,
+    lastVisitedAt: last?.visitedAt,
+  };
+}
+
+/* ── 사장 회원 이력 뷰 (ownerToken 게이트) ──────────────────────
+ * 콘솔 권한(ownerToken)으로 살롱을 확정한 뒤, 그 살롱 소속 customer 의
+ * 시술 이력(카르테 타임라인)을 돌려준다. 살롱 스코프를 강제(타 살롱 customer 거부).
+ * 무효 토큰/타 살롱 customer 면 null. */
+export async function getCustomerHistory(
+  ownerToken: string,
+  customerId: string,
+): Promise<{ customer: Customer; treatments: TreatmentRecord[] } | null> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return null;
+  const repo = getRepo();
+
+  // customer 가 이 살롱 소속인지 확인(타 살롱 이력 격리). customer 직접 조회 메서드가
+  // 없으므로 그 살롱 시술 기록에서 customerId 일치 + salonSlug 일치를 검증한다.
+  const treatments = await repo.listCustomerTreatments(customerId);
+  const scoped = treatments.filter((t) => t.salonSlug === salon.slug);
+  // 이 살롱에서 이 customer 의 흔적이 전혀 없으면(=타 살롱/없음) 노출하지 않는다.
+  if (scoped.length === 0) {
+    await logIssue({
+      salonSlug: salon.slug,
+      severity: "warning",
+      source: "console",
+      message: "회원 이력 조회 대상 불일치(타 살롱/없음)",
+      detail: `customerId=${customerId}`,
+    });
+    return null;
+  }
+
+  // customer 메타는 마지막 상담에서 최소 투영으로 구성(전용 getCustomer 메서드 부재).
+  const last = await repo.getLastConsultationForCustomer(customerId);
+  const customer: Customer = {
+    id: customerId,
+    salonSlug: salon.slug,
+    contactOptOut: false,
+    locale: last?.customerLocale ?? "ko",
+    isReturning: true,
+    createdAt: scoped[scoped.length - 1]?.visitedAt ?? new Date().toISOString(),
+  };
+
+  return { customer, treatments: scoped };
 }
 
 /** 손님 대면 가격(formatPrice) 헬퍼 — FE 가 손님 로케일로 표기할 때 사용. */
@@ -982,6 +1219,7 @@ function toListItem(c: Consultation): ConsultationListItem {
     hasReport: Boolean(c.reportToken),
     designerId: c.designerId,
     designerName: c.designerName,
+    customerId: c.customerId,
   };
 }
 

@@ -87,6 +87,17 @@
     "addProduct": "Add",
     "addProductPlaceholder": "Add your own (e.g. XYZ treatment)",
     "stateGrade": "Hair condition",
+    "satisfaction": "Satisfaction",
+    "satisfactionHint": "Note the guest's reaction from 1 to 5 (optional)",
+    "satisfactionClear": "Clear selection",
+    "satisfactionScore": "{score} pts",
+    "satisfactionLevel": {
+      "1": "Very unhappy",
+      "2": "Unhappy",
+      "3": "Okay",
+      "4": "Happy",
+      "5": "Delighted"
+    },
     "beforePhoto": "Before photo",
     "afterPhoto": "After photo",
     "addPhoto": "Add photo",

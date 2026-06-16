@@ -14,6 +14,18 @@
   "intake": {
     "title": "Tell us the style you want",
     "subtitle": "Just tap to choose, and your designer prepares ahead",
+    "returning": {
+      "title": "Welcome back!",
+      "subtitle": "We remember your last visit. How would you like to start?",
+      "sameAsBefore": "Same as last time",
+      "sameHint": "Brings back your last service and hair details",
+      "newStyle": "Try a new style",
+      "newHint": "Start fresh and choose again",
+      "lastVisit": "Last visit: {date}",
+      "prefilled": "We pre-filled your last answers. Just change what's different.",
+      "skipProfile": "Keep my hair details as they are",
+      "reviewProfile": "Review my hair details again"
+    },
     "step": {
       "services": "What service would you like?",
       "photos": "Reference style photos",

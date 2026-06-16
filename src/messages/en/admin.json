@@ -168,6 +168,32 @@
     },
     "qr": {
       "hint": "Place this QR at your entrance or mirror. Guests scan it to start instantly."
+    },
+    "customers": {
+      "title": "Member treatment history",
+      "subtitle": "The karte built up from this guest's visits",
+      "back": "Back to console",
+      "visitCount": "{count} visit(s)",
+      "visit": "Visit",
+      "visitedAt": "Visited",
+      "designer": "Designer",
+      "services": "Services",
+      "products": "Products used",
+      "stateGrade": "Hair condition",
+      "satisfaction": "Satisfaction",
+      "satisfactionScore": "{score} pts",
+      "unassigned": "Unassigned",
+      "none": "—",
+      "empty": "No treatment history yet.",
+      "invalid": {
+        "title": "History not found",
+        "hint": "This guest has no treatment history, or belongs to another salon."
+      },
+      "grade": {
+        "high": "High",
+        "mid": "Mid",
+        "low": "Low"
+      }
     }
   }
 }

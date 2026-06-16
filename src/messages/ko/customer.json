@@ -14,6 +14,18 @@
   "intake": {
     "title": "원하시는 스타일을 알려주세요",
     "subtitle": "탭으로 골라주시면 디자이너가 미리 준비해요",
+    "returning": {
+      "title": "또 오셨네요!",
+      "subtitle": "지난번 정보를 기억하고 있어요. 어떻게 진행할까요?",
+      "sameAsBefore": "지난번처럼",
+      "sameHint": "지난 시술·머릿결 정보를 그대로 불러와요",
+      "newStyle": "새 스타일로",
+      "newHint": "처음부터 새로 골라볼게요",
+      "lastVisit": "지난 방문: {date}",
+      "prefilled": "지난번 입력을 미리 채워뒀어요. 바뀐 부분만 고쳐주세요.",
+      "skipProfile": "머릿결 정보는 그대로 쓸게요",
+      "reviewProfile": "머릿결 정보 다시 확인하기"
+    },
     "step": {
       "services": "어떤 시술을 원하세요?",
       "photos": "원하는 스타일 사진",

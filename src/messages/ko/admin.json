@@ -168,6 +168,32 @@
     },
     "qr": {
       "hint": "이 QR을 입구·거울 앞에 붙여주세요. 손님이 찍으면 바로 시작됩니다."
+    },
+    "customers": {
+      "title": "회원 시술 이력",
+      "subtitle": "이 손님의 방문이 쌓인 카르테예요",
+      "back": "콘솔로 돌아가기",
+      "visitCount": "방문 {count}회",
+      "visit": "방문",
+      "visitedAt": "방문일",
+      "designer": "담당",
+      "services": "시술",
+      "products": "사용 약제",
+      "stateGrade": "모발 상태",
+      "satisfaction": "만족도",
+      "satisfactionScore": "{score}점",
+      "unassigned": "지정없음",
+      "none": "—",
+      "empty": "아직 쌓인 시술 이력이 없어요.",
+      "invalid": {
+        "title": "이력을 찾을 수 없어요",
+        "hint": "이 손님의 시술 이력이 없거나 다른 살롱 회원이에요."
+      },
+      "grade": {
+        "high": "상",
+        "mid": "중",
+        "low": "하"
+      }
     }
   }
 }

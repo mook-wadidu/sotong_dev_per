@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { DataTable, Badge, type Column } from "@/components/ui";
 import { designerSummaryPath } from "@/lib/links";
 import type { ConsultationListItem } from "@/lib/db/types";
@@ -31,10 +31,14 @@ const LOCALE_LABEL: Record<Locale, string> = {
  */
 export function ConsoleInquiriesTab({
   consultations,
+  ownerToken,
 }: {
   consultations: ConsultationListItem[];
+  /** 회원 카르테 링크(/{locale}/s/{ownerToken}/customers/{customerId}) 생성용 */
+  ownerToken: string;
 }) {
   const t = useTranslations("Admin");
+  const locale = useLocale();
   const router = useRouter();
 
   const statusLabel = (s: ConsultationStatus): string => {
@@ -121,6 +125,28 @@ export function ConsoleInquiriesTab({
           {row.maskedPhone ?? "—"}
         </span>
       ),
+    },
+    {
+      // 회원 카르테 — 기기 토큰으로 식별된 손님이면 시술 이력으로 진입(행 클릭과 분리).
+      header: t("inquiries.customer"),
+      align: "right",
+      cell: (row) =>
+        row.customerId ? (
+          <button
+            type="button"
+            className="whitespace-nowrap font-medium text-foreground underline underline-offset-4 hover:no-underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(
+                `/${locale}/s/${ownerToken}/customers/${row.customerId}`,
+              );
+            }}
+          >
+            {t("inquiries.view")}
+          </button>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
     },
   ];
 

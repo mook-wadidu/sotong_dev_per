@@ -41,6 +41,11 @@ type Labels = {
   addProduct: string;
   addProductPlaceholder: string;
   stateGrade: string;
+  satisfaction: string;
+  satisfactionHint: string;
+  satisfactionClear: string;
+  /** 1~5 점수별 텍스트 라벨 (흑백·접근성 — 별/색 대신 말로) */
+  satisfactionLevels: Record<1 | 2 | 3 | 4 | 5, string>;
   beforePhoto: string;
   afterPhoto: string;
   addPhoto: string;
@@ -56,6 +61,8 @@ type Labels = {
   gradeLow: string;
 };
 
+const SATISFACTION_SCORES = [1, 2, 3, 4, 5] as const;
+
 export function RecordForm({
   token,
   customerLocale,
@@ -70,6 +77,7 @@ export function RecordForm({
   const [customProducts, setCustomProducts] = React.useState<string[]>([]);
   const [customInput, setCustomInput] = React.useState("");
   const [grade, setGrade] = React.useState<ThreeLevel | null>(null);
+  const [satisfaction, setSatisfaction] = React.useState<number | null>(null);
   const [beforeUrl, setBeforeUrl] = React.useState<string | undefined>();
   const [afterUrl, setAfterUrl] = React.useState<string | undefined>();
   const [pending, startTransition] = React.useTransition();
@@ -112,6 +120,7 @@ export function RecordForm({
     productIds.length > 0 ||
     customProducts.length > 0 ||
     grade !== null ||
+    satisfaction !== null ||
     Boolean(beforeUrl) ||
     Boolean(afterUrl);
 
@@ -127,6 +136,7 @@ export function RecordForm({
           record: {
             products: [...productIds, ...customProducts],
             stateGrade: grade ?? undefined,
+            satisfactionScore: satisfaction ?? undefined,
           },
           beforePhotoUrl: beforeUrl,
           afterPhotoUrl: afterUrl,
@@ -236,6 +246,33 @@ export function RecordForm({
           label={labels.stateGrade}
           variant="grid"
         />
+      </section>
+
+      {/* 만족도 (선택, 1~5 — 흑백·접근성: 별/색 대신 숫자+말 라벨) */}
+      <section>
+        <SectionLabel>{labels.satisfaction}</SectionLabel>
+        <p className="mb-2.5 text-xs text-muted-foreground">
+          {labels.satisfactionHint}
+        </p>
+        <RadioGroup
+          variant="list"
+          label={labels.satisfaction}
+          options={SATISFACTION_SCORES.map((n) => ({
+            value: String(n),
+            label: `${n} · ${labels.satisfactionLevels[n]}`,
+          }))}
+          value={satisfaction === null ? null : String(satisfaction)}
+          onValueChange={(v) => setSatisfaction(Number(v))}
+        />
+        {satisfaction !== null ? (
+          <button
+            type="button"
+            onClick={() => setSatisfaction(null)}
+            className="mt-2 text-sm font-medium text-muted-foreground underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            {labels.satisfactionClear}
+          </button>
+        ) : null}
       </section>
 
       {/* before / after 사진 */}

@@ -19,6 +19,7 @@ import {
   rotateSalonEntryKey as rotateSalonEntryKeySvc,
   rotateDesignerEntryKey as rotateDesignerEntryKeySvc,
   salonDeleteService as salonDeleteServiceSvc,
+  salonUpdateRanks as salonUpdateRanksSvc,
   salonUpsertCategory as salonUpsertCategorySvc,
   salonUpsertDesigner as salonUpsertDesignerSvc,
   salonUpsertService as salonUpsertServiceSvc,
@@ -46,6 +47,7 @@ import {
   toPublicDesigner,
   type ConsultationListItem,
   type Designer,
+  type DesignerRank,
   type PublicDesigner,
   type PublicSalon,
   type SalonService,
@@ -238,6 +240,14 @@ export async function salonUpsertDesigner(input: {
   rankId?: string;
 }): Promise<{ ok: boolean; designer?: Designer }> {
   return salonUpsertDesignerSvc(input);
+}
+
+/* ── 살롱 콘솔: 직급(rank) 편집 (ownerToken 검증) ────────── */
+export async function salonUpdateRanks(
+  ownerToken: string,
+  ranks: DesignerRank[],
+): Promise<{ ok: boolean }> {
+  return salonUpdateRanksSvc(ownerToken, ranks);
 }
 
 /* ── 살롱 콘솔: QR 재발급(키 회전, ownerToken 검증) ───────── */

@@ -3,6 +3,37 @@
   "subtitle": "Salons, intakes & errors",
   "salonFilter": "Select salon",
   "allSalons": "All salons",
+  "nav": {
+    "label": "Admin menu",
+    "menu": "Menu",
+    "open": "Open menu",
+    "close": "Close",
+    "dashboard": "Dashboard",
+    "salons": "Salon management",
+    "inquiries": "Intakes",
+    "errors": "Errors",
+    "onboarding": "Onboarding"
+  },
+  "dashboard": {
+    "title": "Salons overview",
+    "hint": "Manage each salon or jump to its owner console.",
+    "designerCount": "{count} designers",
+    "inquiryCount": "{count} intakes",
+    "manage": "Manage",
+    "console": "Owner console"
+  },
+  "manage": {
+    "title": "Access info",
+    "hint": "View the owner console token, link and QR codes anytime. Keep secret — do not expose to guests.",
+    "ownerToken": "Owner console token",
+    "consoleLink": "Owner console link",
+    "rotate": "Regenerate QR",
+    "rotateConfirm": "Regenerating the QR will break the existing QR/link. Continue?",
+    "rotated": "QR regenerated",
+    "selectTitle": "Select a salon to manage",
+    "selectHint": "Pick a salon to see its access info and full editing (menu, designers, ranks, QR, intakes).",
+    "notFound": "Salon not found."
+  },
   "tabs": {
     "qr": "QR",
     "onboarding": "Onboarding",
@@ -152,6 +183,20 @@
       "deleted": "Deleted",
       "deleteTitle": "Delete service",
       "deleteConfirm": "Delete the service ‘{name}’?"
+    },
+    "ranks": {
+      "title": "Ranks",
+      "hint": "Add, rename, or remove designer ranks. Used for per-rank pricing in the menu and for assigning designers.",
+      "add": "Add rank",
+      "namePlaceholder": "e.g. Director",
+      "nameRequired": "Enter a rank name.",
+      "empty": "No ranks yet. Add a rank to use it for designer assignment and per-rank pricing.",
+      "save": "Save ranks",
+      "saved": "Ranks saved",
+      "deleteTitle": "Delete rank",
+      "deleteConfirm": "Delete the \"{name}\" rank? Designers using it will be unassigned and matching per-rank prices in the menu will be removed (base price kept).",
+      "removeRow": "Remove",
+      "usageHint": "Removing a rank in use automatically unassigns it from designers and the menu."
     },
     "designers": {
       "hint": "Add designers and assign ranks. Each gets a QR and inbox.",

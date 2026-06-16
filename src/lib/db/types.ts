@@ -316,6 +316,8 @@ export interface Repo {
   createSalon(input: CreateSalonInput): Promise<Salon>;
   /** 살롱 공용 QR 키 버전 갱신(회전/폐기) — 유출 시 ++ 로 기존 QR 무효화(P1) */
   updateSalonEntryKeyVersion(slug: string, version: number): Promise<void>;
+  /** 살롱 디자이너 직급 정의 교체(콘솔 직급 편집) — designer_ranks 통째 갱신 */
+  updateSalonRanks(salonSlug: string, ranks: DesignerRank[]): Promise<void>;
 
   /** 디자이너 조회 (살롱 1 : 디자이너 N) */
   getDesignerByStaffToken(token: string): Promise<Designer | null>;

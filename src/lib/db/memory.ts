@@ -333,6 +333,19 @@ export class MemoryRepo implements Repo {
     if (salon) store.salons.set(slug, { ...salon, entryKeyVersion: version });
   }
 
+  async updateSalonRanks(
+    salonSlug: string,
+    ranks: DesignerRank[],
+  ): Promise<void> {
+    const salon = store.salons.get(salonSlug);
+    if (salon) {
+      store.salons.set(salonSlug, {
+        ...salon,
+        designerRanks: ranks.map((r) => ({ ...r })),
+      });
+    }
+  }
+
   async getDesignerByStaffToken(t: string): Promise<Designer | null> {
     if (!t) return null;
     for (const d of store.designers.values()) {

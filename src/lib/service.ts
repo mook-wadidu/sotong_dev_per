@@ -1492,6 +1492,111 @@ function normalizeRankPrices(
   return Object.keys(out).length ? out : undefined;
 }
 
+/**
+ * 직급 id 정규화/생성 — 소문자/숫자/하이픈만. 빈 결과는 랜덤 폴백.
+ * 신규 직급(id 미지정)은 label 에서 생성하고, 같은 호출 내 중복 id 는
+ * `-2`, `-3` … 접미로 회피한다.
+ */
+function normalizeRankId(raw: string): string {
+  const base = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32);
+  return base || `r${cryptoToken().slice(0, 8)}`;
+}
+
+/**
+ * 살롱 직급(rank) 정의 교체(콘솔). authorizeConsole 게이트 후 repo.updateSalonRanks.
+ * 입력 검증:
+ *  - ranks 는 배열, 각 항목 {id?,label} 의 label 비어있지 않게.
+ *  - 최종 id 는 소문자/숫자/하이픈으로 정규화(id 미지정 시 label 에서 생성).
+ *  - 최종 id 중복 금지(중복이면 -2, -3 … 접미로 유일화).
+ *  - 최소 0개 허용(전부 삭제 가능).
+ * 정합 가드(best-effort, throw 금지): 새 ranks 에서 사라진 rankId 를 참조하는
+ *  (a) 디자이너 → rankId=undefined, (b) 시술 rankPrices 의 해당 키 제거.
+ *  실패해도 logIssue(warning) 후 진행(기본가 basePriceFrom 은 유지).
+ */
+export async function salonUpdateRanks(
+  ownerToken: string,
+  ranks: DesignerRank[],
+): Promise<{ ok: boolean }> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return { ok: false };
+  const repo = getRepo();
+
+  if (!Array.isArray(ranks)) return { ok: false };
+
+  // 정규화 + 검증(label 필수) + id 유일화.
+  const seen = new Set<string>();
+  const normalized: DesignerRank[] = [];
+  for (const r of ranks) {
+    const label = (r?.label ?? "").trim();
+    if (!label) return { ok: false };
+    const rawId = (r?.id ?? "").trim() || label;
+    let id = normalizeRankId(rawId);
+    if (seen.has(id)) {
+      let n = 2;
+      while (seen.has(`${id}-${n}`)) n += 1;
+      id = `${id}-${n}`;
+    }
+    seen.add(id);
+    normalized.push({ id, label });
+  }
+
+  await repo.updateSalonRanks(salon.slug, normalized);
+
+  // ── 정합 가드: 사라진 rankId 참조 정리(best-effort) ──────────────
+  const kept = new Set(normalized.map((r) => r.id));
+
+  // (a) 디자이너: 사라진 직급 참조 → undefined.
+  try {
+    const designers = await repo.listDesigners(salon.slug);
+    for (const d of designers) {
+      if (d.rankId && !kept.has(d.rankId)) {
+        await repo.updateDesigner({ ...d, rankId: undefined });
+      }
+    }
+  } catch (e) {
+    await logIssue({
+      salonSlug: salon.slug,
+      severity: "warning",
+      source: "console",
+      message: "직급 변경: 디자이너 rankId 정리 실패(best-effort)",
+      detail: e instanceof Error ? e.message : String(e),
+    });
+  }
+
+  // (b) 시술 rankPrices: 사라진 키 제거(기본가 유지).
+  try {
+    const services = await repo.listServices(salon.slug);
+    for (const s of services) {
+      if (!s.rankPrices) continue;
+      const staleKeys = Object.keys(s.rankPrices).filter((k) => !kept.has(k));
+      if (staleKeys.length === 0) continue;
+      const nextPrices: Record<string, number> = {};
+      for (const [k, v] of Object.entries(s.rankPrices)) {
+        if (kept.has(k)) nextPrices[k] = v;
+      }
+      await repo.upsertService({
+        ...s,
+        rankPrices: Object.keys(nextPrices).length ? nextPrices : undefined,
+      });
+    }
+  } catch (e) {
+    await logIssue({
+      salonSlug: salon.slug,
+      severity: "warning",
+      source: "console",
+      message: "직급 변경: 시술 rankPrices 정리 실패(best-effort)",
+      detail: e instanceof Error ? e.message : String(e),
+    });
+  }
+
+  return { ok: true };
+}
+
 /** 카테고리 추가/수정(콘솔). id 없으면 라벨에서 생성, salonSlug 강제. */
 export async function salonUpsertCategory(input: {
   ownerToken: string;

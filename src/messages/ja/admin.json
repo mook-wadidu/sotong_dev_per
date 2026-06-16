@@ -3,6 +3,37 @@
   "subtitle": "店舗・受付・エラーの状況",
   "salonFilter": "店舗を選択",
   "allSalons": "すべての店舗",
+  "nav": {
+    "label": "管理メニュー",
+    "menu": "メニュー",
+    "open": "メニューを開く",
+    "close": "閉じる",
+    "dashboard": "ダッシュボード",
+    "salons": "店舗管理",
+    "inquiries": "受付履歴",
+    "errors": "エラー",
+    "onboarding": "オンボーディング"
+  },
+  "dashboard": {
+    "title": "店舗一覧",
+    "hint": "各店舗を管理したり、オーナーコンソールへ移動できます。",
+    "designerCount": "デザイナー {count}名",
+    "inquiryCount": "受付 {count}件",
+    "manage": "管理",
+    "console": "オーナーコンソール"
+  },
+  "manage": {
+    "title": "接続情報",
+    "hint": "オーナーコンソールのトークン・リンクとQRをいつでも確認できます。お客様には公開しないでください（秘密）。",
+    "ownerToken": "オーナーコンソール トークン",
+    "consoleLink": "オーナーコンソール リンク",
+    "rotate": "QRを再発行",
+    "rotateConfirm": "QRを再発行すると、既存のQR/リンクは使えなくなります。続けますか？",
+    "rotated": "QRを再発行しました",
+    "selectTitle": "管理する店舗を選択",
+    "selectHint": "店舗を選ぶと、接続情報と全体編集（メニュー・デザイナー・役職・QR・受付）が表示されます。",
+    "notFound": "店舗が見つかりません。"
+  },
   "tabs": {
     "qr": "QR",
     "onboarding": "オンボーディング",
@@ -152,6 +183,20 @@
       "deleted": "削除しました",
       "deleteTitle": "施術の削除",
       "deleteConfirm": "「{name}」を削除しますか？"
+    },
+    "ranks": {
+      "title": "役職",
+      "hint": "デザイナーの役職を追加・名称変更・削除します。メニューの役職別料金とデザイナー指定に使われます。",
+      "add": "役職を追加",
+      "namePlaceholder": "例: 院長",
+      "nameRequired": "役職名を入力してください。",
+      "empty": "まだ役職がありません。役職を追加すると、デザイナー指定や役職別料金に使えます。",
+      "save": "役職を保存",
+      "saved": "役職を保存しました",
+      "deleteTitle": "役職を削除",
+      "deleteConfirm": "「{name}」役職を削除しますか？この役職を使っていたデザイナーは役職が解除され、メニューの該当役職料金は削除されます（基本料金は維持）。",
+      "removeRow": "削除",
+      "usageHint": "使用中の役職を削除すると、デザイナー・メニューから自動的に解除されます。"
     },
     "designers": {
       "hint": "デザイナーを追加し役職を指定してください。各デザイナーのQR/受信箱が発行されます。",

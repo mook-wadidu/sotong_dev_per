@@ -19,6 +19,7 @@ import { SalonQR } from "@/components/admin/salon-qr";
 import { salonUpsertDesigner } from "@/lib/actions";
 import type { Designer, DesignerRank } from "@/lib/db/types";
 import type { SalonConsole as SalonConsoleData } from "@/lib/actions";
+import { RanksEditor } from "./ranks-editor";
 
 type DesignerEntry = SalonConsoleData["designerEntries"][number];
 
@@ -61,6 +62,12 @@ export function DesignersTab({
 
   return (
     <div className="space-y-6">
+      <RanksEditor
+        ownerToken={ownerToken}
+        ranks={ranks}
+        onChanged={onChanged}
+      />
+
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {t("console.designers.hint")}

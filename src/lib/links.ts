@@ -57,10 +57,29 @@ export function adminGatePath(locale: Locale = "ko") {
   return `/${locale}/admin`;
 }
 
-/** 어드민 경로 (key 필수 — MVP 단일 공유 키). 게이트 통과 후 내부 네비게이션 전용. */
-export function adminPath(key: string, salonSlug?: string) {
+/** 어드민 사이드바 뷰 키 — URL `view` 파라미터(새로고침/북마크 견딤). */
+export type AdminView =
+  | "dashboard"
+  | "salons"
+  | "inquiries"
+  | "errors"
+  | "onboarding";
+
+/**
+ * 어드민 경로 (key 필수 — MVP 단일 공유 키). 게이트 통과 후 내부 네비게이션 전용.
+ * - 2번째 인자: 기존 호환을 위해 문자열(`salonSlug`) 또는 `{ salon?, view? }` 옵션을 받는다.
+ *   - 문자열 → 지점 필터(`?salon=`)로 해석(기존 호출부 보존).
+ *   - 객체 → `view`(사이드바 섹션) + `salon`(선택 살롱) 동시 지정.
+ */
+export function adminPath(
+  key: string,
+  opts?: string | { salon?: string; view?: AdminView },
+) {
   const q = new URLSearchParams({ key });
-  if (salonSlug) q.set("salon", salonSlug);
+  const normalized =
+    typeof opts === "string" ? { salon: opts } : opts ?? {};
+  if (normalized.view) q.set("view", normalized.view);
+  if (normalized.salon) q.set("salon", normalized.salon);
   return `/ko/admin?${q.toString()}`;
 }
 

@@ -595,6 +595,16 @@ export class MemoryRepo implements Repo {
       .sort((a, b) => (a.visitedAt < b.visitedAt ? 1 : -1));
   }
 
+  async getTreatmentByConsultation(
+    consultationId: string,
+  ): Promise<TreatmentRecord | null> {
+    if (!consultationId) return null;
+    const matches = [...store.treatmentRecords.values()]
+      .filter((r) => r.consultationId === consultationId)
+      .sort((a, b) => (a.visitedAt < b.visitedAt ? 1 : -1));
+    return matches[0] ?? null;
+  }
+
   async getLastConsultationForCustomer(
     customerId: string,
   ): Promise<Consultation | null> {

@@ -115,7 +115,9 @@
     "translatedNote": "Sent with automatic translation",
     "empty": "Your consultation has started. Ask anything.",
     "sending": "Sending…",
-    "sendError": "Couldn't send your message"
+    "sendError": "Couldn't send your message",
+    "reportReady": "Your report has arrived",
+    "viewReport": "View report"
   },
   "report": {
     "title": "Hair InBody Report",
@@ -130,11 +132,15 @@
     "nextVisit": "Recommended next visit",
     "before": "Before",
     "after": "After",
+    "styleRequest": "Style you requested",
+    "concerns": "Concerns discussed",
+    "cautions": "Service notes",
     "scoreLabel": "{score} pts",
     "book": "Book next visit",
     "bookToast": "Booking request received. The salon will contact you soon.",
     "save": "Save as image",
     "saveToast": "Report saved",
+    "saveError": "Couldn't save the image. Please try again.",
     "share": "Share",
     "shareToast": "Share link copied",
     "grade": {

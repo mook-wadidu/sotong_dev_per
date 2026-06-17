@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toPng } from "html-to-image";
 import {
   Badge,
   Button,
@@ -35,10 +36,17 @@ export interface ReportLabels {
   nextVisit: string;
   before: string;
   after: string;
+  /** 손님 요청 스타일 섹션 라벨(신규 보강) */
+  styleRequest: string;
+  /** 손님 고민 섹션 라벨(신규 보강) */
+  concerns: string;
+  /** 시술 주의사항 섹션 라벨(신규 보강) */
+  cautions: string;
   book: string;
   bookToast: string;
   save: string;
   saveToast: string;
+  saveError: string;
   share: string;
   shareToast: string;
   scoreLabel: string;
@@ -72,6 +80,62 @@ export function ReportView({
 }) {
   const tone = GRADE_TONE[report.hairStateGrade];
   const score = Math.max(0, Math.min(100, report.hairStateScore));
+  // 캡처 대상 — 리포트 카드 본문(저장/공유 버튼 영역은 제외).
+  const captureRef = React.useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = React.useState(false);
+
+  /** 리포트 카드를 고품질 PNG 로 렌더한다(외부 이미지 없음 — before/after 는 inline dataURL). */
+  const renderPng = async (): Promise<string | null> => {
+    const node = captureRef.current;
+    if (!node) return null;
+    return toPng(node, {
+      pixelRatio: 2,
+      cacheBust: true,
+      // 캡처 배경을 카드와 맞춰 투명/대비 깨짐 방지.
+      backgroundColor: "#ffffff",
+    });
+  };
+
+  const fileName = `${report.salonName || "sotong"}-${report.date}.png`;
+
+  const onSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const dataUrl = await renderPng();
+      if (!dataUrl) {
+        toast.error(labels.saveError);
+        return;
+      }
+      // 공유 가능(파일)하면 share 시도, 아니면 다운로드.
+      const canShareFiles =
+        typeof navigator !== "undefined" &&
+        typeof navigator.canShare === "function";
+      if (canShareFiles) {
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          const file = new File([blob], fileName, { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: labels.title });
+            return;
+          }
+        } catch {
+          // share 실패/취소 → 다운로드 폴백
+        }
+      }
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast.success(labels.saveToast);
+    } catch {
+      toast.error(labels.saveError);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const onShare = async () => {
     if (typeof navigator !== "undefined" && "clipboard" in navigator) {
@@ -89,6 +153,8 @@ export function ReportView({
       <ScreenHeader title={labels.title} subtitle={labels.subtitle} />
 
       <ScreenBody className="space-y-4 pb-8">
+        {/* 캡처 영역 — 저장/공유/예약 버튼 제외한 리포트 본문 */}
+        <div ref={captureRef} className="space-y-4 bg-background">
         {/* 헤더 카드: 살롱 / 디자이너 / 날짜 */}
         <Card>
           <CardContent className="space-y-2.5 p-5">
@@ -115,6 +181,17 @@ export function ReportView({
             {report.serviceSummary}
           </p>
         </section>
+
+        {/* 보강: 요청 스타일 · 고민 · 주의 (있을 때만) */}
+        {report.styleRequest ? (
+          <TextSection label={labels.styleRequest} value={report.styleRequest} />
+        ) : null}
+        {report.concerns ? (
+          <TextSection label={labels.concerns} value={report.concerns} />
+        ) : null}
+        {report.cautions ? (
+          <TextSection label={labels.cautions} value={report.cautions} />
+        ) : null}
 
         {/* 모발 상태 게이지 */}
         <Card>
@@ -216,13 +293,16 @@ export function ReportView({
             </Button>
           </CardContent>
         </Card>
+        </div>
+        {/* /캡처 영역 */}
 
-        {/* 저장 / 공유 (mock) */}
+        {/* 저장(이미지 PNG) / 공유(링크 복사) */}
         <div className="grid grid-cols-2 gap-3">
           <Button
             variant="outline"
             size="lg"
-            onClick={() => toast.success(labels.saveToast)}
+            onClick={onSave}
+            disabled={saving}
           >
             {labels.save}
           </Button>
@@ -232,6 +312,18 @@ export function ReportView({
         </div>
       </ScreenBody>
     </MobileFrame>
+  );
+}
+
+/** 보강 텍스트 섹션(요청 스타일·고민·주의) — 값이 있을 때만 렌더된다. */
+function TextSection({ label, value }: { label: string; value: string }) {
+  return (
+    <section>
+      <SectionLabel>{label}</SectionLabel>
+      <p className="text-pretty text-[0.95rem] leading-relaxed text-foreground">
+        {value}
+      </p>
+    </section>
   );
 }
 

@@ -115,7 +115,9 @@
     "translatedNote": "自動翻訳されて届きます",
     "empty": "相談が始まりました。ご質問をどうぞ。",
     "sending": "送信中…",
-    "sendError": "メッセージを送信できませんでした"
+    "sendError": "メッセージを送信できませんでした",
+    "reportReady": "レポートが届きました",
+    "viewReport": "レポートを見る"
   },
   "report": {
     "title": "ヘアインボディレポート",
@@ -130,11 +132,15 @@
     "nextVisit": "次回のおすすめ来店時期",
     "before": "施術前",
     "after": "施術後",
+    "styleRequest": "ご希望のスタイル",
+    "concerns": "相談時のお悩み",
+    "cautions": "施術時の注意点",
     "scoreLabel": "{score}点",
     "book": "次回を予約する",
     "bookToast": "予約リクエストを受け付けました。サロンよりまもなくご連絡します。",
     "save": "画像として保存",
     "saveToast": "レポートを保存しました",
+    "saveError": "画像を保存できませんでした。もう一度お試しください。",
     "share": "共有する",
     "shareToast": "共有リンクをコピーしました",
     "grade": {

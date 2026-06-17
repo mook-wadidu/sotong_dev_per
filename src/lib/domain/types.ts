@@ -144,6 +144,15 @@ export interface HairReportDraft {
   hairStateScore: number; // 0-100
   homeCare: string[];
   nextVisitWeeks: number;
+  /**
+   * 손님이 요청한 스타일(요약 styleDetail 또는 인테이크 styleNote 에서 채움).
+   * 신규 optional — 구 리포트 안전. completeConsultation 이 발송 시 채운다.
+   */
+  styleRequest?: string;
+  /** 손님 고민(요약 concerns 또는 인테이크 concernNote 에서 채움). 신규 optional. */
+  concerns?: string;
+  /** 시술 주의사항(요약 hairCautions 에서 채움). 신규 optional. */
+  cautions?: string;
 }
 
 export interface HairReport extends HairReportDraft {

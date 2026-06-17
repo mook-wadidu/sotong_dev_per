@@ -120,9 +120,16 @@ export function AdminInquiries({
     {
       header: t("inquiries.status"),
       cell: (row) => (
-        <Badge variant={statusVariant(row.status)}>
-          {statusLabel(row.status)}
-        </Badge>
+        <div className="flex flex-col items-start gap-0.5">
+          <Badge variant={statusVariant(row.status)}>
+            {statusLabel(row.status)}
+          </Badge>
+          {row.status === "completed" ? (
+            <span className="whitespace-nowrap text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+              {t("inquiries.openEmr")}
+            </span>
+          ) : null}
+        </div>
       ),
     },
     {

@@ -189,6 +189,9 @@ interface HairReportRow {
   report_date: string;
   before_photo_url: string | null;
   after_photo_url: string | null;
+  style_request: string | null;
+  concerns: string | null;
+  cautions: string | null;
 }
 
 interface ErrorLogRow {
@@ -230,7 +233,7 @@ const TREATMENT_RECORD_COLS =
 const MESSAGE_COLS =
   "id,consultation_id,sender,source_text,source_locale,intent,translations,created_at";
 const REPORT_COLS =
-  "consultation_id,report_token,salon_name,designer_name,locale,service_summary,products,hair_state_grade,hair_state_score,home_care,next_visit_weeks,report_date,before_photo_url,after_photo_url";
+  "consultation_id,report_token,salon_name,designer_name,locale,service_summary,products,hair_state_grade,hair_state_score,home_care,next_visit_weeks,report_date,before_photo_url,after_photo_url,style_request,concerns,cautions";
 const ERROR_COLS =
   "id,salon_slug,severity,source,message,detail,consultation_id,created_at";
 const PUSH_SUB_COLS =
@@ -407,6 +410,9 @@ function toHairReport(r: HairReportRow): HairReport {
     date: r.report_date,
     beforePhotoUrl: r.before_photo_url ?? undefined,
     afterPhotoUrl: r.after_photo_url ?? undefined,
+    styleRequest: r.style_request ?? undefined,
+    concerns: r.concerns ?? undefined,
+    cautions: r.cautions ?? undefined,
   };
 }
 
@@ -931,6 +937,21 @@ export class SupabaseRepo implements Repo {
     return ((data ?? []) as TreatmentRecordRow[]).map(toTreatmentRecord);
   }
 
+  async getTreatmentByConsultation(
+    consultationId: string,
+  ): Promise<TreatmentRecord | null> {
+    if (!consultationId) return null;
+    const { data, error } = await this.client
+      .from("treatment_records")
+      .select(TREATMENT_RECORD_COLS)
+      .eq("consultation_id", consultationId)
+      .order("visited_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) fail("getTreatmentByConsultation", error);
+    return data ? toTreatmentRecord(data as TreatmentRecordRow) : null;
+  }
+
   async getLastConsultationForCustomer(
     customerId: string,
   ): Promise<Consultation | null> {
@@ -998,6 +1019,9 @@ export class SupabaseRepo implements Repo {
       report_date: report.date,
       before_photo_url: report.beforePhotoUrl ?? null,
       after_photo_url: report.afterPhotoUrl ?? null,
+      style_request: report.styleRequest ?? null,
+      concerns: report.concerns ?? null,
+      cautions: report.cautions ?? null,
     };
     const { error } = await this.client
       .from("hair_reports")

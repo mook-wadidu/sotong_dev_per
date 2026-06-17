@@ -131,5 +131,29 @@
       "mid": "中",
       "low": "下"
     }
+  },
+  "emr": {
+    "title": "総合カルテ (EMR)",
+    "recordTitle": "施術記録",
+    "services": "施術",
+    "products": "使用薬剤",
+    "stateGrade": "髪の状態",
+    "satisfaction": "満足度",
+    "satisfactionScore": "{score}点",
+    "note": "メモ",
+    "none": "—",
+    "beforePhoto": "施術前の写真",
+    "conversation": "会話のハイライト",
+    "senderCustomer": "お客様",
+    "senderDesigner": "デザイナー",
+    "viewReport": "お客様レポートを見る",
+    "grade": {
+      "high": "上",
+      "mid": "中",
+      "low": "下"
+    }
+  },
+  "history": {
+    "title": "お客様の過去の履歴"
   }
 }

@@ -92,7 +92,8 @@
     "statusConsulting": "상담 중",
     "statusInService": "시술 중",
     "statusCompleted": "완료",
-    "statusCancelled": "취소"
+    "statusCancelled": "취소",
+    "openEmr": "EMR·리포트"
   },
   "errors": {
     "title": "오류 로그",

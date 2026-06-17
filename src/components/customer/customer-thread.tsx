@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   Button,
+  buttonVariants,
   Input,
   MessageBubble,
   MobileFrame,
@@ -13,13 +15,19 @@ import {
   SystemNote,
   toast,
 } from "@/components/ui";
-import { pollMessages, sendMessage } from "@/lib/actions";
+import { cn } from "@/lib/utils";
+import { getConsultationStatus, pollMessages, sendMessage } from "@/lib/actions";
+import { reportPath } from "@/lib/links";
 import {
   messageMainText,
   messageOriginalText,
   messageSide,
 } from "@/lib/domain/render";
-import type { Locale, Message } from "@/lib/domain/types";
+import type {
+  ConsultationStatus,
+  Locale,
+  Message,
+} from "@/lib/domain/types";
 
 const POLL_MS = 2000;
 
@@ -34,17 +42,27 @@ export function CustomerThread({
   locale,
   salonName,
   initialMessages,
+  initialStatus,
+  initialReportToken,
 }: {
   token: string;
   locale: Locale;
   salonName: string;
   initialMessages: Message[];
+  /** 진입 시점 상담 상태 — 이미 완료라면 첫 렌더부터 리포트 CTA 노출. */
+  initialStatus?: ConsultationStatus;
+  /** 진입 시점 리포트 토큰(완료 + 발송 시 존재). */
+  initialReportToken?: string;
 }) {
   const t = useTranslations("Customer");
   // 초기 로드 메시지는 정적 영역(aria-live 밖)에 둔다 — 마운트 시 일괄 announce 방지(P1).
   const [liveMessages, setLiveMessages] = React.useState<Message[]>([]);
   const [pending, setPending] = React.useState<Pending[]>([]);
   const [text, setText] = React.useState("");
+  // 리포트 도착 토큰 — 진입 시 이미 완료라면 초기값으로, 아니면 폴링이 채운다.
+  const [reportToken, setReportToken] = React.useState<string | undefined>(
+    initialStatus === "completed" ? initialReportToken : undefined,
+  );
   const endRef = React.useRef<HTMLDivElement>(null);
   // 폴 커서 — **서버 폴 응답의 max createdAt** 으로만 전진(P1).
   // 내가 보낸 메시지로는 전진시키지 않아, 내 전송 직전 도착한 상대 메시지도 다음 폴에서 잡힌다.
@@ -61,9 +79,11 @@ export function CustomerThread({
     [initialMessages, liveMessages],
   );
 
-  // 2s 폴링 — 폴 커서 이후만 append
+  // 2s 폴링 — 폴 커서 이후만 append + 완료/리포트 도착 감지(같은 cadence)
   React.useEffect(() => {
     let active = true;
+    // 리포트 도착을 이미 알면 status 폴링은 더 안 한다(자동이동 없이 CTA 만 띄움).
+    let reportArrived = initialStatus === "completed" && !!initialReportToken;
     const tick = async () => {
       try {
         const next = await pollMessages({
@@ -71,20 +91,36 @@ export function CustomerThread({
           role: "customer",
           sinceIso: lastIsoRef.current,
         });
-        if (!active || next.length === 0) return;
-        const maxIso = next.reduce(
-          (acc, m) => (m.createdAt > acc ? m.createdAt : acc),
-          lastIsoRef.current ?? "",
-        );
-        lastIsoRef.current = maxIso || lastIsoRef.current;
-        setLiveMessages((prev) => {
-          const fresh = next.filter((m) => !seenIdsRef.current.has(m.id));
-          if (!fresh.length) return prev;
-          for (const m of fresh) seenIdsRef.current.add(m.id);
-          return [...prev, ...fresh];
-        });
+        if (!active) return;
+        if (next.length > 0) {
+          const maxIso = next.reduce(
+            (acc, m) => (m.createdAt > acc ? m.createdAt : acc),
+            lastIsoRef.current ?? "",
+          );
+          lastIsoRef.current = maxIso || lastIsoRef.current;
+          setLiveMessages((prev) => {
+            const fresh = next.filter((m) => !seenIdsRef.current.has(m.id));
+            if (!fresh.length) return prev;
+            for (const m of fresh) seenIdsRef.current.add(m.id);
+            return [...prev, ...fresh];
+          });
+        }
       } catch {
         // 폴링 실패는 조용히 무시(다음 tick 재시도)
+      }
+      // 리포트 미도착이면 상태도 함께 확인 — 완료 + 리포트 토큰이면 CTA(+1회 toast).
+      if (!reportArrived) {
+        try {
+          const st = await getConsultationStatus(token);
+          if (!active) return;
+          if (st?.status === "completed" && st.reportToken) {
+            reportArrived = true;
+            setReportToken(st.reportToken);
+            toast.success(t("thread.reportReady"));
+          }
+        } catch {
+          // 상태 폴링 실패도 조용히 무시
+        }
       }
     };
     const id = setInterval(tick, POLL_MS);
@@ -92,7 +128,7 @@ export function CustomerThread({
       active = false;
       clearInterval(id);
     };
-  }, [token]);
+  }, [token, initialStatus, initialReportToken, t]);
 
   // 자동 스크롤 (새 메시지/펜딩 도착 시)
   React.useEffect(() => {
@@ -197,6 +233,23 @@ export function CustomerThread({
           <div ref={endRef} />
         </div>
       </ScreenBody>
+
+      {reportToken ? (
+        <div className="border-t border-border bg-card px-4 py-3">
+          <p className="mb-2 text-center text-sm font-medium text-foreground">
+            {t("thread.reportReady")}
+          </p>
+          <Link
+            href={reportPath(reportToken, locale)}
+            className={cn(
+              buttonVariants({ variant: "accent", size: "lg" }),
+              "w-full",
+            )}
+          >
+            {t("thread.viewReport")}
+          </Link>
+        </div>
+      ) : null}
 
       <ScreenFooter>
         <div className="flex items-end gap-2">

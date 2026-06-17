@@ -15,13 +15,17 @@ import {
 import { StatusBadge } from "@/components/designer/status-badge";
 import { BackToInbox } from "@/components/designer/back-to-inbox";
 import { BeforePhotoCapture } from "@/components/designer/before-photo-capture";
+import { DesignerEmr } from "@/components/designer/designer-emr";
+import { CustomerHistory } from "@/components/salon-console/customer-history";
 import {
   AlertIcon,
   SparkleIcon,
   PhotoIcon,
   PriceTagIcon,
+  CareIcon,
+  CalendarIcon,
 } from "@/components/icons";
-import { designerThreadPath } from "@/lib/links";
+import { designerThreadPath, reportPath } from "@/lib/links";
 import { serviceLabels } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 import type { ConsultationStatus } from "@/lib/domain/types";
@@ -51,10 +55,11 @@ export default async function DesignerSummaryPage({
     );
   }
 
-  const { salon, consultation, staffToken } = view;
+  const { salon, consultation, staffToken, messages } = view;
   const s = consultation.summary;
   const intake = consultation.intake;
   const status = consultation.status;
+  const isCompleted = status === "completed";
 
   // AI 요약 실패 시에도 'cut_women' 같은 raw id 가 제목으로 노출되지 않게(AUDIT UX P2):
   // 카탈로그 라벨(ko) → 없으면 요약 시술명 → 그래도 없으면 안내 문구.
@@ -212,19 +217,77 @@ export default async function DesignerSummaryPage({
             </div>
           </div>
         ) : null}
+
+        {/* 완료(completed): EMR(종합 전자차트) — 시술기록·약제·모발상태·만족도 + 비포 + 대화 하이라이트 + 고객 리포트 링크. 읽기 전용. */}
+        {isCompleted ? (
+          <div className="space-y-4 border-t border-border pt-4">
+            <p className="flex items-center gap-1.5 text-base font-bold text-foreground">
+              <CareIcon className="size-5" />
+              {t("emr.title")}
+            </p>
+            <DesignerEmr
+              record={view.treatmentRecord}
+              serviceLabelMap={view.serviceLabelMap}
+              messages={messages}
+              beforePhotoUrl={consultation.beforePhotoUrl}
+            />
+            {consultation.reportToken ? (
+              <Link
+                href={reportPath(
+                  consultation.reportToken,
+                  consultation.customerLocale,
+                )}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "w-full",
+                )}
+              >
+                {t("emr.viewReport")}
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* 손님의 지난 이력(모든 status) — 재방문 카르테. 신규/이력없음이면 숨김. 접이식. */}
+        {view.customerTreatments.length > 0 ? (
+          <details className="group rounded-xl border border-border bg-card">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3.5 text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+              <span className="flex items-center gap-1.5">
+                <CalendarIcon className="size-4" />
+                {t("history.title")}
+              </span>
+              <span
+                aria-hidden="true"
+                className="text-base leading-none text-muted-foreground transition-transform group-open:rotate-90"
+              >
+                ›
+              </span>
+            </summary>
+            <div className="border-t border-border p-4">
+              <CustomerHistory
+                locale="ko"
+                treatments={view.customerTreatments}
+                serviceLabelMap={view.serviceLabelMap}
+              />
+            </div>
+          </details>
+        ) : null}
       </ScreenBody>
 
-      <ScreenFooter>
-        <Link
-          href={designerThreadPath(token)}
-          className={cn(
-            buttonVariants({ variant: "accent", size: "lg" }),
-            "w-full",
-          )}
-        >
-          {t("summary.startConsult")}
-        </Link>
-      </ScreenFooter>
+      {/* 완료건은 "상담 시작" 숨김(읽기 전용). 미완료만 CTA 노출. */}
+      {isCompleted ? null : (
+        <ScreenFooter>
+          <Link
+            href={designerThreadPath(token)}
+            className={cn(
+              buttonVariants({ variant: "accent", size: "lg" }),
+              "w-full",
+            )}
+          >
+            {t("summary.startConsult")}
+          </Link>
+        </ScreenFooter>
+      )}
     </MobileFrame>
   );
 }

@@ -131,5 +131,29 @@
       "mid": "중",
       "low": "하"
     }
+  },
+  "emr": {
+    "title": "종합 차트 (EMR)",
+    "recordTitle": "시술 기록",
+    "services": "시술",
+    "products": "사용 약제",
+    "stateGrade": "모발 상태",
+    "satisfaction": "만족도",
+    "satisfactionScore": "{score}점",
+    "note": "메모",
+    "none": "—",
+    "beforePhoto": "시술 전 사진",
+    "conversation": "대화 하이라이트",
+    "senderCustomer": "손님",
+    "senderDesigner": "디자이너",
+    "viewReport": "고객 리포트 보기",
+    "grade": {
+      "high": "상",
+      "mid": "중",
+      "low": "하"
+    }
+  },
+  "history": {
+    "title": "손님의 지난 이력"
   }
 }

@@ -48,6 +48,7 @@ import { ensureDeviceToken, readDeviceToken } from "@/lib/device";
 import {
   NATIONALITY_BY_LOCALE,
   type Consultation,
+  type ConsultationStatus,
   type Customer,
   type CustomerHairProfile,
   type HairReport,
@@ -755,6 +756,19 @@ export interface ConsultationView {
 export interface DesignerConsultationView extends ConsultationView {
   /** 배정된 디자이너의 staffToken(인박스 링크용). 미배정이면 undefined. */
   staffToken?: string;
+  /** 이 상담건의 시술 기록(완료건 EMR 용). 미완료/기록 없으면 undefined. */
+  treatmentRecord?: TreatmentRecord;
+  /**
+   * 손님의 과거 시술 이력(재방문 카르테) — **현재 상담건 제외**, visitedAt desc.
+   * customerId 없으면 [].
+   */
+  customerTreatments: TreatmentRecord[];
+  /**
+   * 위 treatmentRecord + customerTreatments 에 등장한 serviceId 만의 살롱 메뉴 라벨맵.
+   * 카르테 serviceId 는 `${salonSlug}:${catalogId}` 형식이라 전역 카탈로그로 못 푼다.
+   * 어드민 카르테(getCustomerHistory)와 동일 패턴.
+   */
+  serviceLabelMap: Record<string, LocalizedText>;
 }
 
 export async function getCustomerView(
@@ -770,6 +784,24 @@ export async function getCustomerView(
     consultation: stripPhone(c),
     messages: await repo.listMessages(c.id),
   };
+}
+
+/**
+ * 손님 채팅 폴링용 경량 상담 상태 — 완료(+리포트 도착) 감지에 쓴다.
+ * getCustomerView 가 status/reportToken 을 이미 주지만(전체 Consultation),
+ * 폴링이 메시지와 별개로 가볍게 완료/리포트만 확인할 수 있게 별도 노출한다.
+ * consultationToken 으로 조회. 없으면 null. (레이트리밋 — 토큰당 분당 상한.)
+ */
+export async function getConsultationStatus(
+  consultationToken: string,
+): Promise<{ status: ConsultationStatus; reportToken?: string } | null> {
+  // 폴링 레이트리밋(P0) — consultationToken 당 분당 상한(폴 폭주 방지, getMessagesSince 와 동급).
+  await enforceRate(`status:${consultationToken}`, 120, 60_000, {
+    source: "status",
+  });
+  const c = await getRepo().getByConsultationToken(consultationToken);
+  if (!c) return null;
+  return { status: c.status, reportToken: c.reportToken };
 }
 
 /** 손님 뷰 PII 제거 — phone / intake.phone 미반환(P1-37). */
@@ -795,11 +827,72 @@ export async function getDesignerView(
     const designer = await repo.getDesignerById(c.designerId);
     staffToken = designer?.staffToken;
   }
+
+  // 완료건 EMR 용 — 이 상담건의 시술 기록(있으면). best-effort.
+  let treatmentRecord: TreatmentRecord | undefined;
+  try {
+    treatmentRecord = (await repo.getTreatmentByConsultation(c.id)) ?? undefined;
+  } catch (e) {
+    await logIssue({
+      salonSlug: c.salonSlug,
+      severity: "warning",
+      source: "designer-view",
+      message: "상담 시술 기록 조회 실패(EMR 생략)",
+      detail: e instanceof Error ? e.message : String(e),
+      consultationId: c.id,
+    });
+  }
+
+  // 손님 과거 이력 — customerId 있으면 현재 상담건 제외(visitedAt desc 유지). best-effort.
+  let customerTreatments: TreatmentRecord[] = [];
+  if (c.customerId) {
+    try {
+      const all = await repo.listCustomerTreatments(c.customerId);
+      customerTreatments = all.filter((t) => t.consultationId !== c.id);
+    } catch (e) {
+      await logIssue({
+        salonSlug: c.salonSlug,
+        severity: "warning",
+        source: "designer-view",
+        message: "손님 과거 이력 조회 실패(지난 이력 생략)",
+        detail: e instanceof Error ? e.message : String(e),
+        consultationId: c.id,
+      });
+    }
+  }
+
+  // 카르테에 등장한 serviceId 만 살롱 메뉴 라벨로(어드민 카르테와 동일 패턴). best-effort.
+  const serviceLabelMap: Record<string, LocalizedText> = {};
+  const neededIds = new Set<string>([
+    ...(treatmentRecord?.serviceIds ?? []),
+    ...customerTreatments.flatMap((t) => t.serviceIds),
+  ]);
+  if (neededIds.size > 0) {
+    try {
+      const salonServices = await repo.listServices(c.salonSlug);
+      for (const s of salonServices) {
+        if (neededIds.has(s.id)) serviceLabelMap[s.id] = s.label;
+      }
+    } catch (e) {
+      await logIssue({
+        salonSlug: c.salonSlug,
+        severity: "warning",
+        source: "designer-view",
+        message: "시술 라벨맵 조회 실패(라벨 생략)",
+        detail: e instanceof Error ? e.message : String(e),
+        consultationId: c.id,
+      });
+    }
+  }
+
   return {
     salon: salon ? toPublicSalon(salon) : null,
     consultation: c,
     messages: await repo.listMessages(c.id),
     staffToken,
+    treatmentRecord,
+    customerTreatments,
+    serviceLabelMap,
   };
 }
 
@@ -1067,10 +1160,21 @@ export async function completeConsultation(input: {
     // products 라벨을 손님 로케일로(카탈로그 id → label[locale], 미스는 원문 유지, P1-18/27)
     const localizedProducts = localizeProducts(draft.products, c.customerLocale);
 
+    // 리포트 보강(신규 optional) — 손님 요청 스타일/고민/주의를 요약에서, 없으면 인테이크 폴백.
+    // 빈 문자열은 넣지 않는다(undefined 유지 → 리포트에서 해당 섹션 미노출).
+    const styleRequest =
+      c.summary.styleDetail?.trim() || c.intake.styleNote?.trim() || undefined;
+    const concerns =
+      c.summary.concerns?.trim() || c.intake.concernNote?.trim() || undefined;
+    const cautions = c.summary.hairCautions?.trim() || undefined;
+
     const reportToken = c.reportToken ?? cryptoToken();
     const report: HairReport = {
       ...draft,
       products: localizedProducts,
+      styleRequest,
+      concerns,
+      cautions,
       consultationId: c.id,
       reportToken,
       salonName: salon?.name ?? "소통 헤어",

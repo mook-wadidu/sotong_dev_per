@@ -92,7 +92,8 @@
     "statusConsulting": "Consulting",
     "statusInService": "In service",
     "statusCompleted": "Completed",
-    "statusCancelled": "Cancelled"
+    "statusCancelled": "Cancelled",
+    "openEmr": "EMR / report"
   },
   "errors": {
     "title": "Error log",

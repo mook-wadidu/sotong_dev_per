@@ -29,6 +29,8 @@ export default async function CustomerThreadPage({
       locale={locale as Locale}
       salonName={salonName}
       initialMessages={view.messages}
+      initialStatus={view.consultation.status}
+      initialReportToken={view.consultation.reportToken}
     />
   );
 }

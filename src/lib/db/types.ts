@@ -378,6 +378,13 @@ export interface Repo {
   /** 손님의 시술 기록 목록 — visitedAt desc. */
   listCustomerTreatments(customerId: string): Promise<TreatmentRecord[]>;
   /**
+   * 상담 1건의 시술 기록(완료건 EMR 용). consultation_id 매칭 최신 1건.
+   * 없으면 null. (완료 상담은 보통 1건이나 방어적으로 최신을 고른다.)
+   */
+  getTreatmentByConsultation(
+    consultationId: string,
+  ): Promise<TreatmentRecord | null>;
+  /**
    * 손님의 마지막 상담(단골 라우팅용 — 지난 담당 designerId 식별).
    * createdAt desc 의 최신 1건. 없으면 null.
    */

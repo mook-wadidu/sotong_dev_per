@@ -6,6 +6,7 @@ import {
   assignConsultation as assignConsultationSvc,
   completeConsultation,
   getAdminData as getAdminDataSvc,
+  getConsultationStatus as getConsultationStatusSvc,
   getDesignerInbox as getDesignerInboxSvc,
   getIntakeMenu as getIntakeMenuSvc,
   getCustomerHistory as getCustomerHistorySvc,
@@ -34,6 +35,7 @@ import {
   type SalonConsoleData,
 } from "@/lib/service";
 import type {
+  ConsultationStatus,
   Customer,
   CustomerHairProfile,
   IntakeDraft,
@@ -108,6 +110,13 @@ export async function pollMessages(input: {
   sinceIso?: string;
 }): Promise<Message[]> {
   return getMessagesSince(input);
+}
+
+/* ── 손님: 상담 상태 폴링 (완료 + 리포트 도착 감지) ─────────── */
+export async function getConsultationStatus(
+  consultationToken: string,
+): Promise<{ status: ConsultationStatus; reportToken?: string } | null> {
+  return getConsultationStatusSvc(consultationToken);
 }
 
 /* ── 디자이너: 시술 완료 → 리포트 발송 (+카르테 영속) ───────── */

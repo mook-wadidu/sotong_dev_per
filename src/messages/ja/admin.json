@@ -92,7 +92,8 @@
     "statusConsulting": "相談中",
     "statusInService": "施術中",
     "statusCompleted": "完了",
-    "statusCancelled": "キャンセル"
+    "statusCancelled": "キャンセル",
+    "openEmr": "EMR・レポート"
   },
   "errors": {
     "title": "エラーログ",

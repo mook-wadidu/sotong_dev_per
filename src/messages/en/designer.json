@@ -131,5 +131,29 @@
       "mid": "Mid",
       "low": "Low"
     }
+  },
+  "emr": {
+    "title": "Full chart (EMR)",
+    "recordTitle": "Treatment record",
+    "services": "Treatment",
+    "products": "Products used",
+    "stateGrade": "Hair condition",
+    "satisfaction": "Satisfaction",
+    "satisfactionScore": "{score} pts",
+    "note": "Note",
+    "none": "—",
+    "beforePhoto": "Before photo",
+    "conversation": "Conversation highlights",
+    "senderCustomer": "Guest",
+    "senderDesigner": "Designer",
+    "viewReport": "View guest report",
+    "grade": {
+      "high": "High",
+      "mid": "Mid",
+      "low": "Low"
+    }
+  },
+  "history": {
+    "title": "Guest's past visits"
   }
 }

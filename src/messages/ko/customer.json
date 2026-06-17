@@ -115,7 +115,9 @@
     "translatedNote": "자동 번역되어 전달돼요",
     "empty": "상담이 시작되었어요. 궁금한 점을 적어주세요.",
     "sending": "보내는 중…",
-    "sendError": "메시지를 보내지 못했어요"
+    "sendError": "메시지를 보내지 못했어요",
+    "reportReady": "리포트가 도착했어요",
+    "viewReport": "리포트 보기"
   },
   "report": {
     "title": "헤어 인바디 리포트",
@@ -130,11 +132,15 @@
     "nextVisit": "다음 방문 권장",
     "before": "시술 전",
     "after": "시술 후",
+    "styleRequest": "요청하신 스타일",
+    "concerns": "상담 시 고민",
+    "cautions": "시술 주의사항",
     "scoreLabel": "{score}점",
     "book": "다음 예약하기",
     "bookToast": "예약 요청이 접수되었어요. 살롱에서 곧 연락드려요.",
     "save": "이미지로 저장",
     "saveToast": "리포트를 저장했어요",
+    "saveError": "이미지를 저장하지 못했어요. 다시 시도해주세요.",
     "share": "공유하기",
     "shareToast": "공유 링크를 복사했어요",
     "grade": {

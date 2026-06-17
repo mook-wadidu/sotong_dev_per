@@ -1,6 +1,7 @@
 import type {
   DesignerSummary,
   HairReportDraft,
+  Locale,
 } from "@/lib/domain/types";
 import { NATIONALITY_BY_LOCALE } from "@/lib/domain/types";
 import type {
@@ -16,9 +17,15 @@ import type {
  * 실 번역 품질이 필요한 자유 텍스트는 작은 phrasebook + 원문 폴백으로 처리.
  */
 
+/** mock 리포트 본문 테이블은 ko/ja/en 만 존재 — zh 등 미지원 로케일은 ko 로 폴백. */
+function mockLocale(locale: Locale): "ko" | "ja" | "en" {
+  return locale === "ja" || locale === "en" ? locale : "ko";
+}
+
 function nationalityWord(locale: SummarizeInput["customerLocale"]): string {
   const base = NATIONALITY_BY_LOCALE[locale];
-  return locale === "ja" ? `${base}인` : `${base} 손님`;
+  // 일본인/중국인처럼 "-인" 이 자연스러운 국적은 접미사로, 그 외는 "손님" 형으로.
+  return locale === "ja" || locale === "zh" ? `${base}인` : `${base} 손님`;
 }
 
 export class MockProvider implements AiProvider {
@@ -113,7 +120,11 @@ export class MockProvider implements AiProvider {
   }
 
   async draftReport(input: ReportInput): Promise<HairReportDraft> {
-    const locale = input.customerLocale;
+    // mock 리포트 본문 로컬라이즈 테이블은 ko/ja/en 만 채워져 있다. zh 는 4번째
+    // 손님 언어로 추가 중이며 mock 데이터는 아직 없으므로 ko 피벗으로 폴백한다
+    // (실 zh 리포트 품질은 GeminiProvider 가 담당). 이 narrowing 으로 zh 입력에서
+    // undefined 인덱싱이 발생하지 않게 막는다.
+    const locale = mockLocale(input.customerLocale);
     const services = input.summary.services; // 한국어 시술명(피벗)
     const isColor = services.some((s) => /염색|탈색|컬러/.test(s));
     const isPerm = services.some((s) => /펌/.test(s));
@@ -209,7 +220,8 @@ const HOMECARE: Record<string, LText> = {
 };
 
 /* ── 작은 phrasebook (데모 스크립트용) ───────────────────── */
-type Phrase = Partial<Record<"ko" | "ja" | "en", string>>;
+// zh 키는 아직 없음 — zh 타깃 조회는 자연히 미스 → 원문 폴백(translate 가 처리).
+type Phrase = Partial<Record<Locale, string>>;
 const PHRASEBOOK: Phrase[] = [
   { ko: "안녕하세요", ja: "こんにちは", en: "Hello" },
   { ko: "감사합니다", ja: "ありがとうございます", en: "Thank you" },
@@ -246,7 +258,7 @@ function normalize(s: string): string {
   return s.trim().replace(/[。.!！?？\s]+$/u, "");
 }
 
-function lookupPhrase(text: string, to: "ko" | "ja" | "en"): string | null {
+function lookupPhrase(text: string, to: Locale): string | null {
   const n = normalize(text);
   for (const p of PHRASEBOOK) {
     if (

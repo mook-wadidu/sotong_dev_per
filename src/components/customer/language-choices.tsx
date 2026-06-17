@@ -10,11 +10,14 @@ const LANG_CONTINUE = {
   ko: "이 언어로 계속하기",
   ja: "この言語で続ける",
   en: "Continue in this language",
+  zh: "用这个语言继续",
 };
 
+/** 손님 노출 언어 — 순서는 CUSTOMER_LOCALES(ja/en/zh/ko)를 따른다. */
 const LANG_OPTIONS: { locale: Locale; nativeLabel: string }[] = [
   { locale: "ja", nativeLabel: "日本語" },
   { locale: "en", nativeLabel: "English" },
+  { locale: "zh", nativeLabel: "中文" },
   { locale: "ko", nativeLabel: "한국어" },
 ];
 

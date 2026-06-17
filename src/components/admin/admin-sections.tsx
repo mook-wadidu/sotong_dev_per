@@ -34,6 +34,7 @@ const LOCALE_LABEL: Record<Locale, string> = {
   ko: "한국어",
   ja: "日本語",
   en: "English",
+  zh: "中文",
 };
 
 /** 어드민 접수 내역 — 전역(지점 필터는 page.tsx 가 URL 로 유지). */

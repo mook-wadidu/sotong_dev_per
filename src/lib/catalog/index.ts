@@ -19,6 +19,7 @@ const INTL_LOCALE: Record<Locale, string> = {
   ko: "ko-KR",
   ja: "ja-JP",
   en: "en-US",
+  zh: "zh-CN",
 };
 
 export * from "./data";

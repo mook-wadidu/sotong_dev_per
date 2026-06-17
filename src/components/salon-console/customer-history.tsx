@@ -15,6 +15,7 @@ const INTL_LOCALE: Record<Locale, string> = {
   ko: "ko-KR",
   ja: "ja-JP",
   en: "en-US",
+  zh: "zh-CN",
 };
 
 function formatVisitedAt(iso: string, locale: Locale): string {

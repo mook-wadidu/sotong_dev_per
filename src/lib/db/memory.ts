@@ -122,7 +122,9 @@ const DEMO_DESIGNERS: Designer[] = [
   },
 ];
 
-const L = (ko: string, ja: string, en: string) => ({ ko, ja, en });
+// zh 는 4번째 손님 언어로 optional — 3인자 시드 호출은 그대로 유효(zh 미포함).
+const L = (ko: string, ja: string, en: string, zh?: string) =>
+  zh === undefined ? { ko, ja, en } : { ko, ja, en, zh };
 
 /**
  * 살롱별 메뉴 시드(양 살롱 동일). 기존 catalog/data.ts id·가격 재사용.
@@ -142,11 +144,11 @@ interface SeedSvc {
 }
 
 const SEED_CATEGORIES: SeedCat[] = [
-  { id: "cut", label: L("컷", "カット", "Cut"), sort: 1 },
-  { id: "perm", label: L("펌", "パーマ", "Perm"), sort: 2 },
-  { id: "color", label: L("염색", "カラー", "Color"), sort: 3 },
-  { id: "clinic", label: L("클리닉", "トリートメント", "Clinic"), sort: 4 },
-  { id: "styling", label: L("스타일링", "スタイリング", "Styling"), sort: 5 },
+  { id: "cut", label: L("컷", "カット", "Cut", "剪发"), sort: 1 },
+  { id: "perm", label: L("펌", "パーマ", "Perm", "烫发"), sort: 2 },
+  { id: "color", label: L("염색", "カラー", "Color", "染发"), sort: 3 },
+  { id: "clinic", label: L("클리닉", "トリートメント", "Clinic", "护理"), sort: 4 },
+  { id: "styling", label: L("스타일링", "スタイリング", "Styling", "造型"), sort: 5 },
 ];
 
 const SEED_SERVICES: SeedSvc[] = [
@@ -154,69 +156,69 @@ const SEED_SERVICES: SeedSvc[] = [
   {
     id: "cut_women",
     categoryId: "cut",
-    label: L("여성 컷", "レディースカット", "Women's Cut"),
+    label: L("여성 컷", "レディースカット", "Women's Cut", "女士剪发"),
     basePriceFrom: 35000,
     rankPrices: { director: 42000 },
   },
   {
     id: "cut_men",
     categoryId: "cut",
-    label: L("남성 컷", "メンズカット", "Men's Cut"),
+    label: L("남성 컷", "メンズカット", "Men's Cut", "男士剪发"),
     basePriceFrom: 28000,
     rankPrices: { director: 33600 },
   },
   {
     id: "perm_general",
     categoryId: "perm",
-    label: L("일반 펌", "パーマ", "Perm"),
+    label: L("일반 펌", "パーマ", "Perm", "普通烫发"),
     basePriceFrom: 80000,
   },
   {
     id: "perm_digital",
     categoryId: "perm",
-    label: L("디지털 펌", "デジタルパーマ", "Digital Perm"),
+    label: L("디지털 펌", "デジタルパーマ", "Digital Perm", "数码烫"),
     basePriceFrom: 120000,
   },
   {
     id: "color_full",
     categoryId: "color",
-    label: L("전체 염색", "フルカラー", "Full Color"),
+    label: L("전체 염색", "フルカラー", "Full Color", "全染"),
     basePriceFrom: 90000,
   },
   {
     id: "color_root",
     categoryId: "color",
-    label: L("뿌리 염색", "リタッチ", "Root Touch-up"),
+    label: L("뿌리 염색", "リタッチ", "Root Touch-up", "补染发根"),
     basePriceFrom: 60000,
   },
   {
     id: "color_point",
     categoryId: "color",
-    label: L("포인트 염색", "ポイントカラー", "Point Color"),
+    label: L("포인트 염색", "ポイントカラー", "Point Color", "挑染"),
     basePriceFrom: 70000,
   },
   {
     id: "color_bleach",
     categoryId: "color",
-    label: L("탈색", "ブリーチ", "Bleach"),
+    label: L("탈색", "ブリーチ", "Bleach", "漂发"),
     basePriceFrom: 100000,
   },
   {
     id: "clinic_treatment",
     categoryId: "clinic",
-    label: L("트리트먼트", "トリートメント", "Treatment"),
+    label: L("트리트먼트", "トリートメント", "Treatment", "深层护理"),
     basePriceFrom: 50000,
   },
   {
     id: "styling_dry",
     categoryId: "styling",
-    label: L("드라이/스타일링", "ブロー/セット", "Blow-dry / Styling"),
+    label: L("드라이/스타일링", "ブロー/セット", "Blow-dry / Styling", "吹干造型"),
     basePriceFrom: 30000,
   },
   {
     id: "styling_magic",
     categoryId: "styling",
-    label: L("매직/볼륨매직", "ストレートパーマ", "Straightening"),
+    label: L("매직/볼륨매직", "ストレートパーマ", "Straightening", "离子烫"),
     basePriceFrom: 90000,
   },
 ];

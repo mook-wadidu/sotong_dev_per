@@ -50,6 +50,7 @@ import {
   type FaceShape,
   type IntakeDraft,
   type Locale,
+  type LocalizedText,
   type ThreeLevel,
   type HairType,
   type TreatmentType,
@@ -64,31 +65,31 @@ const MAX_PHOTOS = 5;
 /** 살롱별 메뉴(서버에서 해석한 가격 포함) — 전역 catalog 대체 */
 export interface IntakeMenuCategory {
   id: string;
-  label: Record<Locale, string>;
+  label: LocalizedText;
   sort: number;
 }
 export interface IntakeMenuService {
   id: string;
   categoryId: string;
-  label: Record<Locale, string>;
+  label: LocalizedText;
   priceFrom: number;
 }
 
 /** 시술 타입/시기 옵션 (다국어) — 최근 시술 이력 빌더 */
-const TREATMENT_TYPES: { id: TreatmentType; label: Record<Locale, string> }[] = [
-  { id: "cut", label: { ko: "컷", ja: "カット", en: "Cut" } },
-  { id: "perm", label: { ko: "펌", ja: "パーマ", en: "Perm" } },
-  { id: "color", label: { ko: "염색", ja: "カラー", en: "Color" } },
-  { id: "care", label: { ko: "클리닉/케어", ja: "ケア", en: "Care" } },
+const TREATMENT_TYPES: { id: TreatmentType; label: LocalizedText }[] = [
+  { id: "cut", label: { ko: "컷", ja: "カット", en: "Cut", zh: "剪发" } },
+  { id: "perm", label: { ko: "펌", ja: "パーマ", en: "Perm", zh: "烫发" } },
+  { id: "color", label: { ko: "염색", ja: "カラー", en: "Color", zh: "染发" } },
+  { id: "care", label: { ko: "클리닉/케어", ja: "ケア", en: "Care", zh: "护理" } },
 ];
 const TREATMENT_RECENCIES: {
   id: TreatmentRecency;
-  label: Record<Locale, string>;
+  label: LocalizedText;
 }[] = [
-  { id: "2w", label: { ko: "2주 내", ja: "2週間以内", en: "Within 2 weeks" } },
-  { id: "1m", label: { ko: "1개월 내", ja: "1ヶ月以内", en: "Within 1 month" } },
-  { id: "3m", label: { ko: "3개월 내", ja: "3ヶ月以内", en: "Within 3 months" } },
-  { id: "older", label: { ko: "그 이전", ja: "それ以前", en: "Earlier" } },
+  { id: "2w", label: { ko: "2주 내", ja: "2週間以内", en: "Within 2 weeks", zh: "2周内" } },
+  { id: "1m", label: { ko: "1개월 내", ja: "1ヶ月以内", en: "Within 1 month", zh: "1个月内" } },
+  { id: "3m", label: { ko: "3개월 내", ja: "3ヶ月以内", en: "Within 3 months", zh: "3个月内" } },
+  { id: "older", label: { ko: "그 이전", ja: "それ以前", en: "Earlier", zh: "更早之前" } },
 ];
 const COWLICK_OPTIONS: { id: YesNoUnknown; key: string }[] = [
   { id: "yes", key: "yes" },
@@ -421,6 +422,7 @@ const INTL_LOCALE: Record<Locale, string> = {
   ko: "ko-KR",
   ja: "ja-JP",
   en: "en-US",
+  zh: "zh-CN",
 };
 
 /** 지난 방문일(ISO)을 손님 로케일로 — 날짜만. 잘못된 입력이면 빈 문자열. */
@@ -733,7 +735,7 @@ function LevelRadio({
   onChange,
 }: {
   label: string;
-  items: { id: string; label: Record<Locale, string> }[];
+  items: { id: string; label: LocalizedText }[];
   locale: Locale;
   value: string | null;
   onChange: (v: string) => void;

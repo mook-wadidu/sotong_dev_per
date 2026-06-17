@@ -23,6 +23,7 @@ const LOCALE_LABEL: Record<Locale, string> = {
   ko: "한국어",
   ja: "日本語",
   en: "English",
+  zh: "中文",
 };
 
 /**

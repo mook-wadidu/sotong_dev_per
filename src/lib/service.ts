@@ -266,7 +266,7 @@ export async function notifyDesigner(
   }
 }
 
-function levelLabel(items: { id: string; label: Record<Locale, string> }[], id?: string) {
+function levelLabel(items: { id: string; label: LocalizedText }[], id?: string) {
   if (!id) return undefined;
   return items.find((i) => i.id === id)?.label.ko;
 }
@@ -366,13 +366,13 @@ function estimateSalonPrice(
  * 살롱 공용이면 basePriceFrom. */
 export interface IntakeMenuCategory {
   id: string;
-  label: Record<Locale, string>;
+  label: LocalizedText;
   sort: number;
 }
 export interface IntakeMenuService {
   id: string;
   categoryId: string;
-  label: Record<Locale, string>;
+  label: LocalizedText;
   priceFrom: number;
 }
 export interface IntakeMenu {
@@ -985,9 +985,10 @@ export async function postMessage(input: {
         const sourceText = subFor("ko", qr.message.ko);
         const translations: Partial<Record<Locale, string>> = {
           ko: sourceText,
+          // zh 등 아직 사전번역이 없는 손님 로케일은 ko 피벗으로 폴백(Phase 3 에서 zh 채움).
           [c.customerLocale]: subFor(
             c.customerLocale,
-            qr.message[c.customerLocale],
+            qr.message[c.customerLocale] ?? qr.message.ko,
           ),
         };
         const msg = await repo.addMessage({
@@ -1436,7 +1437,7 @@ export async function getAdminData(
           const adminDesigner: AdminDesigner = {
             ...d,
             entryToken,
-            entryPath: customerEntryPath(entryToken, "ja"),
+            entryPath: customerEntryPath(entryToken),
             consultationCount: mine.length,
           };
           return adminDesigner;
@@ -1445,7 +1446,7 @@ export async function getAdminData(
       return {
         ...s,
         salonEntryToken,
-        salonEntryPath: customerEntryPath(salonEntryToken, "ja"),
+        salonEntryPath: customerEntryPath(salonEntryToken),
         designers: designerCounts,
       };
     }),
@@ -1603,12 +1604,12 @@ export async function getSalonConsole(
       return {
         id: d.id,
         entryToken,
-        entryPath: customerEntryPath(entryToken, "ja"),
+        entryPath: customerEntryPath(entryToken),
         inboxPath: designerInboxPath(d.staffToken),
       };
     }),
     salonEntryToken,
-    salonEntryPath: customerEntryPath(salonEntryToken, "ja"),
+    salonEntryPath: customerEntryPath(salonEntryToken),
   };
 }
 
@@ -1948,7 +1949,7 @@ export async function rotateSalonEntryKey(
   return {
     ok: true,
     entryToken,
-    entryPath: customerEntryPath(entryToken, "ja"),
+    entryPath: customerEntryPath(entryToken),
     version,
   };
 }
@@ -1995,7 +1996,7 @@ export async function rotateDesignerEntryKey(input: {
   return {
     ok: true,
     entryToken,
-    entryPath: customerEntryPath(entryToken, "ja"),
+    entryPath: customerEntryPath(entryToken),
     version,
   };
 }
@@ -2062,7 +2063,7 @@ export async function adminCreateSalon(
     salon,
     consolePath: salonConsolePath(salon.ownerToken),
     salonEntryToken,
-    salonEntryPath: customerEntryPath(salonEntryToken, "ja"),
+    salonEntryPath: customerEntryPath(salonEntryToken),
   };
 }
 
@@ -2106,7 +2107,7 @@ export async function adminCreateDesigner(
   return {
     designer,
     entryToken,
-    entryPath: customerEntryPath(entryToken, "ja"),
+    entryPath: customerEntryPath(entryToken),
     inboxPath: designerInboxPath(designer.staffToken),
   };
 }

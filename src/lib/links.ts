@@ -1,12 +1,17 @@
 import type { Locale } from "@/lib/domain/types";
 
 /**
- * 손님 QR 입장 경로: /{locale}/c/e/{entryToken}
+ * 손님 QR 입장 경로: **로케일리스** `/c/e/{entryToken}` (Phase 3).
  * entryToken 은 lib/entry.ts 의 makeDesignerEntryToken/makeSalonEntryToken 으로 생성된 서명 토큰.
  * (추측 가능한 slug/id 를 URL 에 노출하지 않는다 — "QR = 입장권")
+ *
+ * 로케일을 일부러 빼는 이유: 손님이 이 경로(QR)로 들어오면 proxy(next-intl 미들웨어)가
+ * 폰 언어(Accept-Language)를 보고 ko/ja/en/zh 중 최적 로케일로 리다이렉트한다
+ * → 외국인이 첫 화면부터 자기 언어로 본다. 어디에도 안 맞는 폰은 en 으로 떨어진다(proxy 참고).
+ * 기존에 발급된 `/ja/c/e/...` 같은 로케일 포함 QR 도 계속 동작한다(미들웨어가 그 로케일 그대로 사용).
  */
-export function customerEntryPath(entryToken: string, locale: Locale = "ja") {
-  return `/${locale}/c/e/${entryToken}`;
+export function customerEntryPath(entryToken: string) {
+  return `/c/e/${entryToken}`;
 }
 
 /** 손님 인테이크 경로 (입장 토큰 검증 후) */

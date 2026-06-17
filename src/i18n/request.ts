@@ -16,9 +16,18 @@ const FALLBACK_LOCALE = routing.defaultLocale; // "ko"
 async function loadMessages(locale: string): Promise<AbstractIntlMessages> {
   const entries = await Promise.all(
     NAMESPACES.map(async (ns) => {
-      const mod = await import(`../messages/${locale}/${ns}.json`);
       const key = ns.charAt(0).toUpperCase() + ns.slice(1);
-      return [key, mod.default] as const;
+      // 아직 메시지 파일이 없는 신규 손님 로케일(예: zh — Phase 3 에서 채움)은
+      // import 가 실패한다 → ko(권위) 네임스페이스로 폴백해 라우트가 깨지지 않게 한다.
+      // (FALLBACK_LOCALE 자체가 없으면 진짜 버그이므로 폴백 없이 그대로 던진다.)
+      try {
+        const mod = await import(`../messages/${locale}/${ns}.json`);
+        return [key, mod.default] as const;
+      } catch (err) {
+        if (locale === FALLBACK_LOCALE) throw err;
+        const mod = await import(`../messages/${FALLBACK_LOCALE}/${ns}.json`);
+        return [key, mod.default] as const;
+      }
     }),
   );
   return Object.fromEntries(entries);

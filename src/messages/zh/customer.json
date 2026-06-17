@@ -1,0 +1,152 @@
+{
+  "langSelect": {
+    "title": "您希望用哪种语言为您服务？",
+    "subtitle": "无需安装应用，即可立即使用",
+    "reassure": "扫描二维码即可开始，无需安装或登录。",
+    "continue": "用这种语言继续"
+  },
+  "invalid": {
+    "title": "入场链接无效",
+    "body": "此二维码或链接已过期或不正确。请重新扫描店内提供的二维码。",
+    "thread": "找不到该咨询。请重新确认您收到的链接。",
+    "report": "找不到该报告。请重新确认您收到的链接。"
+  },
+  "intake": {
+    "title": "请告诉我们您想要的风格",
+    "subtitle": "轻点选择，设计师会提前准备",
+    "returning": {
+      "title": "欢迎再次光临！",
+      "subtitle": "我们记得您上次的信息。这次想怎么进行？",
+      "sameAsBefore": "和上次一样",
+      "sameHint": "沿用上次的项目和发质信息",
+      "newStyle": "换个新风格",
+      "newHint": "从头重新选择",
+      "lastVisit": "上次到店：{date}",
+      "prefilled": "已为您预填上次的内容，只需修改有变动的部分。",
+      "skipProfile": "发质信息沿用上次的",
+      "reviewProfile": "重新确认发质信息"
+    },
+    "step": {
+      "services": "您想做哪些项目？",
+      "photos": "想要的风格照片",
+      "face": "请选择脸型",
+      "hair": "请告诉我们您的发质",
+      "concern": "平时有什么烦恼吗？",
+      "allergy": "对头皮或药剂有过敏吗？",
+      "phone": "联系方式（选填）",
+      "consent": "个人信息收集同意"
+    },
+    "services": {
+      "hint": "可以多选",
+      "estimate": "预估价格",
+      "estimateNone": "选择项目后即可显示预估价格",
+      "styleNote": "风格备注（选填）",
+      "styleNotePlaceholder": "请写下想要的长度、感觉或参考事项"
+    },
+    "photos": {
+      "hint": "请上传您想要的风格照片",
+      "add": "添加照片",
+      "skip": "不上传照片继续",
+      "uploading": "上传中…",
+      "retry": "重新上传",
+      "someFailed": "有 {failed} 张照片（共 {total} 张）上传失败。请重试。",
+      "remove": "删除"
+    },
+    "face": {
+      "hint": "请选择最接近的脸型"
+    },
+    "hair": {
+      "crownVolume": "头顶蓬松度",
+      "density": "发量",
+      "type": "发质",
+      "cowlickWhorl": "有发旋吗？",
+      "cowlickSticking": "头发会翘吗？",
+      "cowlick": {
+        "yes": "有",
+        "no": "没有",
+        "unknown": "不太清楚"
+      },
+      "history": "近期做过的项目",
+      "historyHint": "请选择最近做过的项目",
+      "historyRecency": "{type} —— 是什么时候做的？"
+    },
+    "concern": {
+      "title": "平时有没有在意或希望注意的地方？",
+      "hint": "没有的话可以跳过",
+      "notePlaceholder": "如有其他烦恼请填写（选填）"
+    },
+    "allergy": {
+      "question": "有过敏吗？",
+      "has": "有",
+      "none": "没有",
+      "notePlaceholder": "请填写是哪种过敏（选填）"
+    },
+    "phone": {
+      "hint": "如果没有韩国联系方式，可以留空",
+      "benefit": "留下号码后，我们可以为您保存并管理过往报告，再次到店时还能继续咨询。",
+      "placeholder": "010-0000-0000",
+      "optOut": "无联系方式（游客）"
+    },
+    "consent": {
+      "label": "我同意为风格咨询而收集所填写的信息及照片。",
+      "detail": "所收集的信息（含联系方式与照片）仅用于咨询与记录目的，咨询完成后保留约 90 天，之后联系方式与照片将被销毁或做脱敏处理。",
+      "crossBorder": "为提供顺畅的多语言咨询，所填写的内容将被自动翻译与摘要处理，期间会转移至 Google LLC（美国）的 Gemini AI 进行境外传输。数据存储委托给 Supabase。",
+      "policyLink": "详情请查看隐私政策。",
+      "required": "需要同意才能继续"
+    },
+    "back": "上一步",
+    "next": "下一步",
+    "submit": "发送给设计师",
+    "skip": "跳过",
+    "submitting": "发送中…",
+    "stepOf": "第 {current} / {total} 步",
+    "needService": "请至少选择一个项目",
+    "submitError": "发送失败，请稍后重试。",
+    "submitted": "已发送给设计师"
+  },
+  "thread": {
+    "title": "与设计师对话",
+    "placeholder": "请输入消息",
+    "send": "发送",
+    "waiting": "设计师马上回复您",
+    "connecting": "连接中…",
+    "you": "我",
+    "designer": "设计师",
+    "translatedNote": "将自动翻译后转达",
+    "empty": "咨询已开始。请写下您想了解的内容。",
+    "sending": "发送中…",
+    "sendError": "消息发送失败",
+    "reportReady": "报告已送达",
+    "viewReport": "查看报告"
+  },
+  "report": {
+    "title": "头发体检报告",
+    "subtitle": "这是今天的护理记录",
+    "salon": "沙龙",
+    "designer": "负责设计师",
+    "date": "护理日期",
+    "service": "已做项目",
+    "products": "使用产品",
+    "hairState": "发质状态",
+    "homeCare": "居家护理指南",
+    "nextVisit": "建议下次到店",
+    "before": "护理前",
+    "after": "护理后",
+    "styleRequest": "您要求的风格",
+    "concerns": "咨询时的烦恼",
+    "cautions": "护理注意事项",
+    "scoreLabel": "{score} 分",
+    "book": "预约下次",
+    "bookToast": "已收到您的预约请求，沙龙将尽快与您联系。",
+    "save": "保存为图片",
+    "saveToast": "报告已保存",
+    "saveError": "图片保存失败，请重试。",
+    "share": "分享",
+    "shareToast": "已复制分享链接",
+    "grade": {
+      "high": "良好",
+      "mid": "一般",
+      "low": "需护理"
+    }
+  }
+}

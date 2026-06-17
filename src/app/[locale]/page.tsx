@@ -12,9 +12,12 @@ import { GlobeIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/lib/domain/types";
 
-const COPY: Record<
-  Locale,
-  { hi: string; sub: string; customer: string; admin: string; note: string }
+// zh 손님 카피는 Phase 3(메시지)에서 채운다. 여기 데모 랜딩은 미정 로케일을 ko 로 폴백.
+const COPY: Partial<
+  Record<
+    Locale,
+    { hi: string; sub: string; customer: string; admin: string; note: string }
+  >
 > = {
   ko: {
     hi: "소통",
@@ -46,7 +49,7 @@ export default async function Home({
 }) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
-  const t = COPY[locale as Locale];
+  const t = COPY[locale as Locale] ?? COPY.ko!;
 
   // 데모 손님 진입: 추측 가능한 slug 대신 서명된 살롱 공용(지정없음) 입장 토큰으로.
   // 살롱의 현재 entryKeyVersion 으로 발급해야 키 회전 후에도 진입이 유효(P1).
@@ -76,7 +79,7 @@ export default async function Home({
         >
           {/* 손님 진입 (주 CTA) */}
           <Link
-            href={customerEntryPath(demoEntryToken, locale as Locale)}
+            href={customerEntryPath(demoEntryToken)}
             className={cn(
               buttonVariants({ variant: "accent", size: "xl" }),
               "w-full",

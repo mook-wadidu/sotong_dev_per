@@ -4,16 +4,27 @@
  */
 
 /* ── 로케일 (한국어 피벗) ───────────────────────────────── */
-export const LOCALES = ["ko", "ja", "en"] as const;
+export const LOCALES = ["ko", "ja", "en", "zh"] as const;
 export type Locale = (typeof LOCALES)[number];
 
 /** 손님에게 노출하는 언어 (한국어는 내국인/디자이너용) */
-export const CUSTOMER_LOCALES = ["ja", "en", "ko"] as const;
+export const CUSTOMER_LOCALES = ["ja", "en", "zh", "ko"] as const;
 export const DESIGNER_LOCALE: Locale = "ko";
 
-export type LocalizedText = Record<Locale, string>;
+/**
+ * 다국어 텍스트 — ko/ja/en 은 필수(피벗·기존 손님 언어), zh 는 optional.
+ * zh 는 4번째 손님 언어로 추가 중이며 라벨이 아직 안 채워진 곳이 있을 수 있어
+ * optional 로 둔다(없으면 tx() 가 ko 로 폴백). 직접 `.ja`/`.en` 접근은 안 깨진다.
+ */
+export type LocalizedText = {
+  ko: string;
+  ja: string;
+  en: string;
+  zh?: string;
+};
 
 export function tx(text: LocalizedText, locale: Locale): string {
+  // zh 가 비어있을 수 있어 nullish 폴백 → ko 피벗.
   return text[locale] ?? text.ko;
 }
 
@@ -258,4 +269,5 @@ export const NATIONALITY_BY_LOCALE: Record<Locale, string> = {
   ja: "일본",
   en: "영어권",
   ko: "한국",
+  zh: "중국",
 };

@@ -24,6 +24,7 @@ const LOCALE_LANGUAGE: Record<Locale, string> = {
   ko: "Korean (한국어)",
   ja: "Japanese (日本語)",
   en: "English",
+  zh: "Chinese (中文, Simplified)",
 };
 
 /** Gemini responseSchema 에 쓰는 최소 타입 (SDK 없이 REST 직접 호출). */

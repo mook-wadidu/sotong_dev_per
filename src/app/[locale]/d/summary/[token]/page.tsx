@@ -192,15 +192,15 @@ export default async function DesignerSummaryPage({
           </CardContent>
         </Card>
 
-        {/* 스타일 참고 사진 */}
-        {intake.stylePhotoUrls.length > 0 ? (
+        {/* 스타일 참고 사진 — 구/부분 intake 로 stylePhotoUrls 가 없을 수 있어 방어 */}
+        {(intake.stylePhotoUrls ?? []).length > 0 ? (
           <div className="space-y-2">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
               <PhotoIcon className="size-4" />
               {t("summary.photos")}
             </p>
             <div className="grid grid-cols-3 gap-2">
-              {intake.stylePhotoUrls.map((url, i) => (
+              {(intake.stylePhotoUrls ?? []).map((url, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   key={i}

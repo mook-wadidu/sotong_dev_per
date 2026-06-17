@@ -165,6 +165,7 @@
     "labelKo": "Name (Korean)",
     "labelJa": "Name (Japanese)",
     "labelEn": "Name (English)",
+    "labelZh": "Name (Chinese)",
     "menu": {
       "hint": "Add, edit and delete categories and services.",
       "addCategory": "Add category",

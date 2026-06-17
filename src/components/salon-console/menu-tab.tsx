@@ -301,6 +301,7 @@ function CategoryDialog({
         ko: label.ko.trim(),
         ja: label.ja.trim() || label.ko.trim(),
         en: label.en.trim() || label.ko.trim(),
+        zh: label.zh?.trim() || undefined,
       },
     });
     setPending(false);
@@ -347,6 +348,15 @@ function CategoryDialog({
                 setLabel((l) => ({ ...l, en: e.target.value }))
               }
               placeholder="Cut"
+            />
+          </FormField>
+          <FormField label={t("console.labelZh")}>
+            <Input
+              value={label.zh ?? ""}
+              onChange={(e) =>
+                setLabel((l) => ({ ...l, zh: e.target.value }))
+              }
+              placeholder="剪发"
             />
           </FormField>
           <DialogFooter>
@@ -436,6 +446,7 @@ function ServiceDialog({
         ko: label.ko.trim(),
         ja: label.ja.trim() || label.ko.trim(),
         en: label.en.trim() || label.ko.trim(),
+        zh: label.zh?.trim() || undefined,
       },
       basePriceFrom: base,
       rankPrices: Object.keys(rp).length ? rp : undefined,
@@ -484,6 +495,15 @@ function ServiceDialog({
                   setLabel((l) => ({ ...l, en: e.target.value }))
                 }
                 placeholder="Women's Cut"
+              />
+            </FormField>
+            <FormField label={t("console.labelZh")}>
+              <Input
+                value={label.zh ?? ""}
+                onChange={(e) =>
+                  setLabel((l) => ({ ...l, zh: e.target.value }))
+                }
+                placeholder="女士剪发"
               />
             </FormField>
           </div>

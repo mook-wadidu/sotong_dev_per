@@ -352,6 +352,8 @@ export interface Repo {
   updateStatus(id: string, status: ConsultationStatus): Promise<void>;
   setSummary(id: string, summary: DesignerSummary): Promise<void>;
   setReportToken(id: string, reportToken: string): Promise<void>;
+  /** 시술 전 사진 저장(요약 단계 촬영) — consultation.before_photo_url 갱신. */
+  setBeforePhoto(consultationId: string, url: string): Promise<void>;
 
   /* ── 데이터 엔진: 손님 식별 / 카르테 누적 ─────────────────── */
   /** 기기 토큰으로 살롱별 손님 조회. (salonSlug, deviceToken) 매칭. 없으면 null. */

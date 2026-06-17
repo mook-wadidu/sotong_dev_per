@@ -76,12 +76,30 @@
       "timePrompt": "所要時間を選んでください",
       "autoPrice": "目安料金",
       "customLabel": "自由入力",
-      "send": "送信"
+      "send": "送信",
+      "moreLabel": "もっと見る",
+      "moreTitle": "クイック返信をもっと見る",
+      "groups": {
+        "greeting": "あいさつ",
+        "response": "応答",
+        "progress": "進行",
+        "closing": "締め"
+      }
     }
   },
+  "beforePhoto": {
+    "title": "施術前の写真（任意）",
+    "hint": "今撮っておくと、お客様レポートのビフォーになります",
+    "add": "写真を撮る",
+    "retake": "撮り直す",
+    "saved": "施術前の写真を保存しました",
+    "failed": "写真を保存できませんでした。もう一度お試しください。",
+    "alt": "施術前の写真",
+    "done": "撮影済み"
+  },
   "record": {
-    "title": "30秒記録",
-    "subtitle": "本日の施術を素早く残してください",
+    "title": "施術記録",
+    "subtitle": "本日の施術を残してください",
     "products": "使用した薬剤・製品",
     "productsHint": "使用したものをすべて選んでください",
     "addProduct": "追加",
@@ -89,6 +107,7 @@
     "stateGrade": "髪の状態",
     "satisfaction": "満足度",
     "satisfactionHint": "お客様の反応を1〜5で残してください（任意）",
+    "satisfactionToggle": "満足度を残す（任意）",
     "satisfactionClear": "選択を解除",
     "satisfactionScore": "{score}点",
     "satisfactionLevel": {
@@ -98,7 +117,6 @@
       "4": "満足",
       "5": "大変満足"
     },
-    "beforePhoto": "施術前の写真",
     "afterPhoto": "施術後の写真",
     "addPhoto": "写真を追加",
     "removePhoto": "削除",

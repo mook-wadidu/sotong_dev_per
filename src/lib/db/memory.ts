@@ -504,6 +504,11 @@ export class MemoryRepo implements Repo {
     }
   }
 
+  async setBeforePhoto(consultationId: string, url: string): Promise<void> {
+    const c = store.consultations.get(consultationId);
+    if (c) c.beforePhotoUrl = url;
+  }
+
   async scrubConsultationPii(redacted: Consultation): Promise<void> {
     // 마스킹된 상담으로 store 항목을 교체(전화·사진·자유텍스트 제거 영속화).
     if (store.consultations.has(redacted.id)) {

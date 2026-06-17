@@ -224,6 +224,17 @@ export interface QuickReply {
   needsValue?: boolean;
   /** needsValue 가 시간 기반(TIME_PRESETS 사용)임을 표시 — 가격과 구분 */
   valueKind?: "price" | "time";
+  /**
+   * 스레드 입력 영역에 **인라인으로 항상 노출**되는 6개 핵심 칩(Phase 2).
+   * true = 인라인. 미설정(나머지 11개) = "더보기" 시트에서 group 별로만 노출.
+   */
+  primary?: boolean;
+  /**
+   * "더보기" 시트에서 칩을 묶는 섹션. 인라인/시트 양쪽 모두 부여한다.
+   * - greeting: 인사·자리안내·대기  - response: 가능/불가/제안/확인
+   * - progress: 시술 진행 단계        - closing: 마무리 인사
+   */
+  group: "greeting" | "response" | "progress" | "closing";
 }
 
 export const QUICK_REPLIES: QuickReply[] = [
@@ -237,6 +248,8 @@ export const QUICK_REPLIES: QuickReply[] = [
       "いらっしゃいませ！すぐにご案内します",
       "Welcome! I'll help you in just a moment",
     ),
+    primary: true,
+    group: "greeting",
   },
   {
     replyId: "seat_guide",
@@ -247,6 +260,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "こちらのお席へご案内します",
       "Let me show you to your seat",
     ),
+    group: "greeting",
   },
   {
     replyId: "be_right_there",
@@ -257,6 +271,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "少々お待ちください、すぐ伺います",
       "One moment, I'll be right there",
     ),
+    group: "greeting",
   },
   /* — 가능 / 조건부 / 불가 — */
   {
@@ -264,6 +279,8 @@ export const QUICK_REPLIES: QuickReply[] = [
     intent: "available",
     chipLabel: "가능해요",
     message: L("네, 가능합니다", "はい、可能です", "Yes, we can do that"),
+    primary: true,
+    group: "response",
   },
   {
     replyId: "conditional",
@@ -274,6 +291,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "可能ですが、髪の状態によって仕上がりが変わることがあります",
       "We can do it, but the result may vary depending on your hair condition",
     ),
+    group: "response",
   },
   {
     replyId: "decline",
@@ -284,6 +302,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "申し訳ありませんが、本日はその施術は難しそうです",
       "I'm sorry, that service may not be possible today",
     ),
+    group: "response",
   },
   {
     replyId: "checking",
@@ -294,6 +313,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "少し確認してからお知らせします",
       "Let me check and get right back to you",
     ),
+    group: "response",
   },
   /* — 제안 / 추천 / 사진 — */
   {
@@ -305,6 +325,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "こちらはいかがですか？",
       "How about this instead?",
     ),
+    group: "response",
   },
   {
     replyId: "recommend",
@@ -315,6 +336,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "お客様にはこちらのスタイルがおすすめです",
       "I'd recommend this style for you",
     ),
+    group: "response",
   },
   {
     replyId: "request_photo",
@@ -325,6 +347,8 @@ export const QUICK_REPLIES: QuickReply[] = [
       "希望のスタイル写真をもっと見せてください",
       "Could you show more photos of the style you want?",
     ),
+    primary: true,
+    group: "response",
   },
   /* — 가격 / 시간 (값 입력) — */
   {
@@ -338,6 +362,8 @@ export const QUICK_REPLIES: QuickReply[] = [
     ),
     needsValue: true,
     valueKind: "price",
+    primary: true,
+    group: "response",
   },
   {
     replyId: "time",
@@ -350,6 +376,8 @@ export const QUICK_REPLIES: QuickReply[] = [
     ),
     needsValue: true,
     valueKind: "time",
+    primary: true,
+    group: "response",
   },
   /* — 시술 진행 단계 안내 — */
   {
@@ -361,6 +389,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "ただいま施術を進めています",
       "We're working on your service now",
     ),
+    group: "progress",
   },
   {
     replyId: "step_finishing",
@@ -371,6 +400,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "もうすぐ仕上げです、ほとんど完成です",
       "We're in the final step now, almost done",
     ),
+    group: "progress",
   },
   {
     replyId: "step_almost",
@@ -381,6 +411,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "もう少しお待ちください",
       "Just a little longer, please",
     ),
+    group: "progress",
   },
   /* — 마무리 인사 — */
   {
@@ -392,6 +423,8 @@ export const QUICK_REPLIES: QuickReply[] = [
       "完成しました！気に入っていただけたら嬉しいです",
       "All done! I hope you love it",
     ),
+    primary: true,
+    group: "closing",
   },
   {
     replyId: "closing_revisit",
@@ -402,6 +435,7 @@ export const QUICK_REPLIES: QuickReply[] = [
       "本日はご来店ありがとうございました。またお越しください！",
       "Thank you for coming in today. Please visit us again!",
     ),
+    group: "closing",
   },
 ];
 

@@ -15,6 +15,7 @@ import {
   getSalonInfo,
   getSalonInfoByEntry,
   postMessage,
+  saveBeforePhoto as saveBeforePhotoSvc,
   saveDesignerPush,
   rotateSalonEntryKey as rotateSalonEntryKeySvc,
   rotateDesignerEntryKey as rotateDesignerEntryKeySvc,
@@ -122,6 +123,14 @@ export async function finishAndSendReport(input: {
   afterPhotoUrl?: string;
 }) {
   return completeConsultation(input);
+}
+
+/* ── 디자이너: 시술 전 사진 저장 (요약 단계 촬영 → 상담건에 보존) ───── */
+export async function saveBeforePhoto(
+  designerToken: string,
+  dataUrl: string,
+): Promise<{ ok: boolean }> {
+  return saveBeforePhotoSvc(designerToken, dataUrl);
 }
 
 /* ── 손님: 재방문 프리필 컨텍스트 (입장 토큰 검증 후, 쿠키 읽기 전용) ──

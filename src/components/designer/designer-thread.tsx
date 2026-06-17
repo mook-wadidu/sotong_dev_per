@@ -37,6 +37,18 @@ const POLL_MS = 2000;
 /** 자유 타이핑 금지(P0-11) — 흔한 가격 프리셋(KRW won). 손님에겐 formatPrice 로 통화 표기. */
 const PRICE_PRESETS = [30000, 50000, 80000, 100000, 120000, 150000];
 
+/** 입력 영역 인라인 칩 = primary 6개(정의 순서 유지). 나머지는 "더보기" 시트로. */
+const PRIMARY_REPLIES = QUICK_REPLIES.filter((qr) => qr.primary);
+const SECONDARY_REPLIES = QUICK_REPLIES.filter((qr) => !qr.primary);
+
+/** 시트 섹션 순서 — 빈 그룹은 렌더 시 생략. */
+const GROUP_ORDER: QuickReply["group"][] = [
+  "greeting",
+  "response",
+  "progress",
+  "closing",
+];
+
 type Pending = {
   tempId: string;
   text: string;
@@ -64,11 +76,18 @@ export function DesignerThread({
     autoPrice: string;
     reportCta: string;
     sendError: string;
+    moreLabel: string;
+    moreTitle: string;
+    groupGreeting: string;
+    groupResponse: string;
+    groupProgress: string;
+    groupClosing: string;
   };
 }) {
   const [messages, setMessages] = React.useState<Message[]>(initialMessages);
   const [pendings, setPendings] = React.useState<Pending[]>([]);
   const [customOpen, setCustomOpen] = React.useState(false);
+  const [moreOpen, setMoreOpen] = React.useState(false);
   const [customText, setCustomText] = React.useState("");
   const [valueSheet, setValueSheet] = React.useState<null | "price" | "time">(
     null,
@@ -201,6 +220,13 @@ export function DesignerThread({
     });
   };
 
+  const groupLabel: Record<QuickReply["group"], string> = {
+    greeting: labels.groupGreeting,
+    response: labels.groupResponse,
+    progress: labels.groupProgress,
+    closing: labels.groupClosing,
+  };
+
   const sendCustom = () => {
     const text = customText.trim();
     if (!text) return;
@@ -275,7 +301,7 @@ export function DesignerThread({
         </div>
 
         <div className="flex flex-wrap gap-1.5">
-          {QUICK_REPLIES.map((qr) => (
+          {PRIMARY_REPLIES.map((qr) => (
             <button
               key={qr.replyId}
               type="button"
@@ -286,6 +312,17 @@ export function DesignerThread({
               {qr.chipLabel}
             </button>
           ))}
+
+          {/* 더보기 — 나머지 칩을 group 별 시트로 */}
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className="inline-flex items-center rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
+            aria-haspopup="dialog"
+            aria-expanded={moreOpen}
+          >
+            {labels.moreLabel}
+          </button>
 
           {/* 직접 입력 */}
           <button
@@ -379,6 +416,47 @@ export function DesignerThread({
                 {tp.label.ko}
               </Button>
             ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* 더보기 — 나머지 칩을 group 섹션으로 */}
+      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+        <SheetContent closeLabel="닫기">
+          <SheetHeader>
+            <SheetTitle>{labels.moreTitle}</SheetTitle>
+            <SheetDescription>{labels.translatedNote}</SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4">
+            {GROUP_ORDER.map((group) => {
+              const items = SECONDARY_REPLIES.filter(
+                (qr) => qr.group === group,
+              );
+              if (items.length === 0) return null;
+              return (
+                <section key={group} className="space-y-2">
+                  <h3 className="text-xs font-medium text-muted-foreground">
+                    {groupLabel[group]}
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {items.map((qr) => (
+                      <button
+                        key={qr.replyId}
+                        type="button"
+                        disabled={sending}
+                        onClick={() => {
+                          setMoreOpen(false);
+                          onQuickReply(qr);
+                        }}
+                        className="inline-flex items-center rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:opacity-50"
+                      >
+                        {qr.chipLabel}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         </SheetContent>
       </Sheet>

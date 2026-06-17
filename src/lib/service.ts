@@ -959,6 +959,50 @@ export async function getMessagesSince(input: {
   return repo.listMessages(c.id, input.sinceIso);
 }
 
+/* ── 시술 전 사진 저장 (요약 단계 촬영) ─────────────────────────
+ * 디자이너가 요약 화면에서 '시술 전' 사진을 찍어 상담건에 붙여둔다.
+ * 리포트 발송 시 completeConsultation 이 이 값을 before 로 우선 사용한다.
+ * - getByDesignerToken 으로 상담 확정(없으면 {ok:false})
+ * - assertValidPhotos 로 dataURL 검증(개수/길이/MIME)
+ * - designerToken 당 레이트리밋(거대 dataURL 반복 저장 어뷰즈 차단)
+ * throw 대신 {ok} 로 응답(메인 플로우 보호). */
+export async function saveBeforePhoto(
+  designerToken: string,
+  dataUrl: string,
+): Promise<{ ok: boolean }> {
+  const repo = getRepo();
+  const c = await repo.getByDesignerToken(designerToken);
+  if (!c) return { ok: false };
+
+  // 레이트리밋(P0) — designerToken 당 분당 비포 사진 저장 상한.
+  await enforceRate(`before-photo:${designerToken}`, 12, 60_000, {
+    salonSlug: c.salonSlug,
+    source: "before-photo",
+    consultationId: c.id,
+  });
+
+  // 사진 dataURL 검증(P0) — 개수/길이/MIME 화이트리스트. 위반 시 throw → {ok:false}.
+  try {
+    await assertValidPhotos([dataUrl], {
+      salonSlug: c.salonSlug,
+      source: "before-photo",
+      consultationId: c.id,
+    });
+    await repo.setBeforePhoto(c.id, dataUrl);
+    return { ok: true };
+  } catch (e) {
+    await logIssue({
+      salonSlug: c.salonSlug,
+      severity: "warning",
+      source: "before-photo",
+      message: "시술 전 사진 저장 실패",
+      detail: e instanceof Error ? e.message : String(e),
+      consultationId: c.id,
+    });
+    return { ok: false };
+  }
+}
+
 /* ── 시술 완료 → 리포트 발송 ───────────────────────────── */
 export async function completeConsultation(input: {
   designerToken: string;
@@ -1003,6 +1047,10 @@ export async function completeConsultation(input: {
     return null;
   }
 
+  // before 소스 결정: 요약 단계에서 찍어둔 상담의 beforePhotoUrl 우선,
+  // 없으면 리포트 폼 입력(input.beforePhotoUrl) 폴백. after 는 그대로 input.
+  const beforeUrl = c.beforePhotoUrl ?? input.beforePhotoUrl;
+
   try {
     const salon = await repo.getSalon(c.salonSlug);
     const ai = getAi();
@@ -1028,7 +1076,7 @@ export async function completeConsultation(input: {
       salonName: salon?.name ?? "소통 헤어",
       designerName: c.designerName ?? "담당 디자이너",
       date: new Date().toISOString(),
-      beforePhotoUrl: input.beforePhotoUrl,
+      beforePhotoUrl: beforeUrl,
       afterPhotoUrl: input.afterPhotoUrl,
       locale: c.customerLocale,
     };

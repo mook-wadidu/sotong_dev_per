@@ -76,12 +76,30 @@
       "timePrompt": "소요시간을 골라주세요",
       "autoPrice": "예상가",
       "customLabel": "직접 입력",
-      "send": "보내기"
+      "send": "보내기",
+      "moreLabel": "더보기",
+      "moreTitle": "빠른 답장 더보기",
+      "groups": {
+        "greeting": "인사",
+        "response": "응답",
+        "progress": "진행",
+        "closing": "마무리"
+      }
     }
   },
+  "beforePhoto": {
+    "title": "시술 전 사진 (선택)",
+    "hint": "지금 찍어두면 손님 리포트의 비포로 들어가요",
+    "add": "사진 찍기",
+    "retake": "다시 찍기",
+    "saved": "시술 전 사진을 저장했어요",
+    "failed": "사진을 저장하지 못했어요. 다시 시도해 주세요.",
+    "alt": "시술 전 사진",
+    "done": "촬영됨"
+  },
   "record": {
-    "title": "30초 기록",
-    "subtitle": "오늘 시술을 빠르게 남겨주세요",
+    "title": "시술 기록",
+    "subtitle": "오늘 시술을 남겨주세요",
     "products": "사용한 약제·제품",
     "productsHint": "사용한 것을 모두 골라주세요",
     "addProduct": "추가",
@@ -89,6 +107,7 @@
     "stateGrade": "모발 상태",
     "satisfaction": "만족도",
     "satisfactionHint": "손님 반응을 1~5로 남겨주세요 (선택)",
+    "satisfactionToggle": "만족도 남기기 (선택)",
     "satisfactionClear": "선택 해제",
     "satisfactionScore": "{score}점",
     "satisfactionLevel": {
@@ -98,7 +117,6 @@
       "4": "만족",
       "5": "매우 만족"
     },
-    "beforePhoto": "시술 전 사진",
     "afterPhoto": "시술 후 사진",
     "addPhoto": "사진 추가",
     "removePhoto": "삭제",

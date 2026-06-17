@@ -81,6 +81,12 @@ export default async function DesignerThreadPage({
           autoPrice: t("thread.quickReplies.autoPrice"),
           reportCta: t("thread.reportCta"),
           sendError: t("thread.sendError"),
+          moreLabel: t("thread.quickReplies.moreLabel"),
+          moreTitle: t("thread.quickReplies.moreTitle"),
+          groupGreeting: t("thread.quickReplies.groups.greeting"),
+          groupResponse: t("thread.quickReplies.groups.response"),
+          groupProgress: t("thread.quickReplies.groups.progress"),
+          groupClosing: t("thread.quickReplies.groups.closing"),
         }}
       />
     </MobileFrame>

@@ -173,6 +173,8 @@ export interface Consultation {
   isReturning: boolean;
   intake: IntakeDraft;
   summary?: DesignerSummary;
+  /** 시술 전 사진 — 요약 단계에서 촬영, 리포트의 before 로 사용. */
+  beforePhotoUrl?: string;
   /** 토큰들 — 손님/디자이너/리포트 각각의 무인증 접근 키 */
   consultationToken: string;
   designerToken: string;

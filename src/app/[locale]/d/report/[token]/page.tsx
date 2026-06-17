@@ -59,6 +59,7 @@ export default async function DesignerReportPage({
             satisfaction: t("record.satisfaction"),
             satisfactionHint: t("record.satisfactionHint"),
             satisfactionClear: t("record.satisfactionClear"),
+            satisfactionToggle: t("record.satisfactionToggle"),
             satisfactionLevels: {
               1: t("record.satisfactionLevel.1"),
               2: t("record.satisfactionLevel.2"),
@@ -66,7 +67,6 @@ export default async function DesignerReportPage({
               4: t("record.satisfactionLevel.4"),
               5: t("record.satisfactionLevel.5"),
             },
-            beforePhoto: t("record.beforePhoto"),
             afterPhoto: t("record.afterPhoto"),
             addPhoto: t("record.addPhoto"),
             removePhoto: t("record.removePhoto"),

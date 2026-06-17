@@ -76,12 +76,30 @@
       "timePrompt": "Pick a duration",
       "autoPrice": "Estimated",
       "customLabel": "Custom",
-      "send": "Send"
+      "send": "Send",
+      "moreLabel": "More",
+      "moreTitle": "More quick replies",
+      "groups": {
+        "greeting": "Greeting",
+        "response": "Response",
+        "progress": "Progress",
+        "closing": "Closing"
+      }
     }
   },
+  "beforePhoto": {
+    "title": "Before photo (optional)",
+    "hint": "Take one now and it becomes the before in the guest report",
+    "add": "Take photo",
+    "retake": "Retake",
+    "saved": "Before photo saved",
+    "failed": "Couldn't save the photo. Please try again.",
+    "alt": "Before photo",
+    "done": "Captured"
+  },
   "record": {
-    "title": "30-second record",
-    "subtitle": "Quickly log today's service",
+    "title": "Service record",
+    "subtitle": "Log today's service",
     "products": "Products & agents used",
     "productsHint": "Select all that were used",
     "addProduct": "Add",
@@ -89,6 +107,7 @@
     "stateGrade": "Hair condition",
     "satisfaction": "Satisfaction",
     "satisfactionHint": "Note the guest's reaction from 1 to 5 (optional)",
+    "satisfactionToggle": "Add satisfaction (optional)",
     "satisfactionClear": "Clear selection",
     "satisfactionScore": "{score} pts",
     "satisfactionLevel": {
@@ -98,7 +117,6 @@
       "4": "Happy",
       "5": "Delighted"
     },
-    "beforePhoto": "Before photo",
     "afterPhoto": "After photo",
     "addPhoto": "Add photo",
     "removePhoto": "Remove",

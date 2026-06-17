@@ -16,24 +16,9 @@ import {
 import { PRODUCTS } from "@/lib/catalog";
 import { finishAndSendReport } from "@/lib/actions";
 import { reportPath } from "@/lib/links";
+import { resizeToDataUrl } from "@/lib/image";
 import { cn } from "@/lib/utils";
 import type { Locale, ThreeLevel } from "@/lib/domain/types";
-
-/** 긴 변 ~1280px / JPEG ~0.8 로 리사이즈 후 dataURL (P1-40). */
-async function resizeToDataUrl(file: File, maxSide = 1280): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-  const w = Math.round(bitmap.width * scale);
-  const h = Math.round(bitmap.height * scale);
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas context unavailable");
-  ctx.drawImage(bitmap, 0, 0, w, h);
-  bitmap.close?.();
-  return canvas.toDataURL("image/jpeg", 0.8);
-}
 
 type Labels = {
   products: string;
@@ -44,9 +29,10 @@ type Labels = {
   satisfaction: string;
   satisfactionHint: string;
   satisfactionClear: string;
+  /** 만족도 섹션을 펼치는 디스클로저 라벨 (기본 접힘 — 선택) */
+  satisfactionToggle: string;
   /** 1~5 점수별 텍스트 라벨 (흑백·접근성 — 별/색 대신 말로) */
   satisfactionLevels: Record<1 | 2 | 3 | 4 | 5, string>;
-  beforePhoto: string;
   afterPhoto: string;
   addPhoto: string;
   removePhoto: string;
@@ -78,7 +64,8 @@ export function RecordForm({
   const [customInput, setCustomInput] = React.useState("");
   const [grade, setGrade] = React.useState<ThreeLevel | null>(null);
   const [satisfaction, setSatisfaction] = React.useState<number | null>(null);
-  const [beforeUrl, setBeforeUrl] = React.useState<string | undefined>();
+  // 만족도는 선택 — 기본 접힘. 펼치거나 이미 값이 있으면 노출.
+  const [satisfactionOpen, setSatisfactionOpen] = React.useState(false);
   const [afterUrl, setAfterUrl] = React.useState<string | undefined>();
   const [pending, startTransition] = React.useTransition();
   const [reportToken, setReportToken] = React.useState<string | undefined>();
@@ -116,12 +103,12 @@ export function RecordForm({
   };
 
   // 최소 1개 필드는 채워야 발송(빈 리포트 전송 방지, AUDIT UX P2).
+  // before 는 요약 단계 저장분을 쓰므로 여기선 보내지 않는다.
   const hasAnyInput =
     productIds.length > 0 ||
     customProducts.length > 0 ||
     grade !== null ||
     satisfaction !== null ||
-    Boolean(beforeUrl) ||
     Boolean(afterUrl);
 
   const submit = () => {
@@ -138,7 +125,8 @@ export function RecordForm({
             stateGrade: grade ?? undefined,
             satisfactionScore: satisfaction ?? undefined,
           },
-          beforePhotoUrl: beforeUrl,
+          // before 는 요약 단계에서 저장된 값(consultation.beforePhotoUrl)을 우선 사용 →
+          // 리포트폼에서는 보내지 않는다(completeConsultation 폴백만 존재).
           afterPhotoUrl: afterUrl,
         });
         if (!res) {
@@ -248,43 +236,50 @@ export function RecordForm({
         />
       </section>
 
-      {/* 만족도 (선택, 1~5 — 흑백·접근성: 별/색 대신 숫자+말 라벨) */}
+      {/* 만족도 (선택) — 기본 접힘. 토글로 펼치거나 이미 값이 있으면 노출. */}
       <section>
-        <SectionLabel>{labels.satisfaction}</SectionLabel>
-        <p className="mb-2.5 text-xs text-muted-foreground">
-          {labels.satisfactionHint}
-        </p>
-        <RadioGroup
-          variant="list"
-          label={labels.satisfaction}
-          options={SATISFACTION_SCORES.map((n) => ({
-            value: String(n),
-            label: `${n} · ${labels.satisfactionLevels[n]}`,
-          }))}
-          value={satisfaction === null ? null : String(satisfaction)}
-          onValueChange={(v) => setSatisfaction(Number(v))}
-        />
-        {satisfaction !== null ? (
+        {satisfactionOpen || satisfaction !== null ? (
+          <>
+            <SectionLabel>{labels.satisfaction}</SectionLabel>
+            <p className="mb-2.5 text-xs text-muted-foreground">
+              {labels.satisfactionHint}
+            </p>
+            <RadioGroup
+              variant="list"
+              label={labels.satisfaction}
+              options={SATISFACTION_SCORES.map((n) => ({
+                value: String(n),
+                label: `${n} · ${labels.satisfactionLevels[n]}`,
+              }))}
+              value={satisfaction === null ? null : String(satisfaction)}
+              onValueChange={(v) => setSatisfaction(Number(v))}
+            />
+            {satisfaction !== null ? (
+              <button
+                type="button"
+                onClick={() => setSatisfaction(null)}
+                className="mt-2 text-sm font-medium text-muted-foreground underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {labels.satisfactionClear}
+              </button>
+            ) : null}
+          </>
+        ) : (
           <button
             type="button"
-            onClick={() => setSatisfaction(null)}
-            className="mt-2 text-sm font-medium text-muted-foreground underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            onClick={() => setSatisfactionOpen(true)}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            {labels.satisfactionClear}
+            <span className="text-base leading-none" aria-hidden="true">
+              +
+            </span>
+            {labels.satisfactionToggle}
           </button>
-        ) : null}
+        )}
       </section>
 
-      {/* before / after 사진 */}
-      <section className="grid grid-cols-2 gap-3">
-        <PhotoSlot
-          label={labels.beforePhoto}
-          addLabel={labels.addPhoto}
-          removeLabel={labels.removePhoto}
-          url={beforeUrl}
-          onPick={(e) => onPhoto(e, setBeforeUrl)}
-          onRemove={() => setBeforeUrl(undefined)}
-        />
+      {/* 시술 후 사진 (before 는 요약 단계에서 촬영) */}
+      <section className="max-w-[12rem]">
         <PhotoSlot
           label={labels.afterPhoto}
           addLabel={labels.addPhoto}

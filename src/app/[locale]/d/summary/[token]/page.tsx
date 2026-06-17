@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { StatusBadge } from "@/components/designer/status-badge";
 import { BackToInbox } from "@/components/designer/back-to-inbox";
+import { BeforePhotoCapture } from "@/components/designer/before-photo-capture";
 import {
   AlertIcon,
   SparkleIcon,
@@ -170,6 +171,26 @@ export default async function DesignerSummaryPage({
             </CardContent>
           </Card>
         ) : null}
+
+        {/* 시술 전 사진 촬영 (선택) — 요약 단계에서 찍어두면 리포트 before 로 쓰임 */}
+        <Card>
+          <CardContent className="p-4">
+            <BeforePhotoCapture
+              designerToken={token}
+              initialUrl={consultation.beforePhotoUrl}
+              labels={{
+                title: t("beforePhoto.title"),
+                hint: t("beforePhoto.hint"),
+                add: t("beforePhoto.add"),
+                retake: t("beforePhoto.retake"),
+                saved: t("beforePhoto.saved"),
+                failed: t("beforePhoto.failed"),
+                alt: t("beforePhoto.alt"),
+                done: t("beforePhoto.done"),
+              }}
+            />
+          </CardContent>
+        </Card>
 
         {/* 스타일 참고 사진 */}
         {intake.stylePhotoUrls.length > 0 ? (

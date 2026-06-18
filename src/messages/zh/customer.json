@@ -5,6 +5,9 @@
     "reassure": "扫描二维码即可开始，无需安装或登录。",
     "continue": "用这种语言继续"
   },
+  "entry": {
+    "designerRankSeparator": " · "
+  },
   "invalid": {
     "title": "入场链接无效",
     "body": "此二维码或链接已过期或不正确。请重新扫描店内提供的二维码。",

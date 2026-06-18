@@ -5,6 +5,9 @@
     "reassure": "QR을 찍으면 바로 시작됩니다. 설치·로그인 필요 없어요.",
     "continue": "이 언어로 계속하기"
   },
+  "entry": {
+    "designerRankSeparator": " · "
+  },
   "invalid": {
     "title": "잘못된 입장 링크예요",
     "body": "이 QR 또는 링크는 만료되었거나 올바르지 않아요. 매장에 비치된 QR을 다시 찍어주세요.",

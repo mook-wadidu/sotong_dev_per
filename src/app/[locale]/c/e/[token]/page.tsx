@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { getSalonByEntry } from "@/lib/actions";
-import { type Locale } from "@/lib/domain/types";
+import { tx, type Locale } from "@/lib/domain/types";
 import { MobileFrame, ScreenBody } from "@/components/ui";
 import { InvalidEntry } from "@/components/customer/invalid-entry";
 import { LanguageChoices } from "@/components/customer/language-choices";
@@ -18,9 +18,16 @@ export default async function CustomerEntryPage({
     return <InvalidEntry kind="entry" />;
   }
 
+  const loc = locale as Locale;
   const salonName = salon.nameTranslations
-    ? (salon.nameTranslations[locale as Locale] ?? salon.name)
+    ? (salon.nameTranslations[loc] ?? salon.name)
     : salon.name;
+
+  // 디자이너 직급 라벨(다국어) — 있으면 "이름 · 직급"을 손님 언어로 표시한다.
+  // rankLabel 없으면(미배정/직급 미설정) 이름만 표시(현행).
+  const designerRank = designer?.rankLabel
+    ? tx(designer.rankLabel, loc)
+    : null;
 
   return (
     <MobileFrame tone="muted">
@@ -33,6 +40,12 @@ export default async function CustomerEntryPage({
           {designer ? (
             <p className="text-sm font-medium text-accent-text">
               {designer.name}
+              {designerRank ? (
+                <span className="text-muted-foreground">
+                  {t("entry.designerRankSeparator")}
+                  {designerRank}
+                </span>
+              ) : null}
             </p>
           ) : null}
           <p className="mx-auto max-w-xs text-pretty text-sm text-muted-foreground">

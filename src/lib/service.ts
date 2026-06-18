@@ -1664,10 +1664,11 @@ function normalizeRankId(raw: string): string {
 /**
  * 살롱 직급(rank) 정의 교체(콘솔). authorizeConsole 게이트 후 repo.updateSalonRanks.
  * 입력 검증:
- *  - ranks 는 배열, 각 항목 {id?,label} 의 label 비어있지 않게.
- *  - 최종 id 는 소문자/숫자/하이픈으로 정규화(id 미지정 시 label 에서 생성).
+ *  - ranks 는 배열, 각 항목 {id?,label} 의 label(LocalizedText) 의 ko 가 비어있지 않게.
+ *  - 최종 id 는 소문자/숫자/하이픈으로 정규화(id 미지정 시 label.ko 에서 생성).
  *  - 최종 id 중복 금지(중복이면 -2, -3 … 접미로 유일화).
  *  - 최소 0개 허용(전부 삭제 가능).
+ *  - label 의 ja/en/zh 는 optional(없으면 tx() 가 ko 폴백) — ko 만 필수.
  * 정합 가드(best-effort, throw 금지): 새 ranks 에서 사라진 rankId 를 참조하는
  *  (a) 디자이너 → rankId=undefined, (b) 시술 rankPrices 의 해당 키 제거.
  *  실패해도 logIssue(warning) 후 진행(기본가 basePriceFrom 은 유지).
@@ -1682,13 +1683,21 @@ export async function salonUpdateRanks(
 
   if (!Array.isArray(ranks)) return { ok: false };
 
-  // 정규화 + 검증(label 필수) + id 유일화.
+  // 정규화 + 검증(label.ko 필수) + id 유일화.
+  // label 은 LocalizedText — ko trim 비면 거부. ja/en/zh 는 optional(미입력 시 ko 폴백).
   const seen = new Set<string>();
   const normalized: DesignerRank[] = [];
   for (const r of ranks) {
-    const label = (r?.label ?? "").trim();
-    if (!label) return { ok: false };
-    const rawId = (r?.id ?? "").trim() || label;
+    const label = r?.label;
+    const ko = (label?.ko ?? "").trim();
+    if (!ko) return { ok: false };
+    // ko 는 trim 본문으로 정규화. ja/en 은 LocalizedText 의 required 필드라 미입력 시 ko 로 폴백
+    // (tx() 의 폴백과 동일 결과 — 손님 언어 칸을 안 채워도 ko 가 보인다). zh 는 입력 있을 때만 보존.
+    const ja = label?.ja?.trim() || ko;
+    const en = label?.en?.trim() || ko;
+    const zh = label?.zh?.trim();
+    const cleanLabel: LocalizedText = zh ? { ko, ja, en, zh } : { ko, ja, en };
+    const rawId = (r?.id ?? "").trim() || ko;
     let id = normalizeRankId(rawId);
     if (seen.has(id)) {
       let n = 2;
@@ -1696,7 +1705,7 @@ export async function salonUpdateRanks(
       id = `${id}-${n}`;
     }
     seen.add(id);
-    normalized.push({ id, label });
+    normalized.push({ id, label: cleanLabel });
   }
 
   await repo.updateSalonRanks(salon.slug, normalized);

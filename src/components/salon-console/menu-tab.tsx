@@ -533,7 +533,8 @@ function ServiceDialog({
               </p>
               <div className="space-y-2.5 pt-1">
                 {ranks.map((r) => (
-                  <FormField key={r.id} label={r.label}>
+                  // 콘솔은 ko 고정 뷰 — 직급 라벨(LocalizedText)에서 ko 만 표기.
+                  <FormField key={r.id} label={r.label.ko}>
                     <Input
                       type="number"
                       inputMode="numeric"

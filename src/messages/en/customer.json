@@ -5,6 +5,9 @@
     "reassure": "Scanning the QR starts everything. No install or login needed.",
     "continue": "Continue in this language"
   },
+  "entry": {
+    "designerRankSeparator": " · "
+  },
   "invalid": {
     "title": "This entry link isn't valid",
     "body": "This QR or link has expired or isn't correct. Please scan the QR posted in the salon again.",

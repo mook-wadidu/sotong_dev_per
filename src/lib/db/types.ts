@@ -13,21 +13,29 @@ import type {
   TreatmentRecord,
 } from "@/lib/domain/types";
 
-/** 디자이너 직급(rank) — 살롱이 정의, 직급별 가격 보정에 사용 */
+/**
+ * 디자이너 직급(rank) — 살롱이 정의, 직급별 가격 보정 + 손님 노출(이름+직급)에 사용.
+ * label 은 다국어(LocalizedText) — ko 필수, ja/en/zh 는 LocalizedText 정의대로 optional.
+ * 손님 진입화면·리포트는 tx(label, locale) 로 손님 언어 라벨을 뽑는다(메뉴 라벨과 동일 패턴).
+ * (구버전: label 이 한국어 단일 string 이었음 — supabase toSalon 이 {ko:label} 로 정규화.)
+ */
 export interface DesignerRank {
   id: string;
-  label: string;
+  label: LocalizedText;
 }
 
 /**
- * 신규 살롱 기본 직급 — 한국 살롱 표준(원장/실장/디자이너).
+ * 신규 살롱 기본 직급 — 한국 살롱 표준(원장/실장/디자이너), 다국어 라벨.
  * createSalon 이 designerRanks 를 안 받으면 이 값으로 채운다(빈 직급이면
  * 콘솔 "디자이너 추가" 의 직급 선택이 비어버리는 버그 방지). 단일 진실원천.
  */
 export const DEFAULT_DESIGNER_RANKS: DesignerRank[] = [
-  { id: "director", label: "원장" },
-  { id: "senior", label: "실장" },
-  { id: "designer", label: "디자이너" },
+  { id: "director", label: { ko: "원장", ja: "院長", en: "Director", zh: "院长" } },
+  { id: "senior", label: { ko: "실장", ja: "室長", en: "Manager", zh: "主管" } },
+  {
+    id: "designer",
+    label: { ko: "디자이너", ja: "デザイナー", en: "Designer", zh: "设计师" },
+  },
 ];
 
 /**
@@ -139,11 +147,33 @@ export interface PublicDesigner {
   id: string;
   name: string;
   rankId?: string;
+  /**
+   * 손님 노출용 직급 라벨(다국어) — designer.rankId 로 salon.designerRanks 에서 찾아 채운다.
+   * 손님 진입화면·리포트가 tx(rankLabel, locale) 로 "이름 + 직급"을 손님 언어로 표시.
+   * rankId 없거나 살롱 직급 정의에 없으면 undefined(직급 미표시).
+   * PublicSalon 은 designerRanks 를 strip(내부 가격 키)하므로 라벨은 이 필드로만 손님에게 전달된다.
+   */
+  rankLabel?: LocalizedText;
 }
 
-/** Designer(전체) → PublicDesigner 투영 — staffToken 등 비밀 제거. */
-export function toPublicDesigner(designer: Designer): PublicDesigner {
-  return { id: designer.id, name: designer.name, rankId: designer.rankId };
+/**
+ * Designer(전체) → PublicDesigner 투영 — staffToken 등 비밀 제거.
+ * ranks(살롱 직급 정의)를 주면 designer.rankId 로 rankLabel(다국어)을 채운다.
+ * (toPublicDesigner 는 designer 만으로는 라벨을 알 수 없어 ranks 를 옵션 인자로 받는다.)
+ */
+export function toPublicDesigner(
+  designer: Designer,
+  ranks?: DesignerRank[],
+): PublicDesigner {
+  const rankLabel = designer.rankId
+    ? ranks?.find((r) => r.id === designer.rankId)?.label
+    : undefined;
+  return {
+    id: designer.id,
+    name: designer.name,
+    rankId: designer.rankId,
+    rankLabel,
+  };
 }
 
 /** 어드민용 디자이너 투영 — 서명된 입장 토큰/경로 + 담당 건수(서버 계산) */

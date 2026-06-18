@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import {
   Button,
   Input,
+  FormField,
   toast,
   Dialog,
   DialogContent,
@@ -15,13 +16,13 @@ import {
 } from "@/components/ui";
 import { salonUpdateRanks } from "@/lib/actions";
 import type { DesignerRank } from "@/lib/db/types";
+import type { LocalizedText } from "@/lib/domain/types";
 
 /**
- * 직급 편집기 — 콘솔/어드민 공통.
- * 전체 직급 목록을 통째로 보내는 액션(salonUpdateRanks) 규약을 따른다(델타 아님).
- * - 기존 직급은 id 유지(라벨만 바꿔도 같은 id 로 보냄).
- * - 신규 직급은 라틴 라벨이면 안정적 slug id 를 붙이고, 그 외(한글 등)는 id 미지정 →
- *   액션이 service.ts normalizeRankId 규칙으로 생성한다.
+ * 직급 편집기 — 콘솔/어드민 공통. 직급 라벨을 ko/ja/en/zh 다국어로 입력한다
+ * (손님 진입화면이 손님 언어로 직급을 보여주므로). 메뉴 라벨 에디터와 동일 패턴:
+ * ko 필수, ja/en 비우면 저장 시 ko 폴백, zh 는 생략 시 tx 가 ko 폴백.
+ * 전체 직급 목록을 통째로 보내는 salonUpdateRanks 규약을 따른다(델타 아님).
  */
 
 type Row = {
@@ -29,7 +30,10 @@ type Row = {
   key: string;
   /** 기존 직급 id (신규면 undefined → 액션이 생성). */
   id?: string;
-  label: string;
+  ko: string;
+  ja: string;
+  en: string;
+  zh: string;
 };
 
 let uidSeq = 0;
@@ -58,7 +62,15 @@ export function RanksEditor({
   const t = useTranslations("Admin");
 
   const initial = React.useMemo<Row[]>(
-    () => ranks.map((r) => ({ key: r.id, id: r.id, label: r.label })),
+    () =>
+      ranks.map((r) => ({
+        key: r.id,
+        id: r.id,
+        ko: r.label.ko,
+        ja: r.label.ja ?? "",
+        en: r.label.en ?? "",
+        zh: r.label.zh ?? "",
+      })),
     [ranks],
   );
   const [rows, setRows] = React.useState<Row[]>(initial);
@@ -67,8 +79,7 @@ export function RanksEditor({
     { open: false },
   );
 
-  // 서버 데이터(refresh)로 props 가 바뀌면 편집 상태를 재동기화 — effect 대신
-  // "prop 변화 시 렌더 중 state 조정" 패턴(이전 props 식별자를 추적).
+  // 서버 데이터(refresh)로 props 가 바뀌면 편집 상태를 재동기화(렌더 중 조정 패턴).
   const [prevRanks, setPrevRanks] = React.useState(ranks);
   if (prevRanks !== ranks) {
     setPrevRanks(ranks);
@@ -79,15 +90,22 @@ export function RanksEditor({
     if (rows.length !== initial.length) return true;
     return rows.some((r, i) => {
       const o = initial[i];
-      return !o || o.id !== r.id || o.label !== r.label;
+      return (
+        !o ||
+        o.id !== r.id ||
+        o.ko !== r.ko ||
+        o.ja !== r.ja ||
+        o.en !== r.en ||
+        o.zh !== r.zh
+      );
     });
   }, [rows, initial]);
 
-  const setLabel = (key: string, label: string) =>
-    setRows((rs) => rs.map((r) => (r.key === key ? { ...r, label } : r)));
+  const setField = (key: string, field: "ko" | "ja" | "en" | "zh", v: string) =>
+    setRows((rs) => rs.map((r) => (r.key === key ? { ...r, [field]: v } : r)));
 
   const addRow = () =>
-    setRows((rs) => [...rs, { key: nextKey(), label: "" }]);
+    setRows((rs) => [...rs, { key: nextKey(), ko: "", ja: "", en: "", zh: "" }]);
 
   const removeRow = (key: string) =>
     setRows((rs) => rs.filter((r) => r.key !== key));
@@ -102,15 +120,27 @@ export function RanksEditor({
   };
 
   const onSave = async () => {
-    const cleaned = rows.map((r) => ({ ...r, label: r.label.trim() }));
-    if (cleaned.some((r) => !r.label)) {
+    const cleaned = rows.map((r) => ({
+      ...r,
+      ko: r.ko.trim(),
+      ja: r.ja.trim(),
+      en: r.en.trim(),
+      zh: r.zh.trim(),
+    }));
+    if (cleaned.some((r) => !r.ko)) {
       toast.error(t("console.ranks.nameRequired"));
       return;
     }
     const payload: DesignerRank[] = cleaned.map((r) => ({
-      // 기존 직급은 id 유지; 신규는 라틴 slug 가 있으면 그걸로 안정화, 없으면 액션 위임.
-      id: r.id ?? latinSlug(r.label) ?? "",
-      label: r.label,
+      // 기존 직급은 id 유지; 신규는 라틴 slug 있으면 안정화, 없으면 액션 위임.
+      id: r.id ?? latinSlug(r.ko) ?? "",
+      // ko 필수, ja/en 비면 ko 폴백, zh 는 있을 때만(없으면 tx 가 ko 폴백).
+      label: {
+        ko: r.ko,
+        ja: r.ja || r.ko,
+        en: r.en || r.ko,
+        zh: r.zh || undefined,
+      } as LocalizedText,
     }));
     setPending(true);
     const res = await salonUpdateRanks(ownerToken, payload);
@@ -148,23 +178,52 @@ export function RanksEditor({
           {t("console.ranks.empty")}
         </div>
       ) : (
-        <ul className="mt-4 space-y-2">
+        <ul className="mt-4 space-y-3">
           {rows.map((row) => (
-            <li key={row.key} className="flex items-center gap-2">
-              <Input
-                value={row.label}
-                onChange={(e) => setLabel(row.key, e.target.value)}
-                placeholder={t("console.ranks.namePlaceholder")}
-                aria-label={t("console.ranks.title")}
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => requestRemove(row)}
-                aria-label={t("console.ranks.removeRow")}
-              >
-                {t("console.ranks.removeRow")}
-              </Button>
+            <li
+              key={row.key}
+              className="rounded-lg border border-border/70 p-3.5"
+            >
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <FormField label={t("console.labelKo")} required>
+                  <Input
+                    value={row.ko}
+                    onChange={(e) => setField(row.key, "ko", e.target.value)}
+                    placeholder="원장"
+                  />
+                </FormField>
+                <FormField label={t("console.labelJa")}>
+                  <Input
+                    value={row.ja}
+                    onChange={(e) => setField(row.key, "ja", e.target.value)}
+                    placeholder="院長"
+                  />
+                </FormField>
+                <FormField label={t("console.labelEn")}>
+                  <Input
+                    value={row.en}
+                    onChange={(e) => setField(row.key, "en", e.target.value)}
+                    placeholder="Director"
+                  />
+                </FormField>
+                <FormField label={t("console.labelZh")}>
+                  <Input
+                    value={row.zh}
+                    onChange={(e) => setField(row.key, "zh", e.target.value)}
+                    placeholder="院长"
+                  />
+                </FormField>
+              </div>
+              <div className="mt-2 flex justify-end">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => requestRemove(row)}
+                  aria-label={t("console.ranks.removeRow")}
+                >
+                  {t("console.ranks.removeRow")}
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
@@ -189,7 +248,7 @@ export function RanksEditor({
             <DialogTitle>{t("console.ranks.deleteTitle")}</DialogTitle>
             <DialogDescription>
               {t("console.ranks.deleteConfirm", {
-                name: confirmRow?.label || "",
+                name: confirmRow?.ko || "",
               })}
             </DialogDescription>
           </DialogHeader>

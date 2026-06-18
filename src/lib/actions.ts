@@ -71,7 +71,11 @@ export async function getSalonByEntry(
   const { salon, designer } = await getSalonInfoByEntry(entryToken);
   return {
     salon: salon ? toPublicSalon(salon) : null,
-    designer: designer ? toPublicDesigner(designer) : undefined,
+    // 손님에게 "이름 + 직급"을 보여주려면 rankId 를 salon.designerRanks 라벨로 풀어 채운다.
+    // PublicSalon 은 designerRanks 를 strip 하므로 라벨은 PublicDesigner.rankLabel 로만 전달.
+    designer: designer
+      ? toPublicDesigner(designer, salon?.designerRanks)
+      : undefined,
   };
 }
 

@@ -69,7 +69,8 @@ interface SalonRow {
   business_hours: string | null;
   placement_label: string | null;
   entry_key_version: number;
-  designer_ranks: DesignerRank[] | null;
+  // jsonb 원본 — label 은 구버전 string 또는 신버전 LocalizedText. toSalon 이 normalizeRank 로 정규화.
+  designer_ranks: { id: string; label: unknown }[] | null;
   owner_token: string;
 }
 
@@ -263,9 +264,23 @@ function toSalon(r: SalonRow): Salon {
     businessHours: r.business_hours ?? undefined,
     placementLabel: r.placement_label ?? undefined,
     entryKeyVersion: r.entry_key_version ?? 1,
-    designerRanks: r.designer_ranks ?? [],
+    // 하위호환: 기존 행 rank.label 은 한국어 단일 string 일 수 있다 → {ko: label} 로 정규화.
+    // 이미 LocalizedText 객체면 그대로 둔다(백필은 메인이 — jsonb 라 스키마 마이그레이션 불필요).
+    designerRanks: (r.designer_ranks ?? []).map(normalizeRank),
     ownerToken: r.owner_token,
   };
+}
+
+/**
+ * designer_ranks(jsonb) 한 항목의 label 정규화 — 구버전 string 을 {ko:label} 로.
+ * (DesignerRank.label 이 LocalizedText 로 바뀌기 전 저장된 행 호환.)
+ */
+function normalizeRank(r: { id: string; label: unknown }): DesignerRank {
+  const label =
+    typeof r.label === "string"
+      ? { ko: r.label, ja: r.label, en: r.label }
+      : (r.label as LocalizedText);
+  return { id: r.id, label };
 }
 
 function toDesigner(r: StaffRow): Designer {

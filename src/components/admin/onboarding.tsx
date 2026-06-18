@@ -226,7 +226,8 @@ function DesignerForm({
 
   const rankOptions = [
     { value: "", label: t("onboarding.noRank") },
-    ...ranks.map((r) => ({ value: r.id, label: r.label })),
+    // 어드민/콘솔은 ko 고정 뷰 — 직급 라벨(LocalizedText)에서 ko 만 표기.
+    ...ranks.map((r) => ({ value: r.id, label: r.label.ko })),
   ];
 
   const onSubmit = async (e: React.FormEvent) => {

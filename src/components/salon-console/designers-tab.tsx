@@ -51,8 +51,9 @@ export function DesignersTab({
     return m;
   }, [designerEntries]);
 
+  // 콘솔은 ko 고정 뷰 — 직급 라벨(LocalizedText)에서 ko 만 표기(다국어 입력은 Phase 2).
   const rankLabel = (rankId?: string) =>
-    ranks.find((r) => r.id === rankId)?.label;
+    ranks.find((r) => r.id === rankId)?.label.ko;
 
   const qrLabels = {
     copy: t("qr.copy"),
@@ -173,7 +174,7 @@ function DesignerDialog({
 
   const rankOptions = [
     { value: "", label: t("console.designers.noRank") },
-    ...ranks.map((r) => ({ value: r.id, label: r.label })),
+    ...ranks.map((r) => ({ value: r.id, label: r.label.ko })),
   ];
 
   const onSubmit = async (e: React.FormEvent) => {

@@ -84,7 +84,8 @@ export function AdminLayout({
 
       {/* ── 데스크톱 사이드바(sm+) ───────────────────────── */}
       <aside className="hidden w-52 shrink-0 sm:block">
-        <div className="sticky top-20">{renderNavLinks()}</div>
+        {/* 고정 헤더가 없으므로 작은 오프셋만(기존 top-20=80px 는 과도). */}
+        <div className="sticky top-6">{renderNavLinks()}</div>
       </aside>
 
       {/* ── 모바일 Sheet ─────────────────────────────────── */}

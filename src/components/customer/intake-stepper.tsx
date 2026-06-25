@@ -607,7 +607,7 @@ function PhotosStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patc
     patch({ stylePhotoUrls: photos.filter((_, idx) => idx !== i) });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <p className="-mt-2 text-sm text-muted-foreground">
         {t("intake.photos.hint")}
       </p>
@@ -693,7 +693,7 @@ function FaceHairStep({
     };
   });
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-2">
         <p className="-mt-2 text-sm text-muted-foreground">
           {t("intake.face.hint")}
@@ -835,7 +835,7 @@ function HistoryStep({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <p className="-mt-2 mb-1 text-sm text-muted-foreground">
         {t("intake.hair.historyHint")}
       </p>
@@ -903,7 +903,7 @@ function ConcernStep({
   patch: Patch;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <p className="-mt-2 text-sm text-muted-foreground">
         {t("intake.concern.hint")}
       </p>
@@ -934,7 +934,7 @@ function ConcernStep({
 /* ── ⑥ 알레르기 (예/아니오 + 메모) ─────────────────────── */
 function AllergyStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patch }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <RadioGroup
         label={t("intake.allergy.question")}
         options={[
@@ -964,7 +964,7 @@ function AllergyStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Pat
 /* ── ⑦ 전화 (선택, 이점 안내) + 연락처 없음 ──────────────── */
 function PhoneStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patch }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* 번호를 남기는 이점 안내 */}
       <div className="rounded-xl border border-border bg-accent-soft/60 px-4 py-3">
         <p className="text-sm leading-relaxed text-accent-text">
@@ -1018,7 +1018,7 @@ function AboutYouStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Pa
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <p className="-mt-2 text-sm text-muted-foreground">
         {t("intake.about.hint")}
       </p>
@@ -1133,7 +1133,7 @@ function ConsentStep({
   const tCommon = useTranslations("Common");
   const [open, setOpen] = React.useState(false);
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <Checkbox
         checked={consent}
         onChange={(e) => onChange(e.target.checked)}

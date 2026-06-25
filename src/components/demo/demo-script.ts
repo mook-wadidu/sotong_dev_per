@@ -1,31 +1,19 @@
-import type {
-  HairReport,
-  Locale,
-  ThreeLevel,
-} from "@/lib/domain/types";
+import type { HairReport, Locale, ThreeLevel } from "@/lib/domain/types";
 import type { ReportLabels } from "@/components/customer/report-view";
 import type { ConsultationSummaryLabels } from "@/components/shared/consultation-summary";
 
 /**
- * MVP 데모용 하드코딩 스크립트.
- * 백엔드(DB·AI·토큰) 전혀 없이, 영어권 손님("Emma") 전체 여정을 결정적으로 재생한다.
- * 실데이터로 보여주기 전 "실제로 하면 이런 느낌이구나"를 마찰 없이 시연하는 용도.
- * 다국어 손님 스크립트는 후속 확장(지금은 EN 1종).
+ * MVP 데모 스크립트(완전 하드코딩, 백엔드 0).
+ * 같은 상담을 손님 트랙(영어, "Emma" · 미국) → 디자이너 트랙(한국어)으로 보여준다.
+ * 사진은 public/demo/*.jpg 번들(무료·상업가능 Unsplash). 마음에 안 들면 그 파일만 교체.
  */
 
-/** 네트워크 0 — 인라인 회색 SVG 플레이스홀더(참고사진·비포·애프터). */
-const graySvg = (hex: string): string =>
-  `data:image/svg+xml;utf8,` +
-  `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'>` +
-  `<rect width='240' height='240' fill='%23${hex}'/></svg>`;
+/* 참고/비포/애프터 사진 — public/demo (CSP img-src 'self' 호환, plain <img>). */
+export const DEMO_PHOTOS = ["/demo/ref1.jpg", "/demo/ref2.jpg", "/demo/ref3.jpg"];
+const BEFORE = "/demo/before.jpg";
+const AFTER = "/demo/after.jpg";
 
-export const DEMO_PHOTOS: string[] = [
-  graySvg("e7e7ea"),
-  graySvg("dededf"),
-  graySvg("e2e2e5"),
-];
-
-/** 언어 선택 단계 — 4개 손님 언어(영어 강조). */
+/** 언어 선택 — 4개 손님 언어(영어 강조). */
 export const DEMO_LANGS: {
   locale: Locale;
   native: string;
@@ -38,48 +26,108 @@ export const DEMO_LANGS: {
   { locale: "ko", native: "한국어", sub: "한국어" },
 ];
 
-/** 압축 인테이크 — 시술 칩 + 스타일 노트(자동 타이핑) + 참고사진. */
+/** 압축 인테이크 — 양 언어 값(손님=EN, 디자이너=KO). */
 export const DEMO_INTAKE = {
-  services: ["Haircut", "Color"],
-  styleNote: "Long layered cut with soft waves",
+  servicesEn: ["Haircut", "Color"],
+  servicesKo: ["컷", "염색"],
+  styleNoteEn: "Long layered cut with soft waves",
+  styleNoteKo: "롱 레이어드 컷 + 소프트 웨이브",
+  memoEn: "Wants natural volume and an easy-to-manage style.",
+  memoKo: "자연스러운 볼륨과 손질이 쉬운 스타일 원함.",
+  genderEn: "Female",
+  genderKo: "여성",
+  age: 29,
   photos: DEMO_PHOTOS,
 };
 
-/** 채팅 엔트리 — 손님 EN(자동 타이핑) ↔ 디자이너 KO 원문/EN 번역. 한 탭에 하나씩. */
+/** 디자이너 인박스에 뜨는 한 건(흉내). */
+export const DEMO_INBOX = {
+  name: "Emma",
+  language: "English",
+  nationalityKo: "미국",
+  headlineKo: "여성 컷 · 염색",
+  time: "오후 12:30",
+};
+
+/** 디자이너 요약(KO)용 — AI 요약/주의/예상가. */
+export const DEMO_SUMMARY_KO = {
+  headline: "여성 컷 · 염색",
+  cautions: "모발 끝이 약간 건조 — 염색 직후 고열은 피하는 게 좋아요.",
+  allergy: "없음",
+  estimatedPrice: "약 12만원",
+  aiSummary:
+    "미국 손님(영어). 롱 레이어드 컷 + 소프트 웨이브에 애쉬 브라운 풀 컬러를 원합니다. 자연스러운 볼륨과 손질이 쉬운 스타일 선호. 모발 끝이 다소 건조해 염색 직후 고열은 피하는 게 좋아요.",
+};
+
+/** 디자이너 시술 기록(흉내). */
+export const DEMO_RECORD_KO = {
+  products: ["모로칸오일 트리트먼트", "볼륨 미스트", "열보호제"],
+  stateGrade: "좋음",
+  satisfaction: 5,
+  after: AFTER,
+};
+
+/** 채팅 — 각 엔트리 en+ko 둘 다(손님 트랙=EN 기준, 디자이너 트랙=KO 기준). */
 export type ChatEntry =
-  | { kind: "system"; text: string }
-  | { kind: "customer"; text: string }
-  | { kind: "designer"; text: string; original: string };
+  | { kind: "system"; en: string; ko: string }
+  | { kind: "customer"; en: string; ko: string }
+  | { kind: "designer"; en: string; ko: string };
 
 export const DEMO_CHAT: ChatEntry[] = [
-  { kind: "system", text: "Your consultation has started." },
-  { kind: "customer", text: "Hi! How long will the cut and color take?" },
   {
-    kind: "designer",
-    text: "It'll take about 2 hours. Shall we start with a quick consultation?",
-    original: "2시간 정도 걸려요. 간단히 상담부터 시작할까요?",
+    kind: "system",
+    en: "Your consultation has started.",
+    ko: "상담이 시작되었어요.",
   },
-  { kind: "customer", text: "Sounds good. Roughly how much will it be?" },
   {
-    kind: "designer",
-    text: "Cut and color together comes to about ₩120,000.",
-    original: "컷이랑 염색 같이 하면 12만원 정도예요.",
+    kind: "customer",
+    en: "Hi! How long will the cut and color take?",
+    ko: "안녕하세요! 컷이랑 염색 하면 얼마나 걸려요?",
   },
-  { kind: "customer", text: "Perfect — let's do it!" },
   {
     kind: "designer",
-    text: "Great! I'll get everything ready and start now. ✨",
-    original: "좋아요! 준비해서 바로 시작할게요. ✨",
+    en: "It'll take about 2 hours. Shall we start with a quick consultation?",
+    ko: "2시간 정도 걸려요. 간단히 상담부터 시작할까요?",
+  },
+  {
+    kind: "customer",
+    en: "Sounds good. Roughly how much will it be?",
+    ko: "좋아요. 대략 얼마 정도 들까요?",
+  },
+  {
+    kind: "designer",
+    en: "Cut and color together comes to about ₩120,000.",
+    ko: "컷이랑 염색 같이 하면 12만원 정도예요.",
+  },
+  { kind: "customer", en: "Perfect — let's do it!", ko: "좋네요, 그걸로 할게요!" },
+  {
+    kind: "designer",
+    en: "Great! I'll get everything ready and start now. ✨",
+    ko: "좋아요! 준비해서 바로 시작할게요. ✨",
   },
 ];
 
-/** 시술중 화면 안내(손님 언어). */
-export const DEMO_INSERVICE = {
+/** 시술중 안내(양 언어). */
+export const DEMO_INSERVICE_EN = {
   title: "Your service is underway",
   subtitle: "Sit back and relax — let us know if you have any questions.",
 };
+export const DEMO_INSERVICE_KO = {
+  title: "시술 중입니다",
+  subtitle: "편하게 계세요 — 궁금한 점 있으면 알려주세요.",
+};
 
-/** 상담 요약 카드(목업①) 라벨 — EN. 디자이너 수신·시술중 화면 공용. */
+/** 손님 수신 직후 안내 + 트랙 전환 카드. */
+export const DEMO_RECEIVED_NOTE =
+  "Your designer received this and replies in their own language — you see it translated.";
+export const DEMO_HANDOFF = {
+  title: "이제 같은 방문을, 디자이너 화면으로",
+  subtitle:
+    "방금 손님이 본 상담을 한국인 디자이너는 한국어로 봅니다. 손님 영어는 자동 번역돼 도착해요.",
+  cta: "디자이너 화면 보기 ›",
+};
+
+/* ── 상담 요약 카드 라벨 ─────────────────────────────────── */
 export const DEMO_SUMMARY_LABELS: ConsultationSummaryLabels = {
   title: "Consultation details",
   language: "Language",
@@ -97,23 +145,36 @@ export const DEMO_SUMMARY_LABELS: ConsultationSummaryLabels = {
     done: "Visited",
   },
 };
+export const DEMO_SUMMARY_LABELS_KO: ConsultationSummaryLabels = {
+  title: "상담 정보",
+  language: "언어",
+  purpose: "방문 목적",
+  style: "원하는 스타일",
+  photos: "참고 이미지",
+  memo: "추가 메모",
+  gender: "성별",
+  age: "나이",
+  ageValue: "{age}세",
+  step: {
+    label: "진행 상황",
+    booked: "예약문의",
+    consulting: "상담진행",
+    done: "방문완료",
+  },
+};
 
-/** 손님 수신 직후 문구. */
-export const DEMO_RECEIVED_NOTE =
-  "Your designer received this and is replying in their own language — you'll see it translated.";
-
-/** 리포트(목업②) — Emma, 미국. before/after·점수·방문이력 하드코딩. */
-const REPORT_GRADE: ThreeLevel = "high";
+/* ── 리포트 ──────────────────────────────────────────────── */
+const GRADE: ThreeLevel = "high";
 
 export const DEMO_REPORT: HairReport = {
   serviceSummary:
     "Long layered cut to add movement, with a soft ash-brown full color and a moisture treatment for shine.",
   products: ["Moroccan oil treatment", "Volume mist", "Heat protectant"],
-  hairStateGrade: REPORT_GRADE,
+  hairStateGrade: GRADE,
   hairStateScore: 86,
   homeCare: [
     "Use a sulfate-free shampoo to keep the color longer.",
-    "Apply a small amount of treatment oil to the ends when damp.",
+    "Apply a little treatment oil to the ends when damp.",
     "Air-dry when you can; use heat protectant before styling.",
   ],
   nextVisitWeeks: 8,
@@ -125,13 +186,35 @@ export const DEMO_REPORT: HairReport = {
   salonName: "소통 헤어 신사점",
   designerName: "김민지",
   date: "2026-06-25",
-  beforePhotoUrl: graySvg("d8d8db"),
-  afterPhotoUrl: graySvg("ededf0"),
+  beforePhotoUrl: BEFORE,
+  afterPhotoUrl: AFTER,
   locale: "en",
 };
 
-export const DEMO_REPORT_DATE_LABEL = "Jun 25, 2026";
-export const DEMO_REPORT_NEXT_VISIT = "In about 8 weeks";
+export const DEMO_REPORT_KO: HairReport = {
+  serviceSummary:
+    "롱 레이어드 컷으로 움직임을 주고, 부드러운 애쉬 브라운 풀 컬러 + 윤기를 위한 수분 트리트먼트를 진행했어요.",
+  products: ["모로칸오일 트리트먼트", "볼륨 미스트", "열보호제"],
+  hairStateGrade: GRADE,
+  hairStateScore: 86,
+  homeCare: [
+    "색이 오래가도록 황산염 프리 샴푸를 사용하세요.",
+    "머리가 젖었을 때 모발 끝에 트리트먼트 오일을 소량 바르세요.",
+    "가능하면 자연 건조하고, 스타일링 전엔 열보호제를 쓰세요.",
+  ],
+  nextVisitWeeks: 8,
+  styleRequest: "롱 레이어드 컷 + 소프트 웨이브",
+  concerns: "자연스러운 볼륨과 손질이 쉬운 스타일 원함.",
+  cautions: "모발 끝이 약간 건조 — 염색 직후 고열은 피하세요.",
+  consultationId: "demo",
+  reportToken: "demo-ko",
+  salonName: "소통 헤어 신사점",
+  designerName: "김민지",
+  date: "2026-06-25",
+  beforePhotoUrl: BEFORE,
+  afterPhotoUrl: AFTER,
+  locale: "ko",
+};
 
 export const DEMO_REPORT_LABELS: ReportLabels = {
   title: "Hair in-body report",
@@ -163,14 +246,57 @@ export const DEMO_REPORT_LABELS: ReportLabels = {
   age: "Age",
   visitHistory: "Visit history",
 };
+export const DEMO_REPORT_LABELS_KO: ReportLabels = {
+  title: "헤어 인바디 리포트",
+  subtitle: "오늘 시술 기록이에요",
+  salon: "살롱",
+  designer: "담당 디자이너",
+  date: "시술일",
+  service: "받은 시술",
+  products: "사용한 제품",
+  hairState: "모발 상태",
+  homeCare: "홈케어 가이드",
+  nextVisit: "다음 방문 권장",
+  before: "시술 전",
+  after: "시술 후",
+  styleRequest: "요청하신 스타일",
+  concerns: "상담 시 고민",
+  cautions: "시술 주의사항",
+  book: "다음 예약하기",
+  bookToast: "예약 요청이 접수되었어요. 살롱에서 곧 연락드려요.",
+  save: "이미지로 저장",
+  saveToast: "리포트를 저장했어요",
+  saveError: "이미지를 저장하지 못했어요. 다시 시도해주세요.",
+  share: "공유하기",
+  shareToast: "공유 링크를 복사했어요",
+  scoreLabel: "86점",
+  grade: "좋음",
+  nationality: "국적",
+  gender: "성별",
+  age: "나이",
+  visitHistory: "방문 이력",
+};
+
+export const DEMO_REPORT_DATE_LABEL = "Jun 25, 2026";
+export const DEMO_REPORT_DATE_LABEL_KO = "2026. 6. 25.";
+export const DEMO_REPORT_NEXT_VISIT = "In about 8 weeks";
+export const DEMO_REPORT_NEXT_VISIT_KO = "약 8주 후";
 
 export const DEMO_REPORT_PROFILE = {
   nationality: "United States",
   gender: "Female",
   ageText: "29",
 };
-
+export const DEMO_REPORT_PROFILE_KO = {
+  nationality: "미국",
+  gender: "여성",
+  ageText: "29세",
+};
 export const DEMO_REPORT_VISIT = {
   totalText: "4 visits",
   lastText: "Last visit Jun 3, 2026",
+};
+export const DEMO_REPORT_VISIT_KO = {
+  totalText: "총 4회",
+  lastText: "최근 방문 2026. 6. 3.",
 };

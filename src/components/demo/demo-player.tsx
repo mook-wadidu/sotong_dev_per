@@ -5,6 +5,8 @@ import { QRCodeSVG } from "qrcode.react";
 import {
   Badge,
   Button,
+  Card,
+  CardContent,
   Input,
   LanguageButton,
   MessageBubble,
@@ -17,30 +19,43 @@ import {
 import { ConsultationSummary } from "@/components/shared/consultation-summary";
 import { ReportView } from "@/components/customer/report-view";
 import {
-  ChatIcon,
+  AlertIcon,
   CareIcon,
+  ChatIcon,
   CutIcon,
   ColorIcon,
   GlobeIcon,
-  PhotoIcon,
+  SparkleIcon,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
   DEMO_CHAT,
-  DEMO_INSERVICE,
+  DEMO_HANDOFF,
+  DEMO_INBOX,
+  DEMO_INSERVICE_EN,
   DEMO_INTAKE,
-  DEMO_LANGS,
   DEMO_RECEIVED_NOTE,
+  DEMO_RECORD_KO,
   DEMO_REPORT,
   DEMO_REPORT_DATE_LABEL,
+  DEMO_REPORT_DATE_LABEL_KO,
+  DEMO_REPORT_KO,
   DEMO_REPORT_LABELS,
+  DEMO_REPORT_LABELS_KO,
   DEMO_REPORT_NEXT_VISIT,
+  DEMO_REPORT_NEXT_VISIT_KO,
   DEMO_REPORT_PROFILE,
+  DEMO_REPORT_PROFILE_KO,
   DEMO_REPORT_VISIT,
+  DEMO_REPORT_VISIT_KO,
+  DEMO_SUMMARY_KO,
   DEMO_SUMMARY_LABELS,
+  DEMO_SUMMARY_LABELS_KO,
+  DEMO_LANGS,
   type ChatEntry,
 } from "./demo-script";
 
+type Track = "customer" | "designer";
 type Stage =
   | "intro"
   | "lang"
@@ -48,14 +63,22 @@ type Stage =
   | "summary"
   | "chat"
   | "inservice"
-  | "report";
+  | "report"
+  | "handoff"
+  | "d-inbox"
+  | "d-summary"
+  | "d-chat"
+  | "d-record"
+  | "d-report";
 
 const TYPE_MS = 38;
+const trackOf = (stage: Stage): Track =>
+  stage === "handoff" || stage.startsWith("d-") ? "designer" : "customer";
 
 /**
- * MVP 데모 플레이어 — QR 하나로 손님 전체 여정(언어→인테이크→채팅→시술중→리포트)을
- * **탭하면 한 단계씩** 재생한다. 채팅 입력바는 실제 치는 것처럼 자동 타이핑.
- * 완전 하드코딩(demo-script) — DB·AI·네트워크 0. 발표/영업 시연용.
+ * MVP 데모 — QR 하나로 같은 상담을 **손님 화면(영어)** → **디자이너 화면(한국어)** 으로
+ * 탭하면 한 단계씩 재생. 채팅 입력바는 실제 치는 것처럼 자동 타이핑.
+ * 완전 하드코딩(demo-script) — DB·AI·네트워크 0.
  */
 export function DemoPlayer({ url }: { url: string }) {
   const [stage, setStage] = React.useState<Stage>("intro");
@@ -64,6 +87,7 @@ export function DemoPlayer({ url }: { url: string }) {
   const [intakeNote, setIntakeNote] = React.useState("");
   const timer = React.useRef<number | null>(null);
   const busy = typing !== null;
+  const track = trackOf(stage);
 
   React.useEffect(() => {
     return () => {
@@ -71,7 +95,6 @@ export function DemoPlayer({ url }: { url: string }) {
     };
   }, []);
 
-  /** 텍스트를 글자씩 흘려 onChar 로 흘려보내고 끝나면 onDone. */
   const typeOut = React.useCallback(
     (text: string, onChar: (s: string) => void, onDone: () => void) => {
       let i = 0;
@@ -79,41 +102,41 @@ export function DemoPlayer({ url }: { url: string }) {
       const tick = () => {
         i += 1;
         onChar(text.slice(0, i));
-        if (i < text.length) {
-          timer.current = window.setTimeout(tick, TYPE_MS);
-        } else {
-          timer.current = window.setTimeout(onDone, 320);
-        }
+        if (i < text.length) timer.current = window.setTimeout(tick, TYPE_MS);
+        else timer.current = window.setTimeout(onDone, 320);
       };
       timer.current = window.setTimeout(tick, TYPE_MS);
     },
     [],
   );
 
-  // 인테이크 진입 시 스타일 노트를 자동 타이핑(실제 적는 느낌).
-  // typeOut 이 첫 onChar("") 로 초기화하므로 별도 동기 setState 불필요.
+  // 인테이크 진입 시 스타일 노트 자동 타이핑(typeOut 이 ""로 초기화).
   React.useEffect(() => {
     if (stage === "intake") {
-      typeOut(DEMO_INTAKE.styleNote, setIntakeNote, () => {});
+      typeOut(DEMO_INTAKE.styleNoteEn, setIntakeNote, () => {});
     }
   }, [stage, typeOut]);
 
-  const revealNextChat = React.useCallback(() => {
-    const entry = DEMO_CHAT[chatCount];
-    if (!entry) return;
-    if (entry.kind === "customer") {
-      typeOut(
-        entry.text,
-        (s) => setTyping(s),
-        () => {
-          setTyping(null);
-          setChatCount((c) => c + 1);
-        },
-      );
-    } else {
-      setChatCount((c) => c + 1);
-    }
-  }, [chatCount, typeOut]);
+  const revealNextChat = React.useCallback(
+    (t: Track) => {
+      const entry = DEMO_CHAT[chatCount];
+      if (!entry) return;
+      const autoKind = t === "customer" ? "customer" : "designer";
+      if (entry.kind === autoKind) {
+        typeOut(
+          t === "customer" ? entry.en : entry.ko,
+          (s) => setTyping(s),
+          () => {
+            setTyping(null);
+            setChatCount((c) => c + 1);
+          },
+        );
+      } else {
+        setChatCount((c) => c + 1);
+      }
+    },
+    [chatCount, typeOut],
+  );
 
   const advance = React.useCallback(() => {
     if (busy) return;
@@ -128,16 +151,34 @@ export function DemoPlayer({ url }: { url: string }) {
         setStage("summary");
         break;
       case "summary":
+        setChatCount(0);
         setStage("chat");
         break;
       case "chat":
-        if (chatCount < DEMO_CHAT.length) revealNextChat();
+        if (chatCount < DEMO_CHAT.length) revealNextChat("customer");
         else setStage("inservice");
         break;
       case "inservice":
         setStage("report");
         break;
-      case "report":
+      case "handoff":
+        setStage("d-inbox");
+        break;
+      case "d-inbox":
+        setStage("d-summary");
+        break;
+      case "d-summary":
+        setChatCount(0);
+        setStage("d-chat");
+        break;
+      case "d-chat":
+        if (chatCount < DEMO_CHAT.length) revealNextChat("designer");
+        else setStage("d-record");
+        break;
+      case "d-record":
+        setStage("d-report");
+        break;
+      default:
         break;
     }
   }, [busy, stage, chatCount, revealNextChat]);
@@ -150,26 +191,29 @@ export function DemoPlayer({ url }: { url: string }) {
     setStage("intro");
   }, []);
 
-  // ── 리포트는 자체 MobileFrame 화면이라 분리 렌더 + 재시작 오버레이 ──
-  if (stage === "report") {
+  // ── 리포트 화면(자체 MobileFrame) — 손님=EN(→디자이너 트랙), 디자이너=KO(→재시작) ──
+  if (stage === "report" || stage === "d-report") {
+    const isKo = stage === "d-report";
     return (
       <div className="relative">
         <ReportView
-          report={DEMO_REPORT}
-          labels={DEMO_REPORT_LABELS}
-          dateLabel={DEMO_REPORT_DATE_LABEL}
-          nextVisitText={DEMO_REPORT_NEXT_VISIT}
-          profile={DEMO_REPORT_PROFILE}
-          visit={DEMO_REPORT_VISIT}
+          report={isKo ? DEMO_REPORT_KO : DEMO_REPORT}
+          labels={isKo ? DEMO_REPORT_LABELS_KO : DEMO_REPORT_LABELS}
+          dateLabel={isKo ? DEMO_REPORT_DATE_LABEL_KO : DEMO_REPORT_DATE_LABEL}
+          nextVisitText={
+            isKo ? DEMO_REPORT_NEXT_VISIT_KO : DEMO_REPORT_NEXT_VISIT
+          }
+          profile={isKo ? DEMO_REPORT_PROFILE_KO : DEMO_REPORT_PROFILE}
+          visit={isKo ? DEMO_REPORT_VISIT_KO : DEMO_REPORT_VISIT}
         />
         <div className="pointer-events-none fixed inset-x-0 bottom-4 z-10 flex justify-center">
           <Button
             variant="default"
             size="sm"
             className="pointer-events-auto shadow-lg"
-            onClick={reset}
+            onClick={() => (isKo ? reset() : setStage("handoff"))}
           >
-            ↺ Replay demo
+            {isKo ? "↺ Replay demo" : DEMO_HANDOFF.cta}
           </Button>
         </div>
       </div>
@@ -177,22 +221,26 @@ export function DemoPlayer({ url }: { url: string }) {
   }
 
   return (
-    <MobileFrame tone="muted" lang="en">
+    <MobileFrame tone="muted" lang={track === "designer" ? "ko" : "en"}>
       <ScreenHeader
         title="소통 · Sotong"
-        subtitle="Live demo"
-        trailing={<DemoStepBadge stage={stage} />}
+        subtitle={track === "designer" ? "디자이너 화면 (KO)" : "Live demo"}
+        trailing={<TrackBadge track={track} />}
       />
 
       <ScreenBody className="space-y-4 pb-2">
         {stage === "intro" ? <IntroScreen url={url} /> : null}
         {stage === "lang" ? <LangScreen onPick={advance} /> : null}
         {stage === "intake" ? <IntakeScreen note={intakeNote} /> : null}
-        {stage === "summary" ? <SummaryScreen /> : null}
-        {stage === "chat" ? (
-          <ChatScreen visible={chatCount} typing={typing} />
+        {stage === "summary" ? <CustomerSummaryScreen /> : null}
+        {stage === "chat" || stage === "d-chat" ? (
+          <ChatScreen visible={chatCount} typing={typing} track={track} />
         ) : null}
         {stage === "inservice" ? <InServiceScreen /> : null}
+        {stage === "handoff" ? <HandoffScreen /> : null}
+        {stage === "d-inbox" ? <InboxScreen /> : null}
+        {stage === "d-summary" ? <DesignerSummaryScreen /> : null}
+        {stage === "d-record" ? <RecordScreen /> : null}
       </ScreenBody>
 
       <ScreenFooter>
@@ -208,7 +256,7 @@ export function DemoPlayer({ url }: { url: string }) {
   );
 }
 
-/* ── 스테이지별 화면 ─────────────────────────────────────── */
+/* ── 손님 화면 ───────────────────────────────────────────── */
 
 function IntroScreen({ url }: { url: string }) {
   return (
@@ -218,7 +266,8 @@ function IntroScreen({ url }: { url: string }) {
           A salon visit, in your language.
         </h1>
         <p className="text-sm text-muted-foreground">
-          See the whole experience in under a minute — tap to walk through it.
+          See both sides in a minute — the guest, then the designer. Tap to walk
+          through it.
         </p>
       </div>
       {url ? (
@@ -266,77 +315,40 @@ function LangScreen({ onPick }: { onPick: () => void }) {
 }
 
 function IntakeScreen({ note }: { note: string }) {
-  const SERVICE_ICONS = [CutIcon, ColorIcon];
+  const ICONS = [CutIcon, ColorIcon];
   return (
     <div className="space-y-4">
       <p className="text-base font-semibold text-foreground">
         Tell us the style you want
       </p>
-
-      <div className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Service
-        </p>
+      <Field label="Service">
         <div className="flex flex-wrap gap-2">
-          {DEMO_INTAKE.services.map((s, i) => {
-            const Icon = SERVICE_ICONS[i] ?? CutIcon;
-            return (
-              <span
-                key={s}
-                className="inline-flex items-center gap-1.5 rounded-full border border-foreground bg-foreground px-3 py-1.5 text-sm font-medium text-background"
-              >
-                <Icon className="size-3.5" />
-                {s}
-              </span>
-            );
+          {DEMO_INTAKE.servicesEn.map((s, i) => {
+            const Icon = ICONS[i] ?? CutIcon;
+            return <Pill key={s} icon={<Icon className="size-3.5" />} text={s} />;
           })}
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Style note
-        </p>
-        <Input
-          value={note}
-          readOnly
-          aria-label="Style note"
-          placeholder="e.g. long layered cut…"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          <PhotoIcon className="size-3.5" />
-          Reference photos
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {DEMO_INTAKE.photos.map((src, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={i}
-              src={src}
-              alt={`Reference ${i + 1}`}
-              className="aspect-square w-full rounded-xl border border-border object-cover"
-            />
-          ))}
-        </div>
-      </div>
+      </Field>
+      <Field label="Style note">
+        <Input value={note} readOnly aria-label="Style note" placeholder="…" />
+      </Field>
+      <PhotoGrid label="Reference photos" photos={DEMO_INTAKE.photos} />
     </div>
   );
 }
 
-function SummaryScreen() {
+function CustomerSummaryScreen() {
   return (
     <div className="space-y-4">
       <SystemNote>{DEMO_RECEIVED_NOTE}</SystemNote>
       <ConsultationSummary
         language="English"
-        services={DEMO_INTAKE.services}
-        styleText={DEMO_INTAKE.styleNote}
+        services={DEMO_INTAKE.servicesEn}
+        styleText={DEMO_INTAKE.styleNoteEn}
         photos={DEMO_INTAKE.photos}
-        gender="Female"
-        age={29}
+        memo={DEMO_INTAKE.memoEn}
+        gender={DEMO_INTAKE.genderEn}
+        age={DEMO_INTAKE.age}
         status="consulting"
         labels={DEMO_SUMMARY_LABELS}
       />
@@ -344,60 +356,18 @@ function SummaryScreen() {
   );
 }
 
-function ChatScreen({
-  visible,
-  typing,
-}: {
-  visible: number;
-  typing: string | null;
-}) {
-  const shown = DEMO_CHAT.slice(0, visible);
-  return (
-    <div className="flex flex-col gap-3">
-      {shown.map((entry, i) => (
-        <ChatRow key={i} entry={entry} />
-      ))}
-      {typing !== null ? (
-        <MessageBubble side="me" text={typing || "…"} textLang="en" pending />
-      ) : null}
-    </div>
-  );
-}
-
-function ChatRow({ entry }: { entry: ChatEntry }) {
-  if (entry.kind === "system") return <SystemNote>{entry.text}</SystemNote>;
-  if (entry.kind === "customer")
-    return <MessageBubble side="me" text={entry.text} textLang="en" />;
-  return (
-    <MessageBubble
-      side="them"
-      text={entry.text}
-      original={entry.original}
-      textLang="en"
-      originalLang="ko"
-    />
-  );
-}
-
 function InServiceScreen() {
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-foreground bg-foreground px-4 py-5 text-center text-background">
-        <p className="flex items-center justify-center gap-1.5 text-lg font-bold">
-          <CareIcon className="size-5" />
-          {DEMO_INSERVICE.title}
-        </p>
-        <p className="mt-1 text-sm text-background/80">
-          {DEMO_INSERVICE.subtitle}
-        </p>
-      </div>
+      <InServiceBanner copy={DEMO_INSERVICE_EN} />
       <ConsultationSummary
         language="English"
-        services={DEMO_INTAKE.services}
-        styleText={DEMO_INTAKE.styleNote}
+        services={DEMO_INTAKE.servicesEn}
+        styleText={DEMO_INTAKE.styleNoteEn}
         photos={DEMO_INTAKE.photos}
-        gender="Female"
-        age={29}
+        memo={DEMO_INTAKE.memoEn}
+        gender={DEMO_INTAKE.genderEn}
+        age={DEMO_INTAKE.age}
         status="in_service"
         labels={DEMO_SUMMARY_LABELS}
       />
@@ -405,7 +375,215 @@ function InServiceScreen() {
   );
 }
 
-/* ── 푸터(탭 진행 컨트롤) ─────────────────────────────────── */
+/* ── 트랙 전환 + 디자이너 화면 ──────────────────────────── */
+
+function HandoffScreen() {
+  return (
+    <div className="flex flex-col items-center gap-4 py-10 text-center">
+      <span className="flex size-14 items-center justify-center rounded-full border border-foreground bg-foreground text-background">
+        <CutIcon className="size-7" />
+      </span>
+      <h2 className="text-xl font-bold tracking-tight">{DEMO_HANDOFF.title}</h2>
+      <p className="max-w-[18rem] text-sm leading-relaxed text-muted-foreground">
+        {DEMO_HANDOFF.subtitle}
+      </p>
+    </div>
+  );
+}
+
+function InboxScreen() {
+  return (
+    <div className="space-y-3">
+      <p className="flex items-center gap-1.5 text-base font-semibold text-foreground">
+        <ChatIcon className="size-4" />
+        대기 손님
+      </p>
+      <Card>
+        <CardContent className="space-y-2 p-4">
+          <div className="flex items-center justify-between">
+            <Badge variant="outline">대기 중</Badge>
+            <span className="text-xs text-muted-foreground">
+              {DEMO_INBOX.time}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="accent">신규</Badge>
+            <Badge variant="outline">{DEMO_INBOX.nationalityKo}</Badge>
+            <Badge variant="outline">{DEMO_INBOX.language}</Badge>
+          </div>
+          <p className="text-lg font-bold leading-snug">
+            {DEMO_INBOX.headlineKo}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function DesignerSummaryScreen() {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2.5">
+        <h1 className="text-xl font-bold leading-snug tracking-tight">
+          {DEMO_SUMMARY_KO.headline}
+        </h1>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline">국적: {DEMO_INBOX.nationalityKo}</Badge>
+          <Badge variant="accent">신규</Badge>
+          <Badge variant="info">예상가 {DEMO_SUMMARY_KO.estimatedPrice}</Badge>
+        </div>
+      </div>
+
+      <Card className="border-l-4 border-l-foreground bg-muted">
+        <CardContent className="space-y-1 p-4">
+          <p className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-foreground">
+            <AlertIcon className="size-4" />
+            주의사항
+          </p>
+          <p className="text-sm leading-relaxed text-foreground">
+            {DEMO_SUMMARY_KO.cautions}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            알레르기: {DEMO_SUMMARY_KO.allergy}
+          </p>
+        </CardContent>
+      </Card>
+
+      <ConsultationSummary
+        language={DEMO_INBOX.language}
+        services={DEMO_INTAKE.servicesKo}
+        styleText={DEMO_INTAKE.styleNoteKo}
+        photos={DEMO_INTAKE.photos}
+        memo={DEMO_INTAKE.memoKo}
+        gender={DEMO_INTAKE.genderKo}
+        age={DEMO_INTAKE.age}
+        status="consulting"
+        labels={DEMO_SUMMARY_LABELS_KO}
+      />
+
+      <Card>
+        <CardContent className="p-4">
+          <p className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <SparkleIcon className="size-4" />
+            AI 요약
+          </p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+            {DEMO_SUMMARY_KO.aiSummary}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function RecordScreen() {
+  return (
+    <div className="space-y-4">
+      <p className="flex items-center gap-1.5 text-base font-semibold text-foreground">
+        <CareIcon className="size-4" />
+        시술 기록
+      </p>
+      <Field label="사용한 약제·제품">
+        <div className="flex flex-wrap gap-2">
+          {DEMO_RECORD_KO.products.map((p) => (
+            <Pill key={p} text={p} />
+          ))}
+        </div>
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">모발 상태</p>
+            <p className="text-sm font-semibold text-foreground">
+              {DEMO_RECORD_KO.stateGrade}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">만족도</p>
+            <p className="text-sm font-semibold text-foreground">
+              {DEMO_RECORD_KO.satisfaction}점
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      <Field label="시술 후 사진">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={DEMO_RECORD_KO.after}
+          alt="시술 후"
+          className="aspect-[4/3] w-full rounded-xl border border-border object-cover"
+        />
+      </Field>
+    </div>
+  );
+}
+
+/* ── 채팅(트랙 공용) ─────────────────────────────────────── */
+
+function ChatScreen({
+  visible,
+  typing,
+  track,
+}: {
+  visible: number;
+  typing: string | null;
+  track: Track;
+}) {
+  const shown = DEMO_CHAT.slice(0, visible);
+  return (
+    <div className="flex flex-col gap-3">
+      {shown.map((entry, i) => (
+        <ChatRow key={i} entry={entry} track={track} />
+      ))}
+      {typing !== null ? (
+        <MessageBubble
+          side="me"
+          text={typing || "…"}
+          textLang={track === "customer" ? "en" : "ko"}
+          pending
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ChatRow({ entry, track }: { entry: ChatEntry; track: Track }) {
+  if (entry.kind === "system")
+    return <SystemNote>{track === "customer" ? entry.en : entry.ko}</SystemNote>;
+
+  const isCustomer = entry.kind === "customer";
+  // 손님 트랙: 손님=me, 디자이너 트랙: 디자이너=me.
+  const mine =
+    (track === "customer" && isCustomer) ||
+    (track === "designer" && !isCustomer);
+
+  if (mine) {
+    // 내 메시지 — 내 언어 원문만.
+    return (
+      <MessageBubble
+        side="me"
+        text={track === "customer" ? entry.en : entry.ko}
+        textLang={track === "customer" ? "en" : "ko"}
+      />
+    );
+  }
+  // 상대 메시지 — 내 언어로 번역 + 원문 병기.
+  const text = track === "customer" ? entry.en : entry.ko;
+  const original = track === "customer" ? entry.ko : entry.en;
+  return (
+    <MessageBubble
+      side="them"
+      text={text}
+      original={original}
+      textLang={track === "customer" ? "en" : "ko"}
+      originalLang={track === "customer" ? "ko" : "en"}
+    />
+  );
+}
+
+/* ── 푸터(탭 진행) ───────────────────────────────────────── */
 
 function StageFooter({
   stage,
@@ -420,7 +598,6 @@ function StageFooter({
   chatDone: boolean;
   onAdvance: () => void;
 }) {
-  // 언어 선택은 버튼 자체가 진행 → 푸터엔 안내만.
   if (stage === "lang") {
     return (
       <p className="w-full text-center text-xs text-muted-foreground">
@@ -429,15 +606,15 @@ function StageFooter({
     );
   }
 
-  // 채팅: 입력바(자동 타이핑 노출) + 다음 버튼.
-  if (stage === "chat") {
+  if (stage === "chat" || stage === "d-chat") {
+    const ko = stage === "d-chat";
     return (
       <div className="flex w-full items-end gap-2">
         <Input
           value={typing ?? ""}
           readOnly
           aria-label="Message"
-          placeholder="Type a message…"
+          placeholder={ko ? "메시지 입력…" : "Type a message…"}
         />
         <Button
           variant="accent"
@@ -446,20 +623,28 @@ function StageFooter({
           onClick={onAdvance}
           disabled={busy}
         >
-          {chatDone ? "Next ›" : "Send ›"}
+          {chatDone
+            ? ko
+              ? "다음 ›"
+              : "Next ›"
+            : ko
+              ? "전송 ›"
+              : "Send ›"}
         </Button>
       </div>
     );
   }
 
-  const label =
-    stage === "intro"
-      ? "Start ›"
-      : stage === "intake"
-        ? "Send to designer ›"
-        : stage === "inservice"
-          ? "See my report ›"
-          : "Next ›";
+  const label: Record<string, string> = {
+    intro: "Start ›",
+    intake: "Send to designer ›",
+    summary: "Next ›",
+    inservice: "See my report ›",
+    handoff: DEMO_HANDOFF.cta,
+    "d-inbox": "상담 열기 ›",
+    "d-summary": "시술 시작 ›",
+    "d-record": "리포트 발송 ›",
+  };
 
   return (
     <Button
@@ -469,26 +654,87 @@ function StageFooter({
       onClick={onAdvance}
       disabled={busy}
     >
-      {label}
+      {label[stage] ?? "Next ›"}
     </Button>
   );
 }
 
-function DemoStepBadge({ stage }: { stage: Stage }) {
-  const map: Record<Stage, { n: number; label: string }> = {
-    intro: { n: 1, label: "Start" },
-    lang: { n: 2, label: "Language" },
-    intake: { n: 3, label: "Intake" },
-    summary: { n: 4, label: "Sent" },
-    chat: { n: 5, label: "Chat" },
-    inservice: { n: 6, label: "Service" },
-    report: { n: 7, label: "Report" },
-  };
-  const s = map[stage];
+/* ── 작은 헬퍼 ───────────────────────────────────────────── */
+
+function TrackBadge({ track }: { track: Track }) {
   return (
     <Badge variant="outline" className="gap-1">
-      <ChatIcon className="size-3" />
-      {s.n}/7 · {s.label}
+      {track === "designer" ? (
+        <>
+          <CareIcon className="size-3" />
+          디자이너
+        </>
+      ) : (
+        <>
+          <ChatIcon className="size-3" />
+          Guest
+        </>
+      )}
     </Badge>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function Pill({ icon, text }: { icon?: React.ReactNode; text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-foreground bg-foreground px-3 py-1.5 text-sm font-medium text-background">
+      {icon}
+      {text}
+    </span>
+  );
+}
+
+function PhotoGrid({ label, photos }: { label: string; photos: string[] }) {
+  return (
+    <Field label={label}>
+      <div className="grid grid-cols-3 gap-2">
+        {photos.map((src, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={i}
+            src={src}
+            alt={`${label} ${i + 1}`}
+            className="aspect-square w-full rounded-xl border border-border object-cover"
+          />
+        ))}
+      </div>
+    </Field>
+  );
+}
+
+function InServiceBanner({
+  copy,
+}: {
+  copy: { title: string; subtitle: string };
+}) {
+  return (
+    <div className="rounded-2xl border border-foreground bg-foreground px-4 py-5 text-center text-background">
+      <p className="flex items-center justify-center gap-1.5 text-lg font-bold">
+        <CareIcon className="size-5" />
+        {copy.title}
+      </p>
+      <p className="mt-1 text-sm text-background/80">{copy.subtitle}</p>
+    </div>
   );
 }

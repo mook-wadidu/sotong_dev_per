@@ -44,7 +44,7 @@ export function MessageBubble({
     >
       <div
         className={cn(
-          "max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[0.95rem] leading-snug shadow-sm",
+          "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[0.95rem] leading-snug shadow-sm",
           isMe
             ? "rounded-br-md bg-accent-strong text-white"
             : "rounded-bl-md bg-card text-card-foreground",
@@ -58,8 +58,8 @@ export function MessageBubble({
           <p
             lang={originalLang}
             className={cn(
-              // 원문 가독성 상향(AUDIT UX P2): 크기·대비 소폭 올림.
-              "mt-1.5 border-t pt-1.5 text-[0.8rem] leading-snug",
+              // 원문 가독성 상향: CJK 원문 크기·여백 소폭 올림.
+              "mt-1.5 border-t pt-2 text-[0.85rem] leading-relaxed",
               isMe
                 ? "border-white/35 text-white/90"
                 : "border-border text-foreground/75",

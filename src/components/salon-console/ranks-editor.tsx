@@ -75,6 +75,8 @@ export function RanksEditor({
   );
   const [rows, setRows] = React.useState<Row[]>(initial);
   const [pending, setPending] = React.useState(false);
+  // 저장 시도 후 필수(ko) 미입력 필드를 강조(toast 만으로는 어디가 문제인지 모름).
+  const [showErrors, setShowErrors] = React.useState(false);
   const [confirm, setConfirm] = React.useState<{ open: boolean; key?: string }>(
     { open: false },
   );
@@ -128,9 +130,11 @@ export function RanksEditor({
       zh: r.zh.trim(),
     }));
     if (cleaned.some((r) => !r.ko)) {
+      setShowErrors(true);
       toast.error(t("console.ranks.nameRequired"));
       return;
     }
+    setShowErrors(false);
     const payload: DesignerRank[] = cleaned.map((r) => ({
       // 기존 직급은 id 유지; 신규는 라틴 slug 있으면 안정화, 없으면 액션 위임.
       id: r.id ?? latinSlug(r.ko) ?? "",
@@ -185,9 +189,20 @@ export function RanksEditor({
               className="rounded-lg border border-border/70 p-3.5"
             >
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <FormField label={t("console.labelKo")} required>
+                <FormField
+                  label={t("console.labelKo")}
+                  required
+                  error={
+                    showErrors && !row.ko.trim()
+                      ? t("console.ranks.nameRequired")
+                      : undefined
+                  }
+                >
                   <Input
                     value={row.ko}
+                    aria-invalid={
+                      showErrors && !row.ko.trim() ? true : undefined
+                    }
                     onChange={(e) => setField(row.key, "ko", e.target.value)}
                     placeholder="원장"
                   />

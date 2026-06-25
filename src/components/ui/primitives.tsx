@@ -92,6 +92,8 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         htmlFor={inputId}
         className={cn(
           "group flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-card p-3.5 text-left transition-colors hover:bg-muted has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50",
+          // 에러(aria-invalid) — 색 비의존, 두꺼운 어두운 테두리로 신호.
+          "has-[input[aria-invalid]]:border-2 has-[input[aria-invalid]]:border-destructive",
           className,
         )}
       >

@@ -202,7 +202,7 @@ function DetailRow({
 }) {
   return (
     <div className="space-y-0.5">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-[0.8rem] font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">

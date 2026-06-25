@@ -33,13 +33,14 @@ export function ProgressSteps({
           <span
             key={i}
             className={cn(
-              "h-1.5 flex-1 rounded-full transition-colors",
+              "flex-1 rounded-full transition-all",
+              // 현재 단계는 더 두껍게(흑백 신호 강화) — "지금 몇 단계"가 또렷.
               isCurrent
-                ? "bg-accent-strong"
+                ? "h-2 bg-accent-strong"
                 : isDone
-                  ? "bg-accent"
+                  ? "h-1.5 bg-accent"
                   : // 미완료 — 배경 대비 ≥3:1 (WCAG 1.4.11)
-                    "bg-muted-foreground/35",
+                    "h-1.5 bg-muted-foreground/35",
             )}
           />
         );

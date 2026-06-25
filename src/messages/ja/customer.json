@@ -201,6 +201,19 @@
       "high": "良好",
       "mid": "普通",
       "low": "ケアが必要"
-    }
+    },
+    "nationality": "国籍",
+    "nationalityNames": {
+      "ko": "韓国",
+      "ja": "日本",
+      "en": "アメリカ",
+      "zh": "中国"
+    },
+    "gender": "性別",
+    "age": "年齢",
+    "ageValue": "{age}歳",
+    "visitHistory": "来店履歴",
+    "totalVisits": "計{count}回",
+    "lastVisit": "最終来店 {date}"
   }
 }

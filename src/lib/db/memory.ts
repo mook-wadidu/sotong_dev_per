@@ -488,6 +488,10 @@ export class MemoryRepo implements Repo {
     return id ? (store.consultations.get(id) ?? null) : null;
   }
 
+  async getConsultationById(id: string): Promise<Consultation | null> {
+    return store.consultations.get(id) ?? null;
+  }
+
   async updateStatus(id: string, status: ConsultationStatus): Promise<void> {
     const c = store.consultations.get(id);
     if (c) c.status = status;

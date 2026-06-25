@@ -1372,12 +1372,53 @@ export async function completeConsultation(input: {
   }
 }
 
+export interface ReportViewData {
+  report: HairReport;
+  /** 손님 실제 언어(ko 리포트여도 손님 국적 표기는 이 언어 기준). */
+  customerLocale: Locale;
+  gender?: "female" | "male" | "other";
+  age?: number;
+  /** 손님 총 방문 횟수(카르테, 이번 시술 포함). 신규/미연결이면 0. */
+  visitCount: number;
+  /** 가장 최근 방문일(ISO). 없으면 undefined. */
+  lastVisitDate?: string;
+}
+
 export async function getReportView(
   reportToken: string,
-): Promise<HairReport | null> {
+): Promise<ReportViewData | null> {
   // 레이트리밋(P0) — 리포트 토큰당 분당 조회 상한(capability URL 스캔/폭주 방지).
   await enforceRate(`report:${reportToken}`, 60, 60_000, { source: "report" });
-  return getRepo().getReport(reportToken);
+  const repo = getRepo();
+  const report = await repo.getReport(reportToken);
+  if (!report) return null;
+
+  // 프로필(성별·나이·국적)·방문이력 — 리포트 본문과 무관한 보강이라 best-effort.
+  let customerLocale: Locale = report.locale;
+  let gender: "female" | "male" | "other" | undefined;
+  let age: number | undefined;
+  let visitCount = 0;
+  let lastVisitDate: string | undefined;
+  try {
+    const c = await repo.getConsultationById(report.consultationId);
+    if (c) {
+      customerLocale = c.customerLocale;
+      gender = c.intake.gender;
+      age = c.intake.age;
+      if (c.customerId) {
+        const treatments = await repo.listCustomerTreatments(c.customerId);
+        visitCount = treatments.length;
+        lastVisitDate = treatments.reduce<string | undefined>(
+          (acc, tr) => (!acc || tr.visitedAt > acc ? tr.visitedAt : acc),
+          undefined,
+        );
+      }
+    }
+  } catch {
+    // 프로필/방문이력 조회 실패는 리포트 표시에 영향 없음
+  }
+
+  return { report, customerLocale, gender, age, visitCount, lastVisitDate };
 }
 
 /* ── 재방문 프리필 컨텍스트 (인테이크 진입 — 읽기 전용) ──────────

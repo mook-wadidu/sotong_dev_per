@@ -15,11 +15,14 @@ export default async function CustomerReportPage({
   params: Promise<{ locale: string; token: string }>;
 }) {
   const { token } = await params;
-  const report = await getReportView(token);
+  const data = await getReportView(token);
 
-  if (!report) {
+  if (!data) {
     return <InvalidEntry kind="report" />;
   }
+
+  const { report, customerLocale, gender, age, visitCount, lastVisitDate } =
+    data;
 
   // 리포트는 항상 발급 당시 손님 언어(report.locale)로 렌더한다.
   // 라우트 locale 과 다를 수 있어, report.locale 로 번역을 직접 해석해 클라에 넘긴다.
@@ -51,7 +54,30 @@ export default async function CustomerReportPage({
     shareToast: t("report.shareToast"),
     scoreLabel: t("report.scoreLabel", { score: report.hairStateScore }),
     grade: gradeLabel(t, report.hairStateGrade),
+    nationality: t("report.nationality"),
+    gender: t("report.gender"),
+    age: t("report.age"),
+    visitHistory: t("report.visitHistory"),
   };
+
+  // 프로필(국적은 손님 언어로 현지화) — 값이 있을 때만 행 노출.
+  const profile = {
+    nationality: t(`report.nationalityNames.${customerLocale}`),
+    gender: gender ? t(`intake.about.genderOpt.${gender}`) : undefined,
+    ageText:
+      typeof age === "number" ? t("report.ageValue", { age }) : undefined,
+  };
+
+  // 방문 이력(카르테 연결 시만). 총 방문 + 최근 방문일.
+  const visit =
+    visitCount > 0
+      ? {
+          totalText: t("report.totalVisits", { count: visitCount }),
+          lastText: lastVisitDate
+            ? t("report.lastVisit", { date: formatDate(lastVisitDate, loc) })
+            : undefined,
+        }
+      : undefined;
 
   return (
     <ReportView
@@ -59,6 +85,8 @@ export default async function CustomerReportPage({
       labels={labels}
       dateLabel={formatDate(report.date, loc)}
       nextVisitText={nextVisitLabel(report.nextVisitWeeks, loc)}
+      profile={profile}
+      visit={visit}
     />
   );
 }

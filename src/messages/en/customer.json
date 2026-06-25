@@ -201,6 +201,19 @@
       "high": "Good",
       "mid": "Fair",
       "low": "Needs care"
-    }
+    },
+    "nationality": "Nationality",
+    "nationalityNames": {
+      "ko": "Korea",
+      "ja": "Japan",
+      "en": "United States",
+      "zh": "China"
+    },
+    "gender": "Gender",
+    "age": "Age",
+    "ageValue": "{age}",
+    "visitHistory": "Visit history",
+    "totalVisits": "{count} visits",
+    "lastVisit": "Last visit {date}"
   }
 }

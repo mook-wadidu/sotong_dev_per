@@ -20,6 +20,7 @@ import {
   SparkleIcon,
   CalendarIcon,
   PhotoIcon,
+  GlobeIcon,
 } from "@/components/icons";
 import type { HairReport, ThreeLevel } from "@/lib/domain/types";
 
@@ -51,6 +52,11 @@ export interface ReportLabels {
   shareToast: string;
   scoreLabel: string;
   grade: string;
+  /** 프로필·방문이력(목업② 보강) 라벨 */
+  nationality: string;
+  gender: string;
+  age: string;
+  visitHistory: string;
 }
 
 /**
@@ -72,11 +78,17 @@ export function ReportView({
   labels,
   dateLabel,
   nextVisitText,
+  profile,
+  visit,
 }: {
   report: HairReport;
   labels: ReportLabels;
   dateLabel: string;
   nextVisitText: string;
+  /** 손님 프로필(목업②) — 값 있는 항목만 노출. */
+  profile?: { nationality?: string; gender?: string; ageText?: string };
+  /** 방문 이력(카르테 연결 시). */
+  visit?: { totalText: string; lastText?: string };
 }) {
   const tone = GRADE_TONE[report.hairStateGrade];
   const score = Math.max(0, Math.min(100, report.hairStateScore));
@@ -170,6 +182,58 @@ export function ReportView({
             <Meta label={labels.date} value={dateLabel} />
           </CardContent>
         </Card>
+
+        {/* 프로필(국적·성별·나이) + 방문이력 — 목업② 보강. 값 있을 때만. */}
+        {profile?.nationality ||
+        profile?.gender ||
+        profile?.ageText ||
+        visit ? (
+          <Card>
+            <CardContent className="space-y-3 p-5">
+              {profile?.nationality || profile?.gender || profile?.ageText ? (
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                  {profile?.nationality ? (
+                    <div>
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <GlobeIcon className="size-3.5" />
+                        {labels.nationality}
+                      </p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {profile.nationality}
+                      </p>
+                    </div>
+                  ) : null}
+                  {profile?.gender ? (
+                    <Meta label={labels.gender} value={profile.gender} />
+                  ) : null}
+                  {profile?.ageText ? (
+                    <Meta label={labels.age} value={profile.ageText} />
+                  ) : null}
+                </div>
+              ) : null}
+
+              {visit ? (
+                <>
+                  {profile?.nationality ||
+                  profile?.gender ||
+                  profile?.ageText ? (
+                    <Divider />
+                  ) : null}
+                  <div>
+                    <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <CalendarIcon className="size-4" />
+                      {labels.visitHistory}
+                    </p>
+                    <p className="mt-0.5 text-sm font-semibold text-foreground">
+                      {visit.totalText}
+                      {visit.lastText ? ` · ${visit.lastText}` : ""}
+                    </p>
+                  </div>
+                </>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* 오늘 시술 */}
         <section>

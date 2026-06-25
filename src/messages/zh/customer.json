@@ -201,6 +201,19 @@
       "high": "良好",
       "mid": "一般",
       "low": "需护理"
-    }
+    },
+    "nationality": "国籍",
+    "nationalityNames": {
+      "ko": "韩国",
+      "ja": "日本",
+      "en": "美国",
+      "zh": "中国"
+    },
+    "gender": "性别",
+    "age": "年龄",
+    "ageValue": "{age}岁",
+    "visitHistory": "到店记录",
+    "totalVisits": "共{count}次",
+    "lastVisit": "最近到店 {date}"
   }
 }

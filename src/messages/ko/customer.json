@@ -201,6 +201,19 @@
       "high": "좋음",
       "mid": "보통",
       "low": "관리 필요"
-    }
+    },
+    "nationality": "국적",
+    "nationalityNames": {
+      "ko": "대한민국",
+      "ja": "일본",
+      "en": "미국",
+      "zh": "중국"
+    },
+    "gender": "성별",
+    "age": "나이",
+    "ageValue": "{age}세",
+    "visitHistory": "방문 이력",
+    "totalVisits": "총 {count}회",
+    "lastVisit": "최근 방문 {date}"
   }
 }

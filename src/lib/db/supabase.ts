@@ -774,6 +774,16 @@ export class SupabaseRepo implements Repo {
   getByDesignerToken(t: string): Promise<Consultation | null> {
     return this.getByToken("designer_token", t);
   }
+  async getConsultationById(id: string): Promise<Consultation | null> {
+    if (!id) return null;
+    const { data, error } = await this.client
+      .from("consultations")
+      .select(CONSULTATION_COLS)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) fail("getConsultationById", error);
+    return data ? toConsultation(data as ConsultationRow) : null;
+  }
   getByReportToken(t: string): Promise<Consultation | null> {
     return this.getByToken("report_token", t);
   }

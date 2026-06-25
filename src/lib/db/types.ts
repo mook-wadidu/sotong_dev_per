@@ -378,6 +378,8 @@ export interface Repo {
   getByConsultationToken(token: string): Promise<Consultation | null>;
   getByDesignerToken(token: string): Promise<Consultation | null>;
   getByReportToken(token: string): Promise<Consultation | null>;
+  /** 상담 id 직접 조회 — 리포트(consultationId)에서 손님 프로필·카르테 연결용. */
+  getConsultationById(id: string): Promise<Consultation | null>;
 
   updateStatus(id: string, status: ConsultationStatus): Promise<void>;
   setSummary(id: string, summary: DesignerSummary): Promise<void>;

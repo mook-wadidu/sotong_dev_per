@@ -17,6 +17,7 @@ import {
   ScreenBody,
   ScreenFooter,
   ScreenHeader,
+  SectionLabel,
   SystemNote,
 } from "@/components/ui";
 import { ConsultationSummary } from "@/components/shared/consultation-summary";
@@ -121,9 +122,12 @@ export function DemoPlayer({ url }: { url: string }) {
   const [typing, setTyping] = React.useState<string | null>(null);
   const [armed, setArmed] = React.useState(false);
   const [chatDone, setChatDone] = React.useState(false);
+  const [incoming, setIncoming] = React.useState(false); // 상대 메시지 도착 중(···)
   const [chatCount, setChatCountState] = React.useState(0);
   const countRef = React.useRef(0);
+  const armedRef = React.useRef(false); // 동기 가드(연타 시 중복 전송 방지)
   const timer = React.useRef<number | null>(null);
+  const topRef = React.useRef<HTMLDivElement>(null);
   const track = trackOf(stage);
 
   React.useEffect(() => {
@@ -132,8 +136,27 @@ export function DemoPlayer({ url }: { url: string }) {
     };
   }, []);
 
+  // 스테이지/인테이크 스텝 전환 시 스크롤 상단 복귀(긴→짧은 화면 어긋남 방지).
+  React.useEffect(() => {
+    topRef.current?.scrollIntoView({ block: "start" });
+  }, [stage, intakeStep]);
+
+  const arm = React.useCallback((v: boolean) => {
+    armedRef.current = v;
+    setArmed(v);
+  }, []);
+
   const typeOut = React.useCallback(
     (text: string, onChar: (s: string) => void, onDone: () => void) => {
+      // reduced-motion: 타이핑 건너뛰고 즉시 완성.
+      const reduce =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      if (reduce) {
+        onChar(text);
+        timer.current = window.setTimeout(onDone, 200);
+        return;
+      }
       let i = 0;
       onChar("");
       const tick = () => {
@@ -171,53 +194,61 @@ export function DemoPlayer({ url }: { url: string }) {
         const i = countRef.current;
         const entry = DEMO_CHAT[i];
         if (!entry) {
-          setArmed(false);
+          arm(false);
+          setIncoming(false);
           setChatDone(true);
           return;
         }
         if (isOwn(entry, t)) {
           // 내 메시지 — 입력바에 자동 타이핑 후 Send 활성(전송 대기).
           typeOut(t === "customer" ? entry.en : entry.ko, setTyping, () =>
-            setArmed(true),
+            arm(true),
           );
         } else {
-          // 시스템/상대 — 짧은 지연 후 자동 도착, 계속.
-          timer.current = window.setTimeout(() => {
-            countRef.current = i + 1;
-            setChatCountState(i + 1);
-            step();
-          }, 750);
+          // 상대 메시지는 도착 전 "···" 인디케이터(시스템 노트는 제외).
+          const showDots = entry.kind !== "system";
+          if (showDots) setIncoming(true);
+          timer.current = window.setTimeout(
+            () => {
+              setIncoming(false);
+              countRef.current = i + 1;
+              setChatCountState(i + 1);
+              step();
+            },
+            showDots ? 900 : 450,
+          );
         }
       };
       step();
     },
-    [typeOut],
+    [typeOut, arm],
   );
 
   const startChat = React.useCallback(
     (t: Track) => {
       if (timer.current) window.clearTimeout(timer.current);
       setTyping(null);
-      setArmed(false);
+      arm(false);
       setChatDone(false);
+      setIncoming(false);
       countRef.current = 0;
       setChatCountState(0);
       pump(t);
     },
-    [pump],
+    [pump, arm],
   );
 
   const onSend = React.useCallback(
     (t: Track) => {
-      if (!armed) return;
+      if (!armedRef.current) return; // 동기 가드 — 연타 중복 전송 차단
       const next = countRef.current + 1;
       countRef.current = next;
       setChatCountState(next);
       setTyping(null);
-      setArmed(false);
+      arm(false);
       pump(t);
     },
-    [armed, pump],
+    [pump, arm],
   );
 
   const busy = typing !== null && !armed; // 자동 타이핑 진행 중
@@ -270,15 +301,16 @@ export function DemoPlayer({ url }: { url: string }) {
   const reset = React.useCallback(() => {
     if (timer.current) window.clearTimeout(timer.current);
     setTyping(null);
-    setArmed(false);
+    arm(false);
     setChatDone(false);
+    setIncoming(false);
     countRef.current = 0;
     setChatCountState(0);
     setIntakeStep(0);
     setIntakeFilled(false);
     setIntakeNote("");
     setStage("intro");
-  }, []);
+  }, [arm]);
 
   // ── 리포트 화면(자체 MobileFrame) ──
   if (stage === "report" || stage === "d-report") {
@@ -318,6 +350,7 @@ export function DemoPlayer({ url }: { url: string }) {
       />
 
       <ScreenBody className="space-y-4 pb-2">
+        <div ref={topRef} aria-hidden="true" />
         {stage === "intro" ? <IntroScreen url={url} /> : null}
         {stage === "lang" ? <LangScreen onPick={advance} /> : null}
         {stage === "intake" ? (
@@ -325,7 +358,7 @@ export function DemoPlayer({ url }: { url: string }) {
         ) : null}
         {stage === "summary" ? <CustomerSummaryScreen /> : null}
         {stage === "chat" || stage === "d-chat" ? (
-          <ChatScreen visible={chatCount} track={track} />
+          <ChatScreen visible={chatCount} track={track} incoming={incoming} />
         ) : null}
         {stage === "inservice" ? <InServiceScreen /> : null}
         {stage === "handoff" ? <HandoffScreen /> : null}
@@ -367,7 +400,7 @@ function IntroScreen({ url }: { url: string }) {
       </div>
       {url ? (
         <div className="flex flex-col items-center gap-2">
-          <div className="rounded-xl border border-border bg-white p-3">
+          <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
             <QRCodeSVG value={url} size={132} level="M" marginSize={0} />
           </div>
           <p className="text-xs text-muted-foreground">
@@ -382,16 +415,16 @@ function IntroScreen({ url }: { url: string }) {
 function LangScreen({ onPick }: { onPick: () => void }) {
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <p className="flex items-center gap-1.5 text-base font-semibold text-foreground">
-          <GlobeIcon className="size-4" />
+      <div className="space-y-1.5">
+        <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground">
+          <GlobeIcon className="size-5" />
           How can we help you today?
-        </p>
-        <p className="text-sm text-muted-foreground">
+        </h1>
+        <p className="text-base text-muted-foreground">
           No app, no sign-up. Just pick your language.
         </p>
       </div>
-      <div className="grid gap-2.5">
+      <div className="grid gap-3">
         {DEMO_LANGS.map((l) => (
           <LanguageButton
             key={l.locale}
@@ -421,7 +454,8 @@ function IntakeFlow({
   note: string;
 }) {
   return (
-    <div className="space-y-4">
+    // 자동채움 — 칩/입력은 비인터랙티브(탭해도 무반응이 의도). 진행은 하단 버튼.
+    <div className="space-y-4 [&_button]:pointer-events-none">
       <ProgressSteps total={INTAKE_STEPS} current={step + 1} label="Intake" />
       <p className="text-base font-semibold text-foreground">
         {DEMO_INTAKE_TITLES[step]}
@@ -639,7 +673,7 @@ function DesignerSummaryScreen() {
         </div>
       </div>
 
-      <Card className="border-l-4 border-l-foreground bg-muted">
+      <Card className="border-l-4 border-l-foreground bg-accent-soft">
         <CardContent className="space-y-1 p-4">
           <p className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-foreground">
             <AlertIcon className="size-4" />
@@ -654,25 +688,28 @@ function DesignerSummaryScreen() {
         </CardContent>
       </Card>
 
-      <ConsultationSummary
-        language={DEMO_INBOX.language}
-        services={DEMO_INTAKE.servicesKo}
-        styleText={DEMO_INTAKE.styleNoteKo}
-        photos={DEMO_INTAKE.photos}
-        memo={DEMO_INTAKE.memoKo}
-        gender={DEMO_INTAKE.genderKo}
-        age={DEMO_INTAKE.age}
-        status="consulting"
-        labels={DEMO_SUMMARY_LABELS_KO}
-      />
+      <div className="space-y-2">
+        <SectionLabel className="mb-0">상담 정보</SectionLabel>
+        <ConsultationSummary
+          language={DEMO_INBOX.language}
+          services={DEMO_INTAKE.servicesKo}
+          styleText={DEMO_INTAKE.styleNoteKo}
+          photos={DEMO_INTAKE.photos}
+          memo={DEMO_INTAKE.memoKo}
+          gender={DEMO_INTAKE.genderKo}
+          age={DEMO_INTAKE.age}
+          status="consulting"
+          labels={DEMO_SUMMARY_LABELS_KO}
+        />
+      </div>
 
       <Card>
         <CardContent className="p-4">
-          <p className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+          <p className="mb-1.5 flex items-center gap-1.5 text-base font-bold text-foreground">
             <SparkleIcon className="size-4" />
             AI 요약
           </p>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+          <p className="whitespace-pre-wrap text-[0.95rem] leading-relaxed text-muted-foreground">
             {DEMO_SUMMARY_KO.aiSummary}
           </p>
         </CardContent>
@@ -684,17 +721,34 @@ function DesignerSummaryScreen() {
 function RecordScreen() {
   return (
     <div className="space-y-4">
-      <p className="flex items-center gap-1.5 text-base font-semibold text-foreground">
-        <CareIcon className="size-4" />
-        시술 기록
-      </p>
-      <Field label="사용한 약제·제품">
+      {/* 고객 프로필(목업② 고객 기록) */}
+      <Card>
+        <CardContent className="flex items-center justify-between gap-3 p-4">
+          <div className="space-y-0.5">
+            <p className="text-base font-bold text-foreground">
+              {DEMO_INBOX.name}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {DEMO_INBOX.nationalityKo} · {DEMO_INTAKE.genderKo} ·{" "}
+              {DEMO_INTAKE.age}세
+            </p>
+          </div>
+          <Badge variant="accent">신규</Badge>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-2">
+        <SectionLabel className="mb-0 flex items-center gap-1.5">
+          <CareIcon className="size-4" />
+          시술 기록
+        </SectionLabel>
         <div className="flex flex-wrap gap-2">
           {DEMO_RECORD_KO.products.map((p) => (
             <Pill key={p} text={p} />
           ))}
         </div>
-      </Field>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardContent className="p-4">
@@ -713,27 +767,58 @@ function RecordScreen() {
           </CardContent>
         </Card>
       </div>
-      <Field label="시술 후 사진">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={DEMO_RECORD_KO.after}
-          alt="시술 후"
-          className="aspect-[4/3] w-full rounded-xl border border-border object-cover"
-        />
-      </Field>
+
+      <div className="space-y-2">
+        <SectionLabel className="mb-0">비포 / 애프터</SectionLabel>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { url: DEMO_REPORT_KO.beforePhotoUrl, cap: "시술 전" },
+            { url: DEMO_REPORT_KO.afterPhotoUrl, cap: "시술 후" },
+          ].map((p) => (
+            <figure key={p.cap} className="space-y-1.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.url}
+                alt={p.cap}
+                className="aspect-square w-full rounded-xl border border-border object-cover"
+              />
+              <figcaption className="text-center text-xs font-medium text-muted-foreground">
+                {p.cap}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
 /* ── 채팅(트랙 공용) — 스레드만 렌더(자동 타이핑은 입력바) ── */
 
-function ChatScreen({ visible, track }: { visible: number; track: Track }) {
+function ChatScreen({
+  visible,
+  track,
+  incoming,
+}: {
+  visible: number;
+  track: Track;
+  incoming: boolean;
+}) {
   const shown = DEMO_CHAT.slice(0, visible);
   return (
     <div className="flex flex-col gap-3">
       {shown.map((entry, i) => (
         <ChatRow key={i} entry={entry} track={track} />
       ))}
+      {incoming ? (
+        <MessageBubble
+          side="them"
+          text="···"
+          textLang={track === "customer" ? "en" : "ko"}
+          pending
+          pendingLabel=""
+        />
+      ) : null}
     </div>
   );
 }
@@ -810,12 +895,14 @@ function StageFooter({
     }
     return (
       <div className="flex w-full items-end gap-2">
-        <Input
-          value={typing ?? ""}
-          readOnly
-          aria-label="Message"
-          placeholder={ko ? "메시지 입력…" : "Type a message…"}
-        />
+        <div className="flex-1" role="status" aria-live="polite" aria-atomic="true">
+          <Input
+            value={typing ?? ""}
+            readOnly
+            aria-label={ko ? "작성 중인 메시지" : "Message being typed"}
+            placeholder={ko ? "메시지 입력…" : "Type a message…"}
+          />
+        </div>
         <Button
           variant="accent"
           size="lg"

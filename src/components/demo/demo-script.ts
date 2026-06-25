@@ -40,6 +40,57 @@ export const DEMO_INTAKE = {
   photos: DEMO_PHOTOS,
 };
 
+/* ── 인테이크 자동채움 스텝(데모 전용, EN) — 실제 폼 UI(Chip/PictoChip/얼굴형) 재사용 ── */
+export const DEMO_INTAKE_TITLES = [
+  "What would you like done?",
+  "Photos of the style you want",
+  "Pick your face shape",
+  "Anything we should mind?",
+  "A little about you",
+  "Before we send it",
+];
+
+export const DEMO_INTAKE_SERVICES = [
+  { id: "cut", label: "Women's Cut", price: "from ₩35,000" },
+  { id: "color", label: "Full Color", price: "from ₩90,000" },
+  { id: "perm", label: "Perm", price: "from ₩80,000" },
+  { id: "clinic", label: "Treatment", price: "from ₩50,000" },
+];
+export const DEMO_INTAKE_SERVICES_SELECTED = ["cut", "color"];
+
+export const DEMO_FACE_SHAPES = [
+  { id: "oval", label: "Oval" },
+  { id: "round", label: "Round" },
+  { id: "square", label: "Square" },
+  { id: "long", label: "Long" },
+  { id: "heart", label: "Heart" },
+  { id: "diamond", label: "Diamond" },
+] as const;
+export const DEMO_FACE_SELECTED = "oval";
+
+export const DEMO_INTAKE_CONCERNS = [
+  { id: "volume", label: "Lacks volume" },
+  { id: "manage", label: "Hard to manage" },
+  { id: "frizz", label: "Frizz / flyaways" },
+  { id: "damage", label: "Damaged ends" },
+  { id: "thin", label: "Thinning" },
+  { id: "gray", label: "Gray hair" },
+];
+export const DEMO_CONCERNS_SELECTED = ["volume", "manage"];
+
+export const DEMO_GENDERS = [
+  { id: "female", label: "Female" },
+  { id: "male", label: "Male" },
+  { id: "other", label: "Other" },
+];
+export const DEMO_AGE_BANDS = ["10s", "20s", "30s", "40s", "50s", "60s+"];
+export const DEMO_ABOUT_SELECTED = { gender: "female", age: "20s" };
+
+export const DEMO_CONSENT =
+  "I agree to the collection of the information and photos I entered, for my style consultation.";
+export const DEMO_CONSENT_HINT =
+  "Used only for consultation & records, then deleted after about 90 days.";
+
 /** 디자이너 인박스에 뜨는 한 건(흉내). */
 export const DEMO_INBOX = {
   name: "Emma",

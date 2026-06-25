@@ -7,10 +7,13 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   Input,
   LanguageButton,
   MessageBubble,
   MobileFrame,
+  PictoChip,
+  ProgressSteps,
   ScreenBody,
   ScreenFooter,
   ScreenHeader,
@@ -22,18 +25,37 @@ import {
   AlertIcon,
   CareIcon,
   ChatIcon,
+  CheckIcon,
   CutIcon,
   ColorIcon,
+  FaceDiamondIcon,
+  FaceHeartIcon,
+  FaceLongIcon,
+  FaceOvalIcon,
+  FaceRoundIcon,
+  FaceSquareIcon,
   GlobeIcon,
   SparkleIcon,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
+  DEMO_ABOUT_SELECTED,
+  DEMO_AGE_BANDS,
   DEMO_CHAT,
+  DEMO_CONCERNS_SELECTED,
+  DEMO_CONSENT,
+  DEMO_CONSENT_HINT,
+  DEMO_FACE_SELECTED,
+  DEMO_FACE_SHAPES,
+  DEMO_GENDERS,
   DEMO_HANDOFF,
   DEMO_INBOX,
   DEMO_INSERVICE_EN,
   DEMO_INTAKE,
+  DEMO_INTAKE_CONCERNS,
+  DEMO_INTAKE_SERVICES,
+  DEMO_INTAKE_SERVICES_SELECTED,
+  DEMO_INTAKE_TITLES,
   DEMO_RECEIVED_NOTE,
   DEMO_RECORD_KO,
   DEMO_REPORT,
@@ -72,21 +94,36 @@ type Stage =
   | "d-report";
 
 const TYPE_MS = 38;
+const INTAKE_STEPS = 6;
 const trackOf = (stage: Stage): Track =>
   stage === "handoff" || stage.startsWith("d-") ? "designer" : "customer";
+const isOwn = (entry: ChatEntry, t: Track): boolean =>
+  t === "customer" ? entry.kind === "customer" : entry.kind === "designer";
+
+const FACE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  oval: FaceOvalIcon,
+  round: FaceRoundIcon,
+  square: FaceSquareIcon,
+  long: FaceLongIcon,
+  heart: FaceHeartIcon,
+  diamond: FaceDiamondIcon,
+};
 
 /**
- * MVP 데모 — QR 하나로 같은 상담을 **손님 화면(영어)** → **디자이너 화면(한국어)** 으로
- * 탭하면 한 단계씩 재생. 채팅 입력바는 실제 치는 것처럼 자동 타이핑.
- * 완전 하드코딩(demo-script) — DB·AI·네트워크 0.
+ * MVP 데모 — QR 하나로 같은 상담을 손님(영어) → 디자이너(한국어) 화면으로 탭 재생.
+ * 인테이크는 자동채움 스텝, 채팅은 입력바 자동 타이핑 + Send만 누름. 완전 하드코딩.
  */
 export function DemoPlayer({ url }: { url: string }) {
   const [stage, setStage] = React.useState<Stage>("intro");
-  const [chatCount, setChatCount] = React.useState(0);
-  const [typing, setTyping] = React.useState<string | null>(null);
+  const [intakeStep, setIntakeStep] = React.useState(0);
+  const [intakeFilled, setIntakeFilled] = React.useState(false);
   const [intakeNote, setIntakeNote] = React.useState("");
+  const [typing, setTyping] = React.useState<string | null>(null);
+  const [armed, setArmed] = React.useState(false);
+  const [chatDone, setChatDone] = React.useState(false);
+  const [chatCount, setChatCountState] = React.useState(0);
+  const countRef = React.useRef(0);
   const timer = React.useRef<number | null>(null);
-  const busy = typing !== null;
   const track = trackOf(stage);
 
   React.useEffect(() => {
@@ -103,40 +140,87 @@ export function DemoPlayer({ url }: { url: string }) {
         i += 1;
         onChar(text.slice(0, i));
         if (i < text.length) timer.current = window.setTimeout(tick, TYPE_MS);
-        else timer.current = window.setTimeout(onDone, 320);
+        else timer.current = window.setTimeout(onDone, 280);
       };
       timer.current = window.setTimeout(tick, TYPE_MS);
     },
     [],
   );
 
-  // 인테이크 진입 시 스타일 노트 자동 타이핑(typeOut 이 ""로 초기화).
-  React.useEffect(() => {
-    if (stage === "intake") {
-      typeOut(DEMO_INTAKE.styleNoteEn, setIntakeNote, () => {});
-    }
-  }, [stage, typeOut]);
-
-  const revealNextChat = React.useCallback(
-    (t: Track) => {
-      const entry = DEMO_CHAT[chatCount];
-      if (!entry) return;
-      const autoKind = t === "customer" ? "customer" : "designer";
-      if (entry.kind === autoKind) {
-        typeOut(
-          t === "customer" ? entry.en : entry.ko,
-          (s) => setTyping(s),
-          () => {
-            setTyping(null);
-            setChatCount((c) => c + 1);
-          },
+  /* ── 인테이크 자동채움 ─────────────────────────────────── */
+  const enterIntakeStep = React.useCallback(
+    (k: number) => {
+      if (timer.current) window.clearTimeout(timer.current);
+      setIntakeStep(k);
+      setIntakeFilled(false);
+      if (k === 1) {
+        typeOut(DEMO_INTAKE.styleNoteEn, setIntakeNote, () =>
+          setIntakeFilled(true),
         );
       } else {
-        setChatCount((c) => c + 1);
+        timer.current = window.setTimeout(() => setIntakeFilled(true), 450);
       }
     },
-    [chatCount, typeOut],
+    [typeOut],
   );
+
+  /* ── 채팅: 자동 타이핑 + Send 만 ──────────────────────── */
+  const pump = React.useCallback(
+    (t: Track) => {
+      const step = () => {
+        const i = countRef.current;
+        const entry = DEMO_CHAT[i];
+        if (!entry) {
+          setArmed(false);
+          setChatDone(true);
+          return;
+        }
+        if (isOwn(entry, t)) {
+          // 내 메시지 — 입력바에 자동 타이핑 후 Send 활성(전송 대기).
+          typeOut(t === "customer" ? entry.en : entry.ko, setTyping, () =>
+            setArmed(true),
+          );
+        } else {
+          // 시스템/상대 — 짧은 지연 후 자동 도착, 계속.
+          timer.current = window.setTimeout(() => {
+            countRef.current = i + 1;
+            setChatCountState(i + 1);
+            step();
+          }, 750);
+        }
+      };
+      step();
+    },
+    [typeOut],
+  );
+
+  const startChat = React.useCallback(
+    (t: Track) => {
+      if (timer.current) window.clearTimeout(timer.current);
+      setTyping(null);
+      setArmed(false);
+      setChatDone(false);
+      countRef.current = 0;
+      setChatCountState(0);
+      pump(t);
+    },
+    [pump],
+  );
+
+  const onSend = React.useCallback(
+    (t: Track) => {
+      if (!armed) return;
+      const next = countRef.current + 1;
+      countRef.current = next;
+      setChatCountState(next);
+      setTyping(null);
+      setArmed(false);
+      pump(t);
+    },
+    [armed, pump],
+  );
+
+  const busy = typing !== null && !armed; // 자동 타이핑 진행 중
 
   const advance = React.useCallback(() => {
     if (busy) return;
@@ -146,17 +230,18 @@ export function DemoPlayer({ url }: { url: string }) {
         break;
       case "lang":
         setStage("intake");
+        enterIntakeStep(0);
         break;
       case "intake":
-        setStage("summary");
+        if (intakeStep < INTAKE_STEPS - 1) enterIntakeStep(intakeStep + 1);
+        else setStage("summary");
         break;
       case "summary":
-        setChatCount(0);
         setStage("chat");
+        startChat("customer");
         break;
       case "chat":
-        if (chatCount < DEMO_CHAT.length) revealNextChat("customer");
-        else setStage("inservice");
+        setStage("inservice");
         break;
       case "inservice":
         setStage("report");
@@ -168,12 +253,11 @@ export function DemoPlayer({ url }: { url: string }) {
         setStage("d-summary");
         break;
       case "d-summary":
-        setChatCount(0);
         setStage("d-chat");
+        startChat("designer");
         break;
       case "d-chat":
-        if (chatCount < DEMO_CHAT.length) revealNextChat("designer");
-        else setStage("d-record");
+        setStage("d-record");
         break;
       case "d-record":
         setStage("d-report");
@@ -181,17 +265,22 @@ export function DemoPlayer({ url }: { url: string }) {
       default:
         break;
     }
-  }, [busy, stage, chatCount, revealNextChat]);
+  }, [busy, stage, intakeStep, enterIntakeStep, startChat]);
 
   const reset = React.useCallback(() => {
     if (timer.current) window.clearTimeout(timer.current);
     setTyping(null);
-    setChatCount(0);
+    setArmed(false);
+    setChatDone(false);
+    countRef.current = 0;
+    setChatCountState(0);
+    setIntakeStep(0);
+    setIntakeFilled(false);
     setIntakeNote("");
     setStage("intro");
   }, []);
 
-  // ── 리포트 화면(자체 MobileFrame) — 손님=EN(→디자이너 트랙), 디자이너=KO(→재시작) ──
+  // ── 리포트 화면(자체 MobileFrame) ──
   if (stage === "report" || stage === "d-report") {
     const isKo = stage === "d-report";
     return (
@@ -231,10 +320,12 @@ export function DemoPlayer({ url }: { url: string }) {
       <ScreenBody className="space-y-4 pb-2">
         {stage === "intro" ? <IntroScreen url={url} /> : null}
         {stage === "lang" ? <LangScreen onPick={advance} /> : null}
-        {stage === "intake" ? <IntakeScreen note={intakeNote} /> : null}
+        {stage === "intake" ? (
+          <IntakeFlow step={intakeStep} filled={intakeFilled} note={intakeNote} />
+        ) : null}
         {stage === "summary" ? <CustomerSummaryScreen /> : null}
         {stage === "chat" || stage === "d-chat" ? (
-          <ChatScreen visible={chatCount} typing={typing} track={track} />
+          <ChatScreen visible={chatCount} track={track} />
         ) : null}
         {stage === "inservice" ? <InServiceScreen /> : null}
         {stage === "handoff" ? <HandoffScreen /> : null}
@@ -246,10 +337,14 @@ export function DemoPlayer({ url }: { url: string }) {
       <ScreenFooter>
         <StageFooter
           stage={stage}
+          track={track}
+          intakeStep={intakeStep}
           busy={busy}
           typing={typing}
-          chatDone={chatCount >= DEMO_CHAT.length}
+          armed={armed}
+          chatDone={chatDone}
           onAdvance={advance}
+          onSend={onSend}
         />
       </ScreenFooter>
     </MobileFrame>
@@ -314,25 +409,135 @@ function LangScreen({ onPick }: { onPick: () => void }) {
   );
 }
 
-function IntakeScreen({ note }: { note: string }) {
-  const ICONS = [CutIcon, ColorIcon];
+/* ── 인테이크 자동채움 스텝 ──────────────────────────────── */
+
+function IntakeFlow({
+  step,
+  filled,
+  note,
+}: {
+  step: number;
+  filled: boolean;
+  note: string;
+}) {
   return (
     <div className="space-y-4">
+      <ProgressSteps total={INTAKE_STEPS} current={step + 1} label="Intake" />
       <p className="text-base font-semibold text-foreground">
-        Tell us the style you want
+        {DEMO_INTAKE_TITLES[step]}
       </p>
-      <Field label="Service">
-        <div className="flex flex-wrap gap-2">
-          {DEMO_INTAKE.servicesEn.map((s, i) => {
-            const Icon = ICONS[i] ?? CutIcon;
-            return <Pill key={s} icon={<Icon className="size-3.5" />} text={s} />;
+
+      {step === 0 ? (
+        <div className="space-y-2">
+          {DEMO_INTAKE_SERVICES.map((s) => (
+            <Chip
+              key={s.id}
+              label={s.label}
+              sublabel={s.price}
+              icon={s.id === "color" ? <ColorIcon /> : <CutIcon />}
+              selectMode="multi"
+              selected={filled && DEMO_INTAKE_SERVICES_SELECTED.includes(s.id)}
+              tabIndex={-1}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {step === 1 ? (
+        <div className="space-y-3">
+          <PhotoGrid label="Reference photos" photos={DEMO_INTAKE.photos} />
+          <Field label="Style note">
+            <Input value={note} readOnly aria-label="Style note" placeholder="…" />
+          </Field>
+        </div>
+      ) : null}
+
+      {step === 2 ? (
+        <div className="grid grid-cols-3 gap-2">
+          {DEMO_FACE_SHAPES.map((f) => {
+            const Icon = FACE_ICONS[f.id];
+            return (
+              <PictoChip
+                key={f.id}
+                label={f.label}
+                icon={<Icon />}
+                selectMode="single"
+                selected={filled && f.id === DEMO_FACE_SELECTED}
+                tabIndex={-1}
+              />
+            );
           })}
         </div>
-      </Field>
-      <Field label="Style note">
-        <Input value={note} readOnly aria-label="Style note" placeholder="…" />
-      </Field>
-      <PhotoGrid label="Reference photos" photos={DEMO_INTAKE.photos} />
+      ) : null}
+
+      {step === 3 ? (
+        <div className="space-y-2">
+          {DEMO_INTAKE_CONCERNS.map((c) => (
+            <Chip
+              key={c.id}
+              label={c.label}
+              selectMode="multi"
+              selected={filled && DEMO_CONCERNS_SELECTED.includes(c.id)}
+              tabIndex={-1}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {step === 4 ? (
+        <div className="space-y-4">
+          <Field label="Gender">
+            <div className="grid grid-cols-3 gap-2">
+              {DEMO_GENDERS.map((g) => (
+                <PictoChip
+                  key={g.id}
+                  label={g.label}
+                  selectMode="single"
+                  selected={filled && g.id === DEMO_ABOUT_SELECTED.gender}
+                  tabIndex={-1}
+                />
+              ))}
+            </div>
+          </Field>
+          <Field label="Age">
+            <div className="grid grid-cols-3 gap-2">
+              {DEMO_AGE_BANDS.map((a) => (
+                <PictoChip
+                  key={a}
+                  label={a}
+                  selectMode="single"
+                  selected={filled && a === DEMO_ABOUT_SELECTED.age}
+                  tabIndex={-1}
+                />
+              ))}
+            </div>
+          </Field>
+        </div>
+      ) : null}
+
+      {step === 5 ? (
+        <Card>
+          <CardContent className="flex items-start gap-3 p-4">
+            <span
+              aria-hidden="true"
+              className={cn(
+                "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                filled
+                  ? "border-accent-strong bg-accent-strong text-accent-strong-foreground"
+                  : "border-border",
+              )}
+            >
+              {filled ? <CheckIcon className="size-3.5" strokeWidth={3} /> : null}
+            </span>
+            <div className="space-y-1">
+              <p className="text-sm font-medium leading-snug text-foreground">
+                {DEMO_CONSENT}
+              </p>
+              <p className="text-xs text-muted-foreground">{DEMO_CONSENT_HINT}</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
@@ -520,31 +725,15 @@ function RecordScreen() {
   );
 }
 
-/* ── 채팅(트랙 공용) ─────────────────────────────────────── */
+/* ── 채팅(트랙 공용) — 스레드만 렌더(자동 타이핑은 입력바) ── */
 
-function ChatScreen({
-  visible,
-  typing,
-  track,
-}: {
-  visible: number;
-  typing: string | null;
-  track: Track;
-}) {
+function ChatScreen({ visible, track }: { visible: number; track: Track }) {
   const shown = DEMO_CHAT.slice(0, visible);
   return (
     <div className="flex flex-col gap-3">
       {shown.map((entry, i) => (
         <ChatRow key={i} entry={entry} track={track} />
       ))}
-      {typing !== null ? (
-        <MessageBubble
-          side="me"
-          text={typing || "…"}
-          textLang={track === "customer" ? "en" : "ko"}
-          pending
-        />
-      ) : null}
     </div>
   );
 }
@@ -553,14 +742,8 @@ function ChatRow({ entry, track }: { entry: ChatEntry; track: Track }) {
   if (entry.kind === "system")
     return <SystemNote>{track === "customer" ? entry.en : entry.ko}</SystemNote>;
 
-  const isCustomer = entry.kind === "customer";
-  // 손님 트랙: 손님=me, 디자이너 트랙: 디자이너=me.
-  const mine =
-    (track === "customer" && isCustomer) ||
-    (track === "designer" && !isCustomer);
-
+  const mine = isOwn(entry, track);
   if (mine) {
-    // 내 메시지 — 내 언어 원문만.
     return (
       <MessageBubble
         side="me"
@@ -569,14 +752,11 @@ function ChatRow({ entry, track }: { entry: ChatEntry; track: Track }) {
       />
     );
   }
-  // 상대 메시지 — 내 언어로 번역 + 원문 병기.
-  const text = track === "customer" ? entry.en : entry.ko;
-  const original = track === "customer" ? entry.ko : entry.en;
   return (
     <MessageBubble
       side="them"
-      text={text}
-      original={original}
+      text={track === "customer" ? entry.en : entry.ko}
+      original={track === "customer" ? entry.ko : entry.en}
       textLang={track === "customer" ? "en" : "ko"}
       originalLang={track === "customer" ? "ko" : "en"}
     />
@@ -587,16 +767,24 @@ function ChatRow({ entry, track }: { entry: ChatEntry; track: Track }) {
 
 function StageFooter({
   stage,
+  track,
+  intakeStep,
   busy,
   typing,
+  armed,
   chatDone,
   onAdvance,
+  onSend,
 }: {
   stage: Stage;
+  track: Track;
+  intakeStep: number;
   busy: boolean;
   typing: string | null;
+  armed: boolean;
   chatDone: boolean;
   onAdvance: () => void;
+  onSend: (t: Track) => void;
 }) {
   if (stage === "lang") {
     return (
@@ -608,6 +796,18 @@ function StageFooter({
 
   if (stage === "chat" || stage === "d-chat") {
     const ko = stage === "d-chat";
+    if (chatDone) {
+      return (
+        <Button
+          variant="accent"
+          size="lg"
+          className="w-full"
+          onClick={onAdvance}
+        >
+          {ko ? "다음 ›" : "Next ›"}
+        </Button>
+      );
+    }
     return (
       <div className="flex w-full items-end gap-2">
         <Input
@@ -620,31 +820,35 @@ function StageFooter({
           variant="accent"
           size="lg"
           className="h-13 shrink-0 rounded-xl"
-          onClick={onAdvance}
-          disabled={busy}
+          onClick={() => onSend(track)}
+          disabled={!armed}
         >
-          {chatDone
-            ? ko
-              ? "다음 ›"
-              : "Next ›"
-            : ko
-              ? "전송 ›"
-              : "Send ›"}
+          {ko ? "전송 ›" : "Send ›"}
         </Button>
       </div>
     );
   }
 
-  const label: Record<string, string> = {
-    intro: "Start ›",
-    intake: "Send to designer ›",
-    summary: "Next ›",
-    inservice: "See my report ›",
-    handoff: DEMO_HANDOFF.cta,
-    "d-inbox": "상담 열기 ›",
-    "d-summary": "시술 시작 ›",
-    "d-record": "리포트 발송 ›",
-  };
+  const label =
+    stage === "intro"
+      ? "Start ›"
+      : stage === "intake"
+        ? intakeStep < INTAKE_STEPS - 1
+          ? "Next ›"
+          : "Send to designer ›"
+        : stage === "summary"
+          ? "Next ›"
+          : stage === "inservice"
+            ? "See my report ›"
+            : stage === "handoff"
+              ? DEMO_HANDOFF.cta
+              : stage === "d-inbox"
+                ? "상담 열기 ›"
+                : stage === "d-summary"
+                  ? "시술 시작 ›"
+                  : stage === "d-record"
+                    ? "리포트 발송 ›"
+                    : "Next ›";
 
   return (
     <Button
@@ -654,7 +858,7 @@ function StageFooter({
       onClick={onAdvance}
       disabled={busy}
     >
-      {label[stage] ?? "Next ›"}
+      {label}
     </Button>
   );
 }
@@ -696,10 +900,9 @@ function Field({
   );
 }
 
-function Pill({ icon, text }: { icon?: React.ReactNode; text: string }) {
+function Pill({ text }: { text: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-foreground bg-foreground px-3 py-1.5 text-sm font-medium text-background">
-      {icon}
       {text}
     </span>
   );

@@ -82,8 +82,14 @@ export interface IntakeDraft {
   phone?: string;
   /** 연락 불필요(번호 없음)를 손님이 명시 */
   contactOptOut?: boolean;
+  /** 손님 연령 (선택) — 요약/추천에 참고. consultation.intake jsonb 저장이라 DB 변경 불필요. */
+  age?: number;
+  /** 손님 성별 (선택) — 시술명/추천 보정에 참고. */
+  gender?: "female" | "male" | "other";
   serviceIds: string[];
   stylePhotoUrls: string[];
+  /** 손님 셀피 사진 (선택) — 얼굴형/현재 스타일 참고용. */
+  selfiePhotoUrl?: string;
   /** 손님 언어 자유 텍스트 — 원하는 스타일 메모 (요약에 번역·반영) */
   styleNote?: string;
   faceShape?: FaceShape;
@@ -199,6 +205,8 @@ export interface Consultation {
   consultationToken: string;
   designerToken: string;
   reportToken?: string;
+  /** 디자이너용 한국어(ko) 리포트 토큰 — 손님용 reportToken 과 별개의 무인증 접근 키. */
+  designerReportToken?: string;
   createdAt: string;
 }
 

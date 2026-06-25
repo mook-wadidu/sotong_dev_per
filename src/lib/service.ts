@@ -750,6 +750,12 @@ export interface ConsultationView {
   salon: PublicSalon | null;
   consultation: Consultation;
   messages: Message[];
+  /**
+   * 인테이크에서 선택한 시술 id(consultation.intake.serviceIds) → 살롱 메뉴 다국어 라벨.
+   * 시술중/완료 요약(손님 언어)에서 시술명을 손님 로케일로 표기하는 데 쓴다.
+   * 손님 뷰라 best-effort(조회 실패/미스 id 는 키 누락으로 둔다). getDesignerView 패턴 재사용.
+   */
+  serviceLabelMap: Record<string, LocalizedText>;
 }
 
 /** 디자이너 뷰 — 인박스 백버튼 동선을 위해 그 디자이너 staffToken 을 함께 반환(UX). */
@@ -778,11 +784,35 @@ export async function getCustomerView(
   const c = await repo.getByConsultationToken(consultationToken);
   if (!c) return null;
   const salon = await repo.getSalon(c.salonSlug);
+
+  // 인테이크 시술 id → 살롱 메뉴 다국어 라벨(시술중/완료 요약의 손님 언어 표기용).
+  // 손님 뷰라 best-effort — 조회 실패 시 빈 맵으로 둔다(요약 표시만 영향, 채팅/리포트 무영향).
+  const serviceLabelMap: Record<string, LocalizedText> = {};
+  const neededIds = new Set(c.intake.serviceIds);
+  if (neededIds.size > 0) {
+    try {
+      const salonServices = await repo.listServices(c.salonSlug);
+      for (const s of salonServices) {
+        if (neededIds.has(s.id)) serviceLabelMap[s.id] = s.label;
+      }
+    } catch (e) {
+      await logIssue({
+        salonSlug: c.salonSlug,
+        severity: "warning",
+        source: "customer-view",
+        message: "시술 라벨맵 조회 실패(라벨 생략)",
+        detail: e instanceof Error ? e.message : String(e),
+        consultationId: c.id,
+      });
+    }
+  }
+
   return {
     salon: salon ? toPublicSalon(salon) : null,
     // 손님 뷰는 phone 미반환(PII, P1-37). intake.phone 도 함께 제거.
     consultation: stripPhone(c),
     messages: await repo.listMessages(c.id),
+    serviceLabelMap,
   };
 }
 
@@ -940,17 +970,9 @@ export async function postMessage(input: {
     consultationId: c.id,
   });
 
-  // 디자이너가 스레드에서 첫 메시지를 보내면 상담을 자동으로 진행중(in_service)으로.
-  // intake/consulting 에서만 전이하므로 사실상 '첫 디자이너 메시지'에서 한 번만 동작한다.
-  // (수동 '시술 시작' 트리거 제거 — Phase 2)
-  const advanceToInService = async (): Promise<void> => {
-    if (
-      input.role === "designer" &&
-      (c.status === "intake" || c.status === "consulting")
-    ) {
-      await repo.updateStatus(c.id, "in_service");
-    }
-  };
+  // 시술 시작은 더 이상 첫 디자이너 메시지로 자동 전이하지 않는다(Phase 2).
+  // 채팅 중에는 startConsultation 이 둔 consulting 상태가 유지되고,
+  // 디자이너가 명시적으로 startService 를 호출할 때만 in_service 로 전이한다.
 
   try {
     // 디자이너 퀵리플라이 → 사전 번역 사용 (고품질, 번역 호출 없음)
@@ -999,7 +1021,6 @@ export async function postMessage(input: {
           intent: input.intent,
           translations,
         });
-        await advanceToInService();
         return msg;
       }
     }
@@ -1020,7 +1041,6 @@ export async function postMessage(input: {
       intent: input.intent,
       translations,
     });
-    await advanceToInService();
     return msg;
   } catch (e) {
     await logIssue({
@@ -1097,6 +1117,33 @@ export async function saveBeforePhoto(
   }
 }
 
+/* ── 시술 시작(명시) → in_service 전이 ─────────────────────────
+ * 디자이너가 요약/스레드에서 명시적으로 '시술 시작'을 누를 때 호출.
+ * (첫 디자이너 메시지 자동 전이는 Phase 2 에서 제거 — 채팅 중엔 consulting 유지.)
+ * - getByDesignerToken 으로 상담 확정(없으면 {ok:false})
+ * - status 가 intake/consulting 이면 in_service 로 전이, 그 외(이미 in_service/completed
+ *   /cancelled)는 무시(멱등). designerToken 당 레이트리밋(반복 트리거 어뷰즈 차단). */
+export async function startService(
+  designerToken: string,
+): Promise<{ ok: boolean }> {
+  const repo = getRepo();
+  const c = await repo.getByDesignerToken(designerToken);
+  if (!c) return { ok: false };
+
+  // 레이트리밋(P0) — designerToken 당 분당 시술 시작 시도 상한.
+  await enforceRate(`start-service:${designerToken}`, 12, 60_000, {
+    salonSlug: c.salonSlug,
+    source: "start-service",
+    consultationId: c.id,
+  });
+
+  // intake/consulting 에서만 전이. 그 외 상태는 멱등하게 무시(ok:true).
+  if (c.status === "intake" || c.status === "consulting") {
+    await repo.updateStatus(c.id, "in_service");
+  }
+  return { ok: true };
+}
+
 /* ── 시술 완료 → 리포트 발송 ───────────────────────────── */
 export async function completeConsultation(input: {
   designerToken: string;
@@ -1161,13 +1208,47 @@ export async function completeConsultation(input: {
     // products 라벨을 손님 로케일로(카탈로그 id → label[locale], 미스는 원문 유지, P1-18/27)
     const localizedProducts = localizeProducts(draft.products, c.customerLocale);
 
-    // 리포트 보강(신규 optional) — 손님 요청 스타일/고민/주의를 요약에서, 없으면 인테이크 폴백.
+    // 리포트 보강(신규 optional) — 손님 요청 스타일/고민/주의는 요약(ko)에서, 없으면 인테이크 폴백.
     // 빈 문자열은 넣지 않는다(undefined 유지 → 리포트에서 해당 섹션 미노출).
-    const styleRequest =
+    // 이 값들은 모두 한국어(요약/인테이크 메모)이므로, 손님 리포트에는 손님 언어로 번역해 싣는다.
+    const styleRequestKo =
       c.summary.styleDetail?.trim() || c.intake.styleNote?.trim() || undefined;
-    const concerns =
+    const concernsKo =
       c.summary.concerns?.trim() || c.intake.concernNote?.trim() || undefined;
-    const cautions = c.summary.hairCautions?.trim() || undefined;
+    const cautionsKo = c.summary.hairCautions?.trim() || undefined;
+
+    // ko 본문을 손님 언어로 번역(손님 리포트용). customerLocale==="ko" 면 그대로.
+    // 번역 실패는 ko 원문으로 폴백(리포트 발송 보장) — translateToCustomer 가 try/catch.
+    const translateToCustomer = async (
+      koText: string | undefined,
+    ): Promise<string | undefined> => {
+      if (!koText) return undefined;
+      if (c.customerLocale === "ko") return koText;
+      try {
+        return await ai.translate({
+          text: koText,
+          from: "ko",
+          to: c.customerLocale,
+          domain: "salon",
+        });
+      } catch (e) {
+        await logIssue({
+          salonSlug: c.salonSlug,
+          severity: "warning",
+          source: "report",
+          message: "리포트 보강 텍스트 번역 실패(ko 원문 폴백)",
+          detail: e instanceof Error ? e.message : String(e),
+          consultationId: c.id,
+        });
+        return koText;
+      }
+    };
+
+    const [styleRequest, concerns, cautions] = await Promise.all([
+      translateToCustomer(styleRequestKo),
+      translateToCustomer(concernsKo),
+      translateToCustomer(cautionsKo),
+    ]);
 
     const reportToken = c.reportToken ?? cryptoToken();
     const report: HairReport = {
@@ -1189,6 +1270,68 @@ export async function completeConsultation(input: {
     await repo.saveReport(report);
     await repo.setReportToken(c.id, reportToken);
     await repo.updateStatus(c.id, "completed");
+
+    // ── 디자이너용 ko 리포트 ───────────────────────────────────────
+    // 손님 언어가 ko 가 아니면 별도 ko 리포트를 추가 생성·저장하고 designerReportToken 을 둔다.
+    // (손님이 한국인이면 손님 리포트가 곧 ko 리포트 — designerReportToken=reportToken 으로 공유.)
+    // ko 리포트 생성/저장 실패는 try/catch+logIssue — 이미 발송된 손님 리포트를 절대 망치지 않는다.
+    if (c.customerLocale === "ko") {
+      try {
+        await repo.setDesignerReportToken(c.id, reportToken);
+      } catch (e) {
+        await logIssue({
+          salonSlug: c.salonSlug,
+          severity: "warning",
+          source: "report",
+          message: "디자이너 리포트 토큰(=손님 ko 토큰) 저장 실패",
+          detail: e instanceof Error ? e.message : String(e),
+          consultationId: c.id,
+        });
+      }
+    } else {
+      try {
+        const koDraft = await ai.draftReport({
+          customerLocale: "ko",
+          summary: c.summary,
+          threadHighlightsKo: threadMessages
+            .map((m) => m.translations.ko ?? m.sourceText)
+            .slice(-8),
+          record: input.record,
+        });
+        const koToken = cryptoToken();
+        const koReport: HairReport = {
+          ...koDraft,
+          products: localizeProducts(koDraft.products, "ko"),
+          // ko 리포트는 요약(ko) 원문 그대로(번역 불필요).
+          styleRequest: styleRequestKo,
+          concerns: concernsKo,
+          cautions: cautionsKo,
+          consultationId: c.id,
+          reportToken: koToken,
+          salonName: salon?.name ?? "소통 헤어",
+          designerName: c.designerName ?? "담당 디자이너",
+          // before/after/점수/등급/다음 방문은 손님 리포트와 공유(같은 시술 결과).
+          hairStateGrade: report.hairStateGrade,
+          hairStateScore: report.hairStateScore,
+          nextVisitWeeks: report.nextVisitWeeks,
+          date: report.date,
+          beforePhotoUrl: beforeUrl,
+          afterPhotoUrl: input.afterPhotoUrl,
+          locale: "ko",
+        };
+        await repo.saveReport(koReport);
+        await repo.setDesignerReportToken(c.id, koToken);
+      } catch (e) {
+        await logIssue({
+          salonSlug: c.salonSlug,
+          severity: "warning",
+          source: "report",
+          message: "디자이너 ko 리포트 생성/저장 실패(손님 리포트는 발송됨)",
+          detail: e instanceof Error ? e.message : String(e),
+          consultationId: c.id,
+        });
+      }
+    }
 
     // 카르테(treatment_record) 영속 — 방문 1건을 customer 밑에 누적.
     // best-effort: 실패해도 이미 발송된 리포트를 망치지 않는다(try/catch + logIssue).

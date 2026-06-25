@@ -506,6 +506,14 @@ export class MemoryRepo implements Repo {
     }
   }
 
+  async setDesignerReportToken(
+    consultationId: string,
+    token: string,
+  ): Promise<void> {
+    const c = store.consultations.get(consultationId);
+    if (c) c.designerReportToken = token;
+  }
+
   async setBeforePhoto(consultationId: string, url: string): Promise<void> {
     const c = store.consultations.get(consultationId);
     if (c) c.beforePhotoUrl = url;

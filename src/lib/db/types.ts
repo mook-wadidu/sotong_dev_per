@@ -382,6 +382,8 @@ export interface Repo {
   updateStatus(id: string, status: ConsultationStatus): Promise<void>;
   setSummary(id: string, summary: DesignerSummary): Promise<void>;
   setReportToken(id: string, reportToken: string): Promise<void>;
+  /** 디자이너용 ko 리포트 토큰 저장 — consultation.designer_report_token UPDATE. */
+  setDesignerReportToken(consultationId: string, token: string): Promise<void>;
   /** 시술 전 사진 저장(요약 단계 촬영) — consultation.before_photo_url 갱신. */
   setBeforePhoto(consultationId: string, url: string): Promise<void>;
 

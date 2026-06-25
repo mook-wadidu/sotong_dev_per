@@ -18,6 +18,7 @@ import {
   postMessage,
   saveBeforePhoto as saveBeforePhotoSvc,
   saveDesignerPush,
+  startService as startServiceSvc,
   rotateSalonEntryKey as rotateSalonEntryKeySvc,
   rotateDesignerEntryKey as rotateDesignerEntryKeySvc,
   rotateOwnerToken as rotateOwnerTokenSvc,
@@ -121,6 +122,13 @@ export async function getConsultationStatus(
   consultationToken: string,
 ): Promise<{ status: ConsultationStatus; reportToken?: string } | null> {
   return getConsultationStatusSvc(consultationToken);
+}
+
+/* ── 디자이너: 시술 시작(명시) → in_service 전이 ───────────── */
+export async function startService(
+  designerToken: string,
+): Promise<{ ok: boolean }> {
+  return startServiceSvc(designerToken);
 }
 
 /* ── 디자이너: 시술 완료 → 리포트 발송 (+카르테 영속) ───────── */

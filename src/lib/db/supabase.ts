@@ -117,6 +117,7 @@ interface ConsultationRow {
   consultation_token: string;
   designer_token: string;
   report_token: string | null;
+  designer_report_token: string | null;
   before_photo_url: string | null;
   created_at: string;
 }
@@ -224,7 +225,7 @@ const SALON_SERVICE_CATEGORY_COLS =
 const SALON_SERVICE_COLS =
   "id,salon_slug,category_id,label_ko,label_translations,base_price_from,rank_prices,active";
 const CONSULTATION_COLS =
-  "id,salon_slug,designer_id,designer_name,customer_id,customer_locale,status,phone,is_returning,intake,summary,consultation_token,designer_token,report_token,before_photo_url,created_at";
+  "id,salon_slug,designer_id,designer_name,customer_id,customer_locale,status,phone,is_returning,intake,summary,consultation_token,designer_token,report_token,designer_report_token,before_photo_url,created_at";
 const CUSTOMER_COLS =
   "id,salon_slug,device_token,phone,contact_opt_out,locale,is_returning,created_at";
 const CUSTOMER_HAIR_PROFILE_COLS =
@@ -342,6 +343,7 @@ function toConsultation(r: ConsultationRow): Consultation {
     consultationToken: r.consultation_token,
     designerToken: r.designer_token,
     reportToken: r.report_token ?? undefined,
+    designerReportToken: r.designer_report_token ?? undefined,
     beforePhotoUrl: r.before_photo_url ?? undefined,
     createdAt: r.created_at,
   };
@@ -798,6 +800,17 @@ export class SupabaseRepo implements Repo {
       .update({ report_token: reportToken })
       .eq("id", id);
     if (error) fail("setReportToken", error);
+  }
+
+  async setDesignerReportToken(
+    consultationId: string,
+    token: string,
+  ): Promise<void> {
+    const { error } = await this.client
+      .from("consultations")
+      .update({ designer_report_token: token })
+      .eq("id", consultationId);
+    if (error) fail("setDesignerReportToken", error);
   }
 
   async setBeforePhoto(consultationId: string, url: string): Promise<void> {

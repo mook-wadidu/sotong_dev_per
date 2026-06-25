@@ -9,18 +9,18 @@ import {
   Badge,
   Card,
   CardContent,
-  Divider,
   buttonVariants,
 } from "@/components/ui";
 import { StatusBadge } from "@/components/designer/status-badge";
 import { BackToInbox } from "@/components/designer/back-to-inbox";
 import { BeforePhotoCapture } from "@/components/designer/before-photo-capture";
+import { StartServiceButton } from "@/components/designer/start-service-button";
 import { DesignerEmr } from "@/components/designer/designer-emr";
 import { CustomerHistory } from "@/components/salon-console/customer-history";
+import { ConsultationSummary } from "@/components/shared/consultation-summary";
 import {
   AlertIcon,
   SparkleIcon,
-  PhotoIcon,
   PriceTagIcon,
   CareIcon,
   CalendarIcon,
@@ -84,6 +84,25 @@ export default async function DesignerSummaryPage({
     }
   };
 
+  // 상담 정보 카드(목업① 흑백) 라벨 — ko 고정(디자이너 뷰).
+  const summaryCardLabels = {
+    title: t("summaryCard.title"),
+    language: t("summaryCard.language"),
+    purpose: t("summaryCard.purpose"),
+    style: t("summaryCard.style"),
+    photos: t("summaryCard.photos"),
+    memo: t("summaryCard.memo"),
+    gender: t("summaryCard.gender"),
+    age: t("summaryCard.age"),
+    ageValue: t("summaryCard.ageValue", { age: "{age}" }),
+    step: {
+      label: t("summaryCard.step.label"),
+      booked: t("summaryCard.step.booked"),
+      consulting: t("summaryCard.step.consulting"),
+      done: t("summaryCard.step.done"),
+    },
+  };
+
   return (
     <MobileFrame tone="muted">
       <ScreenHeader
@@ -142,25 +161,26 @@ export default async function DesignerSummaryPage({
           </CardContent>
         </Card>
 
-        {/* raw 분해 카드 */}
-        <Card>
-          <CardContent className="space-y-3 p-4">
-            <DetailRow
-              label={t("summary.services")}
-              value={s?.services?.length ? s.services.join(", ") : "—"}
-            />
-            <Divider />
-            <DetailRow
-              label={t("summary.styleDetail")}
-              value={s?.styleDetail?.trim() || "—"}
-            />
-            <Divider />
-            <DetailRow
-              label={t("summary.concerns")}
-              value={s?.concerns?.trim() || "—"}
-            />
-          </CardContent>
-        </Card>
+        {/* 상담 정보(목업① 흑백) — 언어/방문목적/스타일/사진/메모/성별·나이 + 진행 스테퍼 */}
+        <ConsultationSummary
+          language={t(`summaryCard.languageNames.${consultation.customerLocale}`)}
+          services={
+            s?.services?.length
+              ? s.services
+              : serviceLabels(intake.serviceIds, "ko")
+          }
+          styleText={s?.styleDetail}
+          photos={intake.stylePhotoUrls}
+          memo={s?.concerns}
+          gender={
+            intake.gender
+              ? t(`summaryCard.genderOpt.${intake.gender}`)
+              : undefined
+          }
+          age={intake.age}
+          status={status}
+          labels={summaryCardLabels}
+        />
 
         {/* AI 요약 본문 */}
         {s?.raw?.trim() ? (
@@ -196,27 +216,6 @@ export default async function DesignerSummaryPage({
             />
           </CardContent>
         </Card>
-
-        {/* 스타일 참고 사진 — 구/부분 intake 로 stylePhotoUrls 가 없을 수 있어 방어 */}
-        {(intake.stylePhotoUrls ?? []).length > 0 ? (
-          <div className="space-y-2">
-            <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <PhotoIcon className="size-4" />
-              {t("summary.photos")}
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {(intake.stylePhotoUrls ?? []).map((url, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={i}
-                  src={url}
-                  alt={`${t("summary.photos")} ${i + 1}`}
-                  className="aspect-square w-full rounded-xl border border-border object-cover"
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
 
         {/* 완료(completed): EMR(종합 전자차트) — 시술기록·약제·모발상태·만족도 + 비포 + 대화 하이라이트 + 고객 리포트 링크. 읽기 전용. */}
         {isCompleted ? (
@@ -274,33 +273,31 @@ export default async function DesignerSummaryPage({
         ) : null}
       </ScreenBody>
 
-      {/* 완료건은 "상담 시작" 숨김(읽기 전용). 미완료만 CTA 노출. */}
+      {/* 완료건은 CTA 숨김(읽기 전용). 미완료만 CTA: 대화하기 + 시술 시작. */}
       {isCompleted ? null : (
         <ScreenFooter>
-          <Link
-            href={designerThreadPath(token)}
-            className={cn(
-              buttonVariants({ variant: "accent", size: "lg" }),
-              "w-full",
-            )}
-          >
-            {t("summary.startConsult")}
-          </Link>
+          <div className="flex w-full flex-col gap-2">
+            <Link
+              href={designerThreadPath(token)}
+              className={cn(
+                buttonVariants({ variant: "accent", size: "lg" }),
+                "w-full",
+              )}
+            >
+              {t("summary.startConsult")}
+            </Link>
+            <StartServiceButton
+              designerToken={token}
+              status={status}
+              labels={{
+                start: t("summary.startService"),
+                inService: t("inbox.inService"),
+                failed: t("summary.startServiceFailed"),
+              }}
+            />
+          </div>
         </ScreenFooter>
       )}
     </MobileFrame>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-0.5">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-        {value}
-      </p>
-    </div>
   );
 }

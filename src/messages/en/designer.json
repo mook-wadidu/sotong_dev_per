@@ -56,8 +56,37 @@
     "fullSummary": "AI summary",
     "startConsult": "Start consultation",
     "startService": "Start service",
+    "startServiceFailed": "Couldn't start the service. Please try again.",
     "openThread": "Open chat",
     "report": "Report"
+  },
+  "summaryCard": {
+    "title": "Consultation details",
+    "language": "Language",
+    "purpose": "Visit purpose",
+    "style": "Style they want",
+    "photos": "Reference photos",
+    "memo": "Extra notes",
+    "gender": "Gender",
+    "age": "Age",
+    "ageValue": "{age}",
+    "genderOpt": {
+      "female": "Female",
+      "male": "Male",
+      "other": "Other"
+    },
+    "languageNames": {
+      "ko": "Korean",
+      "ja": "Japanese",
+      "en": "English",
+      "zh": "Chinese"
+    },
+    "step": {
+      "label": "Progress",
+      "booked": "Inquiry",
+      "consulting": "Consulting",
+      "done": "Visited"
+    }
   },
   "thread": {
     "title": "Chat with guest",

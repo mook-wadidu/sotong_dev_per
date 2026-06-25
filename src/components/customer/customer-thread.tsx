@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getConsultationStatus, pollMessages, sendMessage } from "@/lib/actions";
 import { reportPath } from "@/lib/links";
+import { ConsultationSummary } from "@/components/shared/consultation-summary";
 import {
   messageMainText,
   messageOriginalText,
@@ -44,6 +45,7 @@ export function CustomerThread({
   initialMessages,
   initialStatus,
   initialReportToken,
+  summary,
 }: {
   token: string;
   locale: Locale;
@@ -53,6 +55,15 @@ export function CustomerThread({
   initialStatus?: ConsultationStatus;
   /** 진입 시점 리포트 토큰(완료 + 발송 시 존재). */
   initialReportToken?: string;
+  /** 시술중 화면용 상담 요약(시술 라벨은 호출부가 손님 언어로 resolve). 없으면 시술중 모드 미노출. */
+  summary?: {
+    services: string[];
+    styleText?: string;
+    photos?: string[];
+    memo?: string;
+    gender?: "female" | "male" | "other";
+    age?: number;
+  };
 }) {
   const t = useTranslations("Customer");
   // 초기 로드 메시지는 정적 영역(aria-live 밖)에 둔다 — 마운트 시 일괄 announce 방지(P1).
@@ -63,6 +74,12 @@ export function CustomerThread({
   const [reportToken, setReportToken] = React.useState<string | undefined>(
     initialStatus === "completed" ? initialReportToken : undefined,
   );
+  // 상담 상태 — 폴링으로 갱신(시술중 전이 감지).
+  const [status, setStatus] = React.useState<ConsultationStatus | undefined>(
+    initialStatus,
+  );
+  // 시술중 화면 ↔ 채팅 토글 — 시술중이어도 "추가 질문" 누르면 채팅으로.
+  const [showChat, setShowChat] = React.useState(false);
   const endRef = React.useRef<HTMLDivElement>(null);
   // 폴 커서 — **서버 폴 응답의 max createdAt** 으로만 전진(P1).
   // 내가 보낸 메시지로는 전진시키지 않아, 내 전송 직전 도착한 상대 메시지도 다음 폴에서 잡힌다.
@@ -108,15 +125,18 @@ export function CustomerThread({
       } catch {
         // 폴링 실패는 조용히 무시(다음 tick 재시도)
       }
-      // 리포트 미도착이면 상태도 함께 확인 — 완료 + 리포트 토큰이면 CTA(+1회 toast).
+      // 상태 폴링 — 시술중(in_service)·완료 전이 감지. 완료 + 리포트면 CTA(+1회 toast) 후 중단.
       if (!reportArrived) {
         try {
           const st = await getConsultationStatus(token);
           if (!active) return;
-          if (st?.status === "completed" && st.reportToken) {
-            reportArrived = true;
-            setReportToken(st.reportToken);
-            toast.success(t("thread.reportReady"));
+          if (st) {
+            setStatus(st.status);
+            if (st.status === "completed" && st.reportToken) {
+              reportArrived = true;
+              setReportToken(st.reportToken);
+              toast.success(t("thread.reportReady"));
+            }
           }
         } catch {
           // 상태 폴링 실패도 조용히 무시
@@ -171,6 +191,72 @@ export function CustomerThread({
     (m) => messageSide(m, "customer") === "them" && m.sender !== "system",
   );
 
+  // 시술중 화면 라벨(ConsultationSummary 공유 카드용).
+  const summaryLabels = {
+    title: t("summary.title"),
+    language: t("summary.language"),
+    purpose: t("summary.purpose"),
+    style: t("summary.style"),
+    photos: t("summary.photos"),
+    memo: t("summary.memo"),
+    gender: t("summary.gender"),
+    age: t("summary.age"),
+    ageValue: t("summary.ageValue", { age: "{age}" }),
+    step: {
+      label: t("summary.step.label"),
+      booked: t("summary.step.booked"),
+      consulting: t("summary.step.consulting"),
+      done: t("summary.step.done"),
+    },
+  };
+
+  // 시술중 모드: 상태가 in_service 이고, 손님이 채팅으로 전환하지 않았고, 요약 데이터가 있을 때.
+  const inServiceMode = status === "in_service" && !showChat && !!summary;
+
+  if (inServiceMode && summary) {
+    return (
+      <MobileFrame tone="muted">
+        <ScreenHeader
+          title={salonName || t("thread.title")}
+          subtitle={t("thread.translatedNote")}
+        />
+        <ScreenBody className="space-y-4 pb-4">
+          <div className="rounded-2xl border border-foreground bg-foreground px-4 py-5 text-center text-background">
+            <p className="text-lg font-bold">{t("thread.inServiceTitle")}</p>
+            <p className="mt-1 text-sm text-background/80">
+              {t("thread.inServiceSubtitle")}
+            </p>
+          </div>
+          <ConsultationSummary
+            language={t(`summary.languageNames.${locale}`)}
+            services={summary.services}
+            styleText={summary.styleText}
+            photos={summary.photos}
+            memo={summary.memo}
+            gender={
+              summary.gender
+                ? t(`intake.about.genderOpt.${summary.gender}`)
+                : undefined
+            }
+            age={summary.age}
+            status="in_service"
+            labels={summaryLabels}
+          />
+        </ScreenBody>
+        <ScreenFooter>
+          <Button
+            variant="accent"
+            size="lg"
+            className="w-full"
+            onClick={() => setShowChat(true)}
+          >
+            {t("thread.askMore")}
+          </Button>
+        </ScreenFooter>
+      </MobileFrame>
+    );
+  }
+
   return (
     <MobileFrame tone="muted">
       <ScreenHeader
@@ -180,6 +266,17 @@ export function CustomerThread({
 
       <ScreenBody className="flex flex-col gap-3 pb-4">
         <div className="flex flex-1 flex-col gap-3">
+          {/* 시술중에 채팅을 연 경우 — 시술 정보로 복귀 */}
+          {status === "in_service" && summary ? (
+            <button
+              type="button"
+              onClick={() => setShowChat(false)}
+              className="self-start text-xs font-medium text-muted-foreground underline underline-offset-2"
+            >
+              ‹ {t("thread.backToService")}
+            </button>
+          ) : null}
+
           {/* 빈 스레드 안내 — 메시지가 하나도 없을 때만 */}
           {allMessages.length === 0 ? (
             <SystemNote>{t("thread.empty")}</SystemNote>

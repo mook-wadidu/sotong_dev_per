@@ -8,6 +8,29 @@
   "entry": {
     "designerRankSeparator": " · "
   },
+  "summary": {
+    "title": "Consultation details",
+    "language": "Language",
+    "purpose": "Visit purpose",
+    "style": "Style you want",
+    "photos": "Reference photos",
+    "memo": "Extra notes",
+    "gender": "Gender",
+    "age": "Age",
+    "ageValue": "{age}",
+    "languageNames": {
+      "ko": "Korean",
+      "ja": "Japanese",
+      "en": "English",
+      "zh": "Chinese"
+    },
+    "step": {
+      "label": "Progress",
+      "booked": "Inquiry",
+      "consulting": "Consulting",
+      "done": "Visited"
+    }
+  },
   "invalid": {
     "title": "This entry link isn't valid",
     "body": "This QR or link has expired or isn't correct. Please scan the QR posted in the salon again.",
@@ -37,6 +60,7 @@
       "concern": "Any usual concerns?",
       "allergy": "Any scalp or product allergies?",
       "phone": "Contact (optional)",
+      "about": "Tell us a bit more (optional)",
       "consent": "Consent to data collection"
     },
     "services": {
@@ -72,6 +96,29 @@
       "history": "Recent treatment history",
       "historyHint": "Pick the treatments you had recently",
       "historyRecency": "{type} — when did you have it?"
+    },
+    "about": {
+      "hint": "This helps us tailor recommendations. Everything is optional, so feel free to skip.",
+      "gender": "Gender (optional)",
+      "genderOpt": {
+        "female": "Female",
+        "male": "Male",
+        "other": "Other"
+      },
+      "age": "Age range (optional)",
+      "ageBand": {
+        "10s": "Teens",
+        "20s": "20s",
+        "30s": "30s",
+        "40s": "40s",
+        "50s": "50s",
+        "60s": "60+"
+      },
+      "selfie": "Your photo (optional)",
+      "selfieHint": "A photo of your current hair and face shape helps the consultation. Just one is enough.",
+      "selfieAdd": "Add photo",
+      "selfieRemove": "Remove",
+      "selfieError": "Couldn't upload the photo. Please try again."
     },
     "concern": {
       "title": "Anything you feel self-conscious about or would like us to pay attention to?",
@@ -120,7 +167,11 @@
     "sending": "Sending…",
     "sendError": "Couldn't send your message",
     "reportReady": "Your report has arrived",
-    "viewReport": "View report"
+    "viewReport": "View report",
+    "inServiceTitle": "Your service is underway",
+    "inServiceSubtitle": "Please relax and wait. Let us know if you have any questions.",
+    "askMore": "I have another question!",
+    "backToService": "Back to service info"
   },
   "report": {
     "title": "Hair InBody Report",

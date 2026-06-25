@@ -8,6 +8,29 @@
   "entry": {
     "designerRankSeparator": " · "
   },
+  "summary": {
+    "title": "상담 정보",
+    "language": "언어",
+    "purpose": "방문 목적",
+    "style": "원하는 스타일",
+    "photos": "참고 이미지",
+    "memo": "추가 메모",
+    "gender": "성별",
+    "age": "나이",
+    "ageValue": "{age}세",
+    "languageNames": {
+      "ko": "한국어",
+      "ja": "일본어",
+      "en": "영어",
+      "zh": "중국어"
+    },
+    "step": {
+      "label": "진행 상황",
+      "booked": "예약문의",
+      "consulting": "상담진행",
+      "done": "방문완료"
+    }
+  },
   "invalid": {
     "title": "잘못된 입장 링크예요",
     "body": "이 QR 또는 링크는 만료되었거나 올바르지 않아요. 매장에 비치된 QR을 다시 찍어주세요.",
@@ -37,6 +60,7 @@
       "concern": "평소 고민이 있나요?",
       "allergy": "두피·약물 알레르기가 있나요?",
       "phone": "연락처 (선택)",
+      "about": "조금 더 알려주세요 (선택)",
       "consent": "개인정보 수집 동의"
     },
     "services": {
@@ -72,6 +96,29 @@
       "history": "최근 시술 이력",
       "historyHint": "최근에 받은 시술을 골라주세요",
       "historyRecency": "{type} — 언제 받으셨어요?"
+    },
+    "about": {
+      "hint": "추천을 더 잘 맞추기 위한 정보예요. 모두 선택이라 건너뛰어도 돼요.",
+      "gender": "성별 (선택)",
+      "genderOpt": {
+        "female": "여성",
+        "male": "남성",
+        "other": "기타"
+      },
+      "age": "나이대 (선택)",
+      "ageBand": {
+        "10s": "10대",
+        "20s": "20대",
+        "30s": "30대",
+        "40s": "40대",
+        "50s": "50대",
+        "60s": "60대 이상"
+      },
+      "selfie": "내 사진 (선택)",
+      "selfieHint": "지금 머릿결·얼굴형을 보여주면 상담에 도움이 돼요. 1장만 올려주세요.",
+      "selfieAdd": "사진 추가",
+      "selfieRemove": "삭제",
+      "selfieError": "사진을 올리지 못했어요. 다시 시도해주세요."
     },
     "concern": {
       "title": "평소 컴플렉스이거나 신경쓰면 좋을 부분이 있나요?",
@@ -120,7 +167,11 @@
     "sending": "보내는 중…",
     "sendError": "메시지를 보내지 못했어요",
     "reportReady": "리포트가 도착했어요",
-    "viewReport": "리포트 보기"
+    "viewReport": "리포트 보기",
+    "inServiceTitle": "시술중입니다",
+    "inServiceSubtitle": "편하게 기다려 주세요. 궁금한 점이 있으면 알려주세요.",
+    "askMore": "추가로 궁금한게 있어요!",
+    "backToService": "시술 정보로 돌아가기"
   },
   "report": {
     "title": "헤어 인바디 리포트",

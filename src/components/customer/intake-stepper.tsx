@@ -59,8 +59,36 @@ import {
 } from "@/lib/domain/types";
 import { resizeImageToDataUrl } from "./resize-image";
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 const MAX_PHOTOS = 5;
+
+/** 성별 옵션 (다국어) — IntakeDraft.gender 와 동일 union. 선택. */
+const GENDER_OPTIONS: { id: NonNullable<IntakeDraft["gender"]>; key: string }[] = [
+  { id: "female", key: "female" },
+  { id: "male", key: "male" },
+  { id: "other", key: "other" },
+];
+
+/** 연령대 칩 — 탭으로 빠르게. 각 칩의 mid 값을 draft.age 에 저장(대표값). */
+const AGE_BANDS: { id: string; mid: number }[] = [
+  { id: "10s", mid: 19 },
+  { id: "20s", mid: 25 },
+  { id: "30s", mid: 35 },
+  { id: "40s", mid: 45 },
+  { id: "50s", mid: 55 },
+  { id: "60s", mid: 65 },
+];
+
+/** draft.age(숫자) → 해당 연령대 칩 id. 미입력/범위밖이면 null. */
+function ageToBand(age: number | undefined): string | null {
+  if (age == null) return null;
+  if (age < 20) return "10s";
+  if (age < 30) return "20s";
+  if (age < 40) return "30s";
+  if (age < 50) return "40s";
+  if (age < 60) return "50s";
+  return "60s";
+}
 
 /** 살롱별 메뉴(서버에서 해석한 가격 포함) — 전역 catalog 대체 */
 export interface IntakeMenuCategory {
@@ -119,9 +147,16 @@ function prefilledDraft(
   const p = ctx.profile;
   const validIds = new Set(services.map((s) => s.id));
   const serviceIds = (ctx.lastServiceIds ?? []).filter((id) => validIds.has(id));
+  // age/gender 는 CustomerHairProfile 에 아직 영속되지 않음 — 프로필이 추후 이 필드를
+  // 실으면 그때 프리필되도록 방어적으로 읽는다(없으면 undefined → emptyIntake 와 동일).
+  const profileExtra = p as
+    | (CustomerHairProfile & Pick<IntakeDraft, "age" | "gender">)
+    | undefined;
   return {
     ...base,
     serviceIds,
+    age: profileExtra?.age ?? base.age,
+    gender: profileExtra?.gender ?? base.gender,
     faceShape: p?.faceShape ?? base.faceShape,
     crownVolume: p?.crownVolume ?? base.crownVolume,
     hairDensity: p?.hairDensity ?? base.hairDensity,
@@ -366,7 +401,8 @@ export function IntakeStepper({
         )}
         {step === 6 && <AllergyStep t={t} draft={draft} patch={patch} />}
         {step === 7 && <PhoneStep t={t} draft={draft} patch={patch} />}
-        {step === 8 && (
+        {step === 8 && <AboutYouStep t={t} draft={draft} patch={patch} />}
+        {step === 9 && (
           <ConsentStep
             t={t}
             consent={consent}
@@ -444,6 +480,7 @@ const STEP_TITLE_KEYS = [
   "intake.concern.title",
   "intake.step.allergy",
   "intake.step.phone",
+  "intake.step.about",
   "intake.step.consent",
 ] as const;
 
@@ -959,7 +996,129 @@ function PhoneStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patch
   );
 }
 
-/* ── ⑧ 동의 (필수) + 상세 Sheet ──────────────────────── */
+/* ── ⑧ 손님 정보 (성별·나이·셀카 — 모두 선택) ─────────────── */
+function AboutYouStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patch }) {
+  const [busy, setBusy] = React.useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const ageBand = ageToBand(draft.age);
+
+  const onSelfie = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      const url = await resizeImageToDataUrl(file);
+      patch({ selfiePhotoUrl: url });
+    } catch {
+      toast.error(t("intake.about.selfieError"));
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <p className="-mt-2 text-sm text-muted-foreground">
+        {t("intake.about.hint")}
+      </p>
+
+      {/* 성별 (선택) */}
+      <div className="space-y-2">
+        <SectionLabel className="mb-1.5">{t("intake.about.gender")}</SectionLabel>
+        <RadioGroup
+          variant="grid"
+          label={t("intake.about.gender")}
+          options={GENDER_OPTIONS.map((g) => ({
+            value: g.id,
+            label: t(`intake.about.genderOpt.${g.key}`),
+          }))}
+          value={draft.gender ?? null}
+          onValueChange={(v) =>
+            patch({ gender: v as NonNullable<IntakeDraft["gender"]> })
+          }
+        />
+      </div>
+
+      <Divider />
+
+      {/* 나이 (선택) — 연령대 칩 */}
+      <div className="space-y-2">
+        <SectionLabel className="mb-1.5">{t("intake.about.age")}</SectionLabel>
+        <RadioGroup
+          variant="grid"
+          label={t("intake.about.age")}
+          options={AGE_BANDS.map((b) => ({
+            value: b.id,
+            label: t(`intake.about.ageBand.${b.id}`),
+          }))}
+          value={ageBand}
+          onValueChange={(id) => {
+            const band = AGE_BANDS.find((b) => b.id === id);
+            if (band) patch({ age: band.mid });
+          }}
+        />
+      </div>
+
+      <Divider />
+
+      {/* 셀카 (선택, 1장) */}
+      <div className="space-y-2">
+        <SectionLabel className="mb-1.5">{t("intake.about.selfie")}</SectionLabel>
+        <p className="-mt-1 text-sm text-muted-foreground">
+          {t("intake.about.selfieHint")}
+        </p>
+        {draft.selfiePhotoUrl ? (
+          <div className="relative aspect-square w-32 overflow-hidden rounded-xl border border-border bg-card">
+            {/* 인테이크 미리보기 — 다음 next/image 비대상(dataURL) */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={draft.selfiePhotoUrl}
+              alt={t("intake.about.selfie")}
+              className="size-full object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => patch({ selfiePhotoUrl: undefined })}
+              aria-label={t("intake.about.selfieRemove")}
+              className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-foreground/65 text-base font-semibold leading-none text-card outline-none backdrop-blur-sm transition-colors hover:bg-foreground/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            className="flex aspect-square w-32 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-card text-muted-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
+          >
+            {busy ? (
+              <SpinnerIcon className="size-6 animate-spin" aria-hidden="true" />
+            ) : (
+              <span className="text-2xl font-light leading-none" aria-hidden="true">
+                +
+              </span>
+            )}
+            <span className="text-xs font-medium">
+              {busy ? t("intake.photos.uploading") : t("intake.about.selfieAdd")}
+            </span>
+          </button>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          capture="user"
+          className="sr-only"
+          onChange={(e) => onSelfie(e.target.files)}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ── ⑨ 동의 (필수) + 상세 Sheet ──────────────────────── */
 function ConsentStep({
   t,
   consent,

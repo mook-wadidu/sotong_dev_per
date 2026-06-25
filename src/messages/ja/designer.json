@@ -56,8 +56,37 @@
     "fullSummary": "AI要約",
     "startConsult": "相談を開始",
     "startService": "施術を開始",
+    "startServiceFailed": "施術の開始を処理できませんでした。もう一度お試しください。",
     "openThread": "やり取りする",
     "report": "レポート"
+  },
+  "summaryCard": {
+    "title": "相談内容",
+    "language": "言語",
+    "purpose": "ご来店の目的",
+    "style": "ご希望のスタイル",
+    "photos": "参考画像",
+    "memo": "追加メモ",
+    "gender": "性別",
+    "age": "年齢",
+    "ageValue": "{age}歳",
+    "genderOpt": {
+      "female": "女性",
+      "male": "男性",
+      "other": "その他"
+    },
+    "languageNames": {
+      "ko": "韓国語",
+      "ja": "日本語",
+      "en": "英語",
+      "zh": "中国語"
+    },
+    "step": {
+      "label": "進行状況",
+      "booked": "予約問い合わせ",
+      "consulting": "相談中",
+      "done": "来店完了"
+    }
   },
   "thread": {
     "title": "お客様とのやり取り",

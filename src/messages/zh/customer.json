@@ -8,6 +8,29 @@
   "entry": {
     "designerRankSeparator": " · "
   },
+  "summary": {
+    "title": "咨询信息",
+    "language": "语言",
+    "purpose": "到店目的",
+    "style": "想要的风格",
+    "photos": "参考图片",
+    "memo": "补充备注",
+    "gender": "性别",
+    "age": "年龄",
+    "ageValue": "{age}岁",
+    "languageNames": {
+      "ko": "韩语",
+      "ja": "日语",
+      "en": "英语",
+      "zh": "中文"
+    },
+    "step": {
+      "label": "进度",
+      "booked": "预约咨询",
+      "consulting": "咨询中",
+      "done": "到店完成"
+    }
+  },
   "invalid": {
     "title": "入场链接无效",
     "body": "此二维码或链接已过期或不正确。请重新扫描店内提供的二维码。",
@@ -37,6 +60,7 @@
       "concern": "平时有什么烦恼吗？",
       "allergy": "对头皮或药剂有过敏吗？",
       "phone": "联系方式（选填）",
+      "about": "再多告诉我们一些（选填）",
       "consent": "个人信息收集同意"
     },
     "services": {
@@ -72,6 +96,29 @@
       "history": "近期做过的项目",
       "historyHint": "请选择最近做过的项目",
       "historyRecency": "{type} —— 是什么时候做的？"
+    },
+    "about": {
+      "hint": "这些信息帮助我们更好地为您推荐。全部为选填，可以跳过。",
+      "gender": "性别（选填）",
+      "genderOpt": {
+        "female": "女",
+        "male": "男",
+        "other": "其他"
+      },
+      "age": "年龄段（选填）",
+      "ageBand": {
+        "10s": "10多岁",
+        "20s": "20多岁",
+        "30s": "30多岁",
+        "40s": "40多岁",
+        "50s": "50多岁",
+        "60s": "60岁以上"
+      },
+      "selfie": "我的照片（选填）",
+      "selfieHint": "展示当前的发质和脸型有助于咨询。上传一张即可。",
+      "selfieAdd": "添加照片",
+      "selfieRemove": "删除",
+      "selfieError": "照片上传失败。请重试。"
     },
     "concern": {
       "title": "平时有没有在意或希望注意的地方？",
@@ -120,7 +167,11 @@
     "sending": "发送中…",
     "sendError": "消息发送失败",
     "reportReady": "报告已送达",
-    "viewReport": "查看报告"
+    "viewReport": "查看报告",
+    "inServiceTitle": "正在施术中",
+    "inServiceSubtitle": "请安心稍候。如有疑问请随时告诉我们。",
+    "askMore": "我还有想问的！",
+    "backToService": "返回施术信息"
   },
   "report": {
     "title": "头发体检报告",

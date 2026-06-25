@@ -56,8 +56,37 @@
     "fullSummary": "AI 요약",
     "startConsult": "상담 시작",
     "startService": "시술 시작",
+    "startServiceFailed": "시술 시작을 처리하지 못했어요. 다시 시도해 주세요.",
     "openThread": "대화하기",
     "report": "리포트"
+  },
+  "summaryCard": {
+    "title": "상담 정보",
+    "language": "언어",
+    "purpose": "방문 목적",
+    "style": "원하는 스타일",
+    "photos": "참고 이미지",
+    "memo": "추가 메모",
+    "gender": "성별",
+    "age": "나이",
+    "ageValue": "{age}세",
+    "genderOpt": {
+      "female": "여성",
+      "male": "남성",
+      "other": "기타"
+    },
+    "languageNames": {
+      "ko": "한국어",
+      "ja": "일본어",
+      "en": "영어",
+      "zh": "중국어"
+    },
+    "step": {
+      "label": "진행 상황",
+      "booked": "예약문의",
+      "consulting": "상담진행",
+      "done": "방문완료"
+    }
   },
   "thread": {
     "title": "손님과 대화",

@@ -8,6 +8,29 @@
   "entry": {
     "designerRankSeparator": " · "
   },
+  "summary": {
+    "title": "相談内容",
+    "language": "言語",
+    "purpose": "ご来店の目的",
+    "style": "ご希望のスタイル",
+    "photos": "参考画像",
+    "memo": "追加メモ",
+    "gender": "性別",
+    "age": "年齢",
+    "ageValue": "{age}歳",
+    "languageNames": {
+      "ko": "韓国語",
+      "ja": "日本語",
+      "en": "英語",
+      "zh": "中国語"
+    },
+    "step": {
+      "label": "進行状況",
+      "booked": "予約問い合わせ",
+      "consulting": "相談中",
+      "done": "来店完了"
+    }
+  },
   "invalid": {
     "title": "ご利用リンクが無効です",
     "body": "このQRまたはリンクは期限切れか、正しくありません。店内に掲示されたQRをもう一度読み取ってください。",
@@ -37,6 +60,7 @@
       "concern": "普段のお悩みはありますか？",
       "allergy": "頭皮・薬剤のアレルギーはありますか？",
       "phone": "連絡先（任意）",
+      "about": "もう少し教えてください（任意）",
       "consent": "個人情報の取得への同意"
     },
     "services": {
@@ -72,6 +96,29 @@
       "history": "最近の施術履歴",
       "historyHint": "最近受けた施術を選んでください",
       "historyRecency": "{type} — いつ受けましたか？"
+    },
+    "about": {
+      "hint": "おすすめをより合わせるための情報です。すべて任意なのでスキップできます。",
+      "gender": "性別（任意）",
+      "genderOpt": {
+        "female": "女性",
+        "male": "男性",
+        "other": "その他"
+      },
+      "age": "年代（任意）",
+      "ageBand": {
+        "10s": "10代",
+        "20s": "20代",
+        "30s": "30代",
+        "40s": "40代",
+        "50s": "50代",
+        "60s": "60代以上"
+      },
+      "selfie": "あなたの写真（任意）",
+      "selfieHint": "今の髪質・顔型がわかると相談に役立ちます。1枚だけアップしてください。",
+      "selfieAdd": "写真を追加",
+      "selfieRemove": "削除",
+      "selfieError": "写真をアップロードできませんでした。もう一度お試しください。"
     },
     "concern": {
       "title": "普段コンプレックスに感じる部分や、気にかけてほしい点はありますか？",
@@ -120,7 +167,11 @@
     "sending": "送信中…",
     "sendError": "メッセージを送信できませんでした",
     "reportReady": "レポートが届きました",
-    "viewReport": "レポートを見る"
+    "viewReport": "レポートを見る",
+    "inServiceTitle": "施術中です",
+    "inServiceSubtitle": "ごゆっくりお待ちください。ご質問があればお知らせください。",
+    "askMore": "もっと聞きたいことがあります！",
+    "backToService": "施術情報に戻る"
   },
   "report": {
     "title": "ヘアインボディレポート",

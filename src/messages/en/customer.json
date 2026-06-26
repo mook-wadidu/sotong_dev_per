@@ -142,7 +142,9 @@
       "detail": "Your information (including contact and photos) is used only for consultation and records. It is kept for about 90 days after the consultation, after which your contact and photos are deleted or masked.",
       "crossBorder": "To enable smooth multilingual consultation, your input is automatically translated and summarized, which transfers it abroad to Google LLC's Gemini AI (USA). Data storage is entrusted to Supabase.",
       "policyLink": "See our Privacy Policy for details.",
-      "required": "Consent is required to continue"
+      "required": "Consent is required to continue",
+      "trainingLabel": "(Optional) I agree to let my info and results be pseudonymized and used to improve the AI service and train models.",
+      "trainingHint": "Photos, contact, and name are excluded. Declining won’t affect your service, and you can withdraw anytime."
     },
     "back": "Back",
     "next": "Next",

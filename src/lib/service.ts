@@ -1,6 +1,7 @@
 import "server-only";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { getRepo } from "@/lib/db";
+import { config } from "@/lib/config";
 import {
   DEFAULT_DESIGNER_RANKS,
   toPublicSalon,
@@ -46,6 +47,7 @@ import {
 import { sendWebPush } from "@/lib/push";
 import { ensureDeviceToken, readDeviceToken } from "@/lib/device";
 import {
+  ageBand,
   NATIONALITY_BY_LOCALE,
   type Consultation,
   type ConsultationStatus,
@@ -54,6 +56,7 @@ import {
   type HairReport,
   type IntakeDraft,
   type Locale,
+  type TrainingSample,
   type Message,
   type QuickReplyIntent,
   type ThreeLevel,
@@ -1359,6 +1362,48 @@ export async function completeConsultation(input: {
       });
     }
 
+    // ── 비식별 ML 학습 샘플 적재(학습 옵트인 동의 건만) ──────────
+    // 원본 상담은 retention 으로 90일 후 파기되지만, 이 가명·통계 샘플은 자산으로 남는다.
+    // 사진·전화·이름·자유텍스트·얼굴은 제외. best-effort(실패해도 리포트 무손상).
+    if (c.intake.trainingConsentedAt) {
+      try {
+        const sample: TrainingSample = {
+          id: cryptoToken(),
+          salonSlug: c.salonSlug,
+          customerPseudonym: c.customerId
+            ? pseudonymize(c.customerId)
+            : `anon-${cryptoToken()}`,
+          visitedAt: report.date,
+          nationality: c.customerLocale,
+          gender: c.intake.gender,
+          ageBand: ageBand(c.intake.age),
+          faceShape: c.intake.faceShape,
+          crownVolume: c.intake.crownVolume,
+          hairDensity: c.intake.hairDensity,
+          hairType: c.intake.hairType,
+          concernIds: c.intake.concernIds ?? [],
+          allergy: !!c.intake.allergy,
+          serviceIds: c.intake.serviceIds ?? [],
+          products: input.record?.products ?? report.products ?? [],
+          stateGrade: input.record?.stateGrade ?? report.hairStateGrade,
+          hairStateScore: report.hairStateScore,
+          satisfactionScore: input.record?.satisfactionScore,
+          nextVisitWeeks: report.nextVisitWeeks,
+          createdAt: new Date().toISOString(),
+        };
+        await repo.saveTrainingSample(sample);
+      } catch (e) {
+        await logIssue({
+          salonSlug: c.salonSlug,
+          severity: "warning",
+          source: "report",
+          message: "학습 샘플 적재 실패",
+          detail: e instanceof Error ? e.message : String(e),
+          consultationId: c.id,
+        });
+      }
+    }
+
     return { reportToken };
   } catch (e) {
     await logIssue({
@@ -1536,8 +1581,17 @@ function localizeProducts(products: string[], locale: Locale): string[] {
   });
 }
 
+/** 무인증 토큰 — 절단 없이 192bit 랜덤(base64url). 다른 토큰과 엔트로피 통일(스캔/열거 차단). */
 function cryptoToken(): string {
-  return globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  return randomBytes(24).toString("base64url");
+}
+
+/** 가명 — customerId 의 비가역 해시(entrySecret salt). 재방문 연결만, 재식별 불가. */
+function pseudonymize(customerId: string): string {
+  return createHash("sha256")
+    .update(`${customerId}:${config.entrySecret}`)
+    .digest("hex")
+    .slice(0, 32);
 }
 
 /* ── 어드민 / 디자이너 인박스 투영 ─────────────────────────── */

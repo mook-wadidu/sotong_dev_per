@@ -7,6 +7,7 @@ import type {
   DesignerSummary,
   HairReport,
   Message,
+  TrainingSample,
   TreatmentRecord,
 } from "@/lib/domain/types";
 import type {
@@ -53,6 +54,7 @@ interface Store {
   customers: Map<string, Customer>; // customerId -> Customer
   hairProfiles: Map<string, CustomerHairProfile>; // customerId -> 최신 프로필
   treatmentRecords: Map<string, TreatmentRecord>; // recordId -> TreatmentRecord
+  trainingSamples: TrainingSample[]; // 비식별 학습 샘플(append-only)
 }
 
 // 직급(rank) — 양 살롱 동일(데모). 신규 살롱 기본값과 동일 진실원천.
@@ -275,6 +277,7 @@ function freshStore(): Store {
     customers: new Map(),
     hairProfiles: new Map(),
     treatmentRecords: new Map(),
+    trainingSamples: [],
   };
 }
 
@@ -285,6 +288,7 @@ store.pushSubs ??= new Map();
 store.customers ??= new Map();
 store.hairProfiles ??= new Map();
 store.treatmentRecords ??= new Map();
+store.trainingSamples ??= [];
 
 /** 무인증 접근 토큰 — 절단 없이 192bit 랜덤(base64url). 추측/열거 차단(P0/P1-36). */
 const token = () => randomBytes(24).toString("base64url");
@@ -607,6 +611,10 @@ export class MemoryRepo implements Repo {
     return [...store.treatmentRecords.values()]
       .filter((r) => r.customerId === customerId)
       .sort((a, b) => (a.visitedAt < b.visitedAt ? 1 : -1));
+  }
+
+  async saveTrainingSample(sample: TrainingSample): Promise<void> {
+    store.trainingSamples.push(sample);
   }
 
   async getTreatmentByConsultation(

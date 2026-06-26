@@ -17,6 +17,7 @@ import type {
   MessageSender,
   QuickReplyIntent,
   ThreeLevel,
+  TrainingSample,
   TreatmentHistoryItem,
   TreatmentRecord,
   YesNoUnknown,
@@ -832,10 +833,15 @@ export class SupabaseRepo implements Repo {
   }
 
   async scrubConsultationPii(redacted: Consultation): Promise<void> {
-    // 전화 컬럼 + intake JSONB 를 마스킹된 값으로 덮어쓴다(사진·자유텍스트 제거).
+    // 전화 컬럼 + intake JSONB + 시술전 사진 컬럼을 마스킹된 값으로 덮어쓴다
+    // (사진·셀카·자유텍스트 원본 dataURL 제거).
     const { error } = await this.client
       .from("consultations")
-      .update({ phone: redacted.phone ?? null, intake: redacted.intake })
+      .update({
+        phone: redacted.phone ?? null,
+        intake: redacted.intake,
+        before_photo_url: redacted.beforePhotoUrl ?? null,
+      })
       .eq("id", redacted.id);
     if (error) fail("scrubConsultationPii", error);
   }
@@ -970,9 +976,35 @@ export class SupabaseRepo implements Repo {
       .from("treatment_records")
       .select(TREATMENT_RECORD_COLS)
       .eq("customer_id", customerId)
-      .order("visited_at", { ascending: false });
+      .order("visited_at", { ascending: false })
+      .limit(200); // 카르테 표시·집계용 상한(폭증 방어).
     if (error) fail("listCustomerTreatments", error);
     return ((data ?? []) as TreatmentRecordRow[]).map(toTreatmentRecord);
+  }
+
+  async saveTrainingSample(s: TrainingSample): Promise<void> {
+    // 비식별 학습 샘플 적재(PII 컬럼 없음). 실패는 호출부에서 best-effort 처리.
+    const { error } = await this.client.from("training_samples").insert({
+      salon_slug: s.salonSlug,
+      customer_pseudonym: s.customerPseudonym,
+      visited_at: s.visitedAt,
+      nationality: s.nationality ?? null,
+      gender: s.gender ?? null,
+      age_band: s.ageBand ?? null,
+      face_shape: s.faceShape ?? null,
+      crown_volume: s.crownVolume ?? null,
+      hair_density: s.hairDensity ?? null,
+      hair_type: s.hairType ?? null,
+      concern_ids: s.concernIds,
+      allergy: s.allergy,
+      service_ids: s.serviceIds,
+      products: s.products,
+      state_grade: s.stateGrade ?? null,
+      hair_state_score: s.hairStateScore ?? null,
+      satisfaction_score: s.satisfactionScore ?? null,
+      next_visit_weeks: s.nextVisitWeeks ?? null,
+    });
+    if (error) fail("saveTrainingSample", error);
   }
 
   async getTreatmentByConsultation(

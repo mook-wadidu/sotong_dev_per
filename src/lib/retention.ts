@@ -71,6 +71,8 @@ export function hasPii(c: Consultation): boolean {
   return Boolean(
     c.phone ||
       c.intake.phone ||
+      c.beforePhotoUrl ||
+      c.intake.selfiePhotoUrl ||
       (c.intake.stylePhotoUrls && c.intake.stylePhotoUrls.length > 0),
   );
 }
@@ -80,21 +82,23 @@ export function hasPii(c: Consultation): boolean {
 /**
  * 상담에서 PII 를 제거/마스킹한 새 객체를 만든다(불변).
  * - phone / intake.phone: 완전 삭제
- * - intake.stylePhotoUrls: 빈 배열로 파기(원본 dataURL 제거)
+ * - intake.stylePhotoUrls / intake.selfiePhotoUrl / beforePhotoUrl: 사진 원본 dataURL 파기
  * - styleNote / concernNote / allergyNote: 자유 텍스트라 PII 우려 → 삭제
  *
  * 비PII(시술 종류·요약 등)는 운영 통계를 위해 남긴다. 요약(summary.raw) 에는
  * 가공된 정보가 들어갈 수 있으나 전화·사진 원본은 아니므로 여기서는 유지한다.
- * (요약까지 파기하려면 redactSummary 옵션을 추가할 것 — 법무 검토.)
+ * (요약/리포트 사진까지 파기하려면 옵션을 추가할 것 — 법무 검토.)
  */
 export function redactConsultationPii(c: Consultation): Consultation {
   return {
     ...c,
     phone: undefined,
+    beforePhotoUrl: undefined, // 시술 전 사진(컬럼) 파기
     intake: {
       ...c.intake,
       phone: undefined,
       stylePhotoUrls: [],
+      selfiePhotoUrl: undefined, // 손님 셀카 파기
       styleNote: undefined,
       concernNote: undefined,
       allergyNote: undefined,

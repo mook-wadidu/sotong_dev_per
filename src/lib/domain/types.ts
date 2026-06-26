@@ -109,6 +109,55 @@ export interface IntakeDraft {
   allergyNote?: string;
   /** 개인정보·사진 수집 동의 시각 (ISO). 없으면 제출 차단 */
   consentedAt?: string;
+  /**
+   * (선택) AI 모델 학습 활용 동의 시각 (ISO). 별도 옵트인 — 필수 아님.
+   * 이 값이 있을 때만 완료 시 **비식별 학습 샘플**(training_samples)을 적재한다.
+   * 사진·전화·이름·자유텍스트·얼굴은 학습셋에서 제외(가명·통계 목적).
+   */
+  trainingConsentedAt?: string;
+}
+
+/**
+ * 비식별 ML 학습 샘플 — 원본 PII(전화·사진·이름·자유텍스트)는 제외하고
+ * 가명 customer 해시 + coarse 인구통계 + 모발 특징 + 시술/결과만 담는다.
+ * 원본 상담은 90일 후 파기되지만(retention) 이 샘플은 자산으로 영구 축적된다.
+ * 학습 옵트인 동의(trainingConsentedAt) 가 있는 완료 건에서만 생성한다.
+ */
+export interface TrainingSample {
+  id: string;
+  salonSlug: string;
+  /** 가명 — customerId 의 비가역 해시(없으면 익명 1회성). 재방문 연결만, 재식별 불가. */
+  customerPseudonym: string;
+  visitedAt: string;
+  /** 국적 프록시(손님 언어 로케일). */
+  nationality?: string;
+  gender?: "female" | "male" | "other";
+  /** 연령대(정확 나이 아님 — 재식별 위험 완화). */
+  ageBand?: string;
+  faceShape?: FaceShape;
+  crownVolume?: ThreeLevel;
+  hairDensity?: ThreeLevel;
+  hairType?: HairType;
+  concernIds: string[];
+  allergy: boolean;
+  serviceIds: string[];
+  products: string[];
+  stateGrade?: ThreeLevel;
+  hairStateScore?: number;
+  satisfactionScore?: number;
+  nextVisitWeeks?: number;
+  createdAt: string;
+}
+
+/** 정확 나이 → 연령대 밴드(학습셋 비식별용). */
+export function ageBand(age: number | undefined): string | undefined {
+  if (age == null || !Number.isFinite(age)) return undefined;
+  if (age < 20) return "10s";
+  if (age < 30) return "20s";
+  if (age < 40) return "30s";
+  if (age < 50) return "40s";
+  if (age < 60) return "50s";
+  return "60s+";
 }
 
 export function emptyIntake(): IntakeDraft {

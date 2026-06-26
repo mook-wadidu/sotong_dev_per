@@ -201,6 +201,8 @@ export function IntakeStepper({
   const [draft, setDraft] = React.useState<IntakeDraft>(() => emptyIntake());
   const [consent, setConsent] = React.useState(false);
   const [consentError, setConsentError] = React.useState(false);
+  // (선택) AI 학습 활용 옵트인 — 필수 아님. 동의 시 비식별 학습셋에 적재.
+  const [trainingConsent, setTrainingConsent] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const titleRef = React.useRef<HTMLHeadingElement>(null);
 
@@ -263,7 +265,13 @@ export function IntakeStepper({
         // 그래도 클라가 아는 한 진실한 값(재방문 컨텍스트)을 보낸다.
         customerLocale: locale,
         isReturning,
-        intake: { ...draft, consentedAt: new Date().toISOString() },
+        intake: {
+          ...draft,
+          consentedAt: new Date().toISOString(),
+          trainingConsentedAt: trainingConsent
+            ? new Date().toISOString()
+            : undefined,
+        },
       });
       toast.success(t("intake.submitted"));
       router.replace(customerThreadPath(res.consultationToken, locale));
@@ -411,6 +419,8 @@ export function IntakeStepper({
               setConsent(v);
               if (v) setConsentError(false);
             }}
+            trainingConsent={trainingConsent}
+            onTrainingChange={setTrainingConsent}
           />
         )}
       </ScreenBody>
@@ -1124,11 +1134,15 @@ function ConsentStep({
   consent,
   error,
   onChange,
+  trainingConsent,
+  onTrainingChange,
 }: {
   t: T;
   consent: boolean;
   error: boolean;
   onChange: (v: boolean) => void;
+  trainingConsent: boolean;
+  onTrainingChange: (v: boolean) => void;
 }) {
   const tCommon = useTranslations("Common");
   const [open, setOpen] = React.useState(false);
@@ -1139,6 +1153,14 @@ function ConsentStep({
         onChange={(e) => onChange(e.target.checked)}
         aria-invalid={error ? true : undefined}
         label={t("intake.consent.label")}
+      />
+
+      {/* (선택) AI 학습 활용 — 필수 아님. 가명처리·통계 목적. */}
+      <Checkbox
+        checked={trainingConsent}
+        onChange={(e) => onTrainingChange(e.target.checked)}
+        label={t("intake.consent.trainingLabel")}
+        description={t("intake.consent.trainingHint")}
       />
 
       <button

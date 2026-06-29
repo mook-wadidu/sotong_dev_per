@@ -33,6 +33,7 @@ type Labels = {
   satisfactionToggle: string;
   /** 1~5 점수별 텍스트 라벨 (흑백·접근성 — 별/색 대신 말로) */
   satisfactionLevels: Record<1 | 2 | 3 | 4 | 5, string>;
+  beforePhoto: string;
   afterPhoto: string;
   addPhoto: string;
   removePhoto: string;
@@ -41,6 +42,12 @@ type Labels = {
   sent: string;
   failed: string;
   needInput: string;
+  /** 비포/애프터 2장 필수(PRD NOW #4) — 누락 시 안내. */
+  needPhotos: string;
+  /** 재방문 프리필 안내 배지. */
+  prefillHint: string;
+  /** 재방문 프리필 비우기. */
+  prefillClear: string;
   openReport: string;
   gradeHigh: string;
   gradeMid: string;
@@ -52,21 +59,45 @@ const SATISFACTION_SCORES = [1, 2, 3, 4, 5] as const;
 export function RecordForm({
   token,
   customerLocale,
+  beforeUrl,
+  defaultProducts,
+  defaultGrade,
   labels,
 }: {
   token: string;
   customerLocale: Locale;
+  /** 요약 단계에서 미리 촬영한 비포 사진(있으면 프리필, 교체 가능). */
+  beforeUrl?: string;
+  /** 재방문 손님의 지난 시술 약제·제품(카탈로그 id + 커스텀 혼재). */
+  defaultProducts?: string[];
+  /** 재방문 손님의 지난 모발 상태 등급. */
+  defaultGrade?: ThreeLevel;
   labels: Labels;
 }) {
   const router = useRouter();
-  const [productIds, setProductIds] = React.useState<string[]>([]);
-  const [customProducts, setCustomProducts] = React.useState<string[]>([]);
+  // 재방문 프리필 — 지난 시술 약제를 카탈로그 id / 커스텀 문자열로 분리해 초기값.
+  const catalogIds = React.useMemo(() => new Set(PRODUCTS.map((p) => p.id)), []);
+  const [productIds, setProductIds] = React.useState<string[]>(() =>
+    (defaultProducts ?? []).filter((p) => catalogIds.has(p)),
+  );
+  const [customProducts, setCustomProducts] = React.useState<string[]>(() =>
+    (defaultProducts ?? []).filter((p) => !catalogIds.has(p)),
+  );
   const [customInput, setCustomInput] = React.useState("");
-  const [grade, setGrade] = React.useState<ThreeLevel | null>(null);
+  const [grade, setGrade] = React.useState<ThreeLevel | null>(
+    defaultGrade ?? null,
+  );
   const [satisfaction, setSatisfaction] = React.useState<number | null>(null);
   // 만족도는 선택 — 기본 접힘. 펼치거나 이미 값이 있으면 노출.
   const [satisfactionOpen, setSatisfactionOpen] = React.useState(false);
+  // 비포는 요약 단계 촬영분으로 프리필(교체 가능), 애프터는 기록폼에서 촬영. 둘 다 필수.
+  const [beforePhoto, setBeforePhoto] = React.useState<string | undefined>(
+    beforeUrl,
+  );
   const [afterUrl, setAfterUrl] = React.useState<string | undefined>();
+  // 재방문 프리필 안내 — 프리필이 있을 때만 노출, '비우기'로 초기화.
+  const hasPrefill = (defaultProducts?.length ?? 0) > 0 || defaultGrade != null;
+  const [prefillCleared, setPrefillCleared] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
   const [reportToken, setReportToken] = React.useState<string | undefined>();
 
@@ -102,18 +133,19 @@ export function RecordForm({
     }
   };
 
-  // 최소 1개 필드는 채워야 발송(빈 리포트 전송 방지, AUDIT UX P2).
-  // before 는 요약 단계 저장분을 쓰므로 여기선 보내지 않는다.
-  const hasAnyInput =
-    productIds.length > 0 ||
-    customProducts.length > 0 ||
-    grade !== null ||
-    satisfaction !== null ||
-    Boolean(afterUrl);
+  const clearPrefill = () => {
+    setProductIds([]);
+    setCustomProducts([]);
+    setGrade(null);
+    setPrefillCleared(true);
+  };
+
+  // PRD NOW #4 — 비포/애프터 사진 2장 필수(데이터 엔진 그라운드트루스).
+  const canSubmit = Boolean(beforePhoto) && Boolean(afterUrl);
 
   const submit = () => {
-    if (!hasAnyInput) {
-      toast.error(labels.needInput);
+    if (!canSubmit) {
+      toast.error(labels.needPhotos);
       return;
     }
     startTransition(async () => {
@@ -125,8 +157,8 @@ export function RecordForm({
             stateGrade: grade ?? undefined,
             satisfactionScore: satisfaction ?? undefined,
           },
-          // before 는 요약 단계에서 저장된 값(consultation.beforePhotoUrl)을 우선 사용 →
-          // 리포트폼에서는 보내지 않는다(completeConsultation 폴백만 존재).
+          // before/after 둘 다 필수 — 기록폼에 표시된 값을 그대로 전송.
+          beforePhotoUrl: beforePhoto,
           afterPhotoUrl: afterUrl,
         });
         if (!res) {
@@ -164,6 +196,20 @@ export function RecordForm({
 
   return (
     <div className="space-y-6">
+      {/* 재방문 프리필 안내 — 지난 시술 기본값. 같으면 사진만 찍고 발송. */}
+      {hasPrefill && !prefillCleared ? (
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-accent-soft px-3 py-2">
+          <span className="text-sm text-accent-text">{labels.prefillHint}</span>
+          <button
+            type="button"
+            onClick={clearPrefill}
+            className="shrink-0 text-sm font-medium text-accent-text underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            {labels.prefillClear}
+          </button>
+        </div>
+      ) : null}
+
       {/* 사용 약제·제품 (다중 + 직접추가) */}
       <section>
         <SectionLabel>{labels.products}</SectionLabel>
@@ -278,16 +324,31 @@ export function RecordForm({
         )}
       </section>
 
-      {/* 시술 후 사진 (before 는 요약 단계에서 촬영) */}
-      <section className="max-w-[12rem]">
-        <PhotoSlot
-          label={labels.afterPhoto}
-          addLabel={labels.addPhoto}
-          removeLabel={labels.removePhoto}
-          url={afterUrl}
-          onPick={(e) => onPhoto(e, setAfterUrl)}
-          onRemove={() => setAfterUrl(undefined)}
-        />
+      {/* 비포·애프터 사진 — 둘 다 필수(PRD NOW #4). 비포는 요약 단계 촬영분 프리필. */}
+      <section>
+        <div className="grid max-w-sm grid-cols-2 gap-3">
+          <PhotoSlot
+            label={labels.beforePhoto}
+            addLabel={labels.addPhoto}
+            removeLabel={labels.removePhoto}
+            url={beforePhoto}
+            onPick={(e) => onPhoto(e, setBeforePhoto)}
+            onRemove={() => setBeforePhoto(undefined)}
+          />
+          <PhotoSlot
+            label={labels.afterPhoto}
+            addLabel={labels.addPhoto}
+            removeLabel={labels.removePhoto}
+            url={afterUrl}
+            onPick={(e) => onPhoto(e, setAfterUrl)}
+            onRemove={() => setAfterUrl(undefined)}
+          />
+        </div>
+        {!canSubmit ? (
+          <p className="mt-2 text-xs text-muted-foreground" role="status">
+            {labels.needPhotos}
+          </p>
+        ) : null}
       </section>
 
       <Button
@@ -295,7 +356,7 @@ export function RecordForm({
         size="lg"
         className="w-full"
         onClick={submit}
-        disabled={pending}
+        disabled={pending || !canSubmit}
       >
         {pending ? (
           <>

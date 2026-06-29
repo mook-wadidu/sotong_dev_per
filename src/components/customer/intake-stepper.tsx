@@ -225,6 +225,75 @@ export function IntakeStepper({
     [],
   );
 
+  // ── draft 자동저장/복원 (새로고침·앱전환 손실 방지) ───────────────
+  // entryToken 키 sessionStorage. 사진(dataURL)은 용량(쿼터) 때문에 제외 — 재촬영.
+  const storageKey = `sotong:intake:v1:${entryToken}`;
+  const restoredRef = React.useRef(false);
+
+  // 복원 — 마운트 1회. 저장된 진행이 있으면 폼으로 진입 + 상태 복원.
+  // 적용은 queueMicrotask 로 지연(effect 동기 setState 회피 — 마운트 후 1틱).
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      restoredRef.current = true;
+      return;
+    }
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(storageKey);
+    } catch {
+      /* 접근 불가 무시 */
+    }
+    if (!raw) {
+      restoredRef.current = true;
+      return;
+    }
+    queueMicrotask(() => {
+      try {
+        const saved = JSON.parse(raw as string) as {
+          step?: number;
+          consent?: boolean;
+          trainingConsent?: boolean;
+          draft?: Partial<IntakeDraft>;
+        };
+        if (saved.draft) setDraft((d) => ({ ...d, ...saved.draft }));
+        if (typeof saved.step === "number") setStep(saved.step);
+        if (saved.consent) setConsent(true);
+        if (saved.trainingConsent) setTrainingConsent(true);
+        setPhase("form"); // 진행 중이던 폼으로 복귀(재방문 intro 건너뜀)
+        setPrefilled(false);
+      } catch {
+        /* 손상된 저장값 무시 */
+      }
+      restoredRef.current = true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 저장 — 복원 후 + 폼 단계에서만. 사진 필드는 비워 저장(용량). 디바운스.
+  React.useEffect(() => {
+    if (!restoredRef.current || typeof window === "undefined") return;
+    if (phase !== "form") return;
+    const id = setTimeout(() => {
+      try {
+        const { stylePhotoUrls: _s, selfiePhotoUrl: _f, ...rest } = draft;
+        void _s;
+        void _f;
+        sessionStorage.setItem(
+          storageKey,
+          JSON.stringify({
+            step,
+            consent,
+            trainingConsent,
+            draft: { ...rest, stylePhotoUrls: [], selfiePhotoUrl: undefined },
+          }),
+        );
+      } catch {
+        /* 쿼터 초과 등 무시 — 저장 실패해도 작성은 계속 */
+      }
+    }, 400);
+    return () => clearTimeout(id);
+  }, [storageKey, phase, step, draft, consent, trainingConsent]);
+
   // 단계 이동(또는 intro→form 전환) 시 본문 스크롤 위 + 제목으로 포커스 이동 (a11y).
   // phase 도 의존성에 넣어, 이미 step 1 인 상태로 폼에 진입해도 새 제목으로 포커스가 간다.
   React.useEffect(() => {
@@ -274,6 +343,12 @@ export function IntakeStepper({
         },
       });
       toast.success(t("intake.submitted"));
+      // 제출 완료 → 저장된 draft 정리(다음 방문이 stale 로 시작하지 않게).
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch {
+        /* 무시 */
+      }
       router.replace(customerThreadPath(res.consultationToken, locale));
     } catch {
       setSubmitting(false);

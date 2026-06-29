@@ -4,6 +4,8 @@ import { tx, type Locale } from "@/lib/domain/types";
 import { MobileFrame, ScreenBody } from "@/components/ui";
 import { InvalidEntry } from "@/components/customer/invalid-entry";
 import { LanguageChoices } from "@/components/customer/language-choices";
+import { CustomerHelp } from "@/components/customer/customer-help";
+import { LogoSymbol } from "@/components/brand/logo";
 
 export default async function CustomerEntryPage({
   params,
@@ -34,6 +36,7 @@ export default async function CustomerEntryPage({
       <ScreenBody className="flex min-h-dvh flex-col justify-center gap-8 py-10">
         {/* 살롱 이름 */}
         <div className="animate-rise space-y-3 text-center">
+          <LogoSymbol className="animate-logo mx-auto size-11 text-brand" />
           <h1 className="text-2xl font-bold leading-tight text-foreground">
             {salonName}
           </h1>
@@ -58,11 +61,12 @@ export default async function CustomerEntryPage({
           <LanguageChoices entryToken={token} />
         </div>
 
-        {/* 안심 카피 — 설치/로그인 불필요 */}
-        <div className="animate-fade px-2 text-center">
+        {/* 안심 카피 — 설치/로그인 불필요 + 진행 안내 */}
+        <div className="animate-fade flex flex-col items-center gap-2 px-2 text-center">
           <p className="text-xs leading-relaxed text-muted-foreground">
             {t("langSelect.reassure")}
           </p>
+          <CustomerHelp />
         </div>
       </ScreenBody>
     </MobileFrame>

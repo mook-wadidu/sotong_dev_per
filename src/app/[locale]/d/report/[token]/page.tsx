@@ -35,7 +35,11 @@ export default async function DesignerReportPage({
     );
   }
 
-  const { consultation, staffToken } = view;
+  const { consultation, staffToken, customerTreatments } = view;
+  // 재방문 프리필(PRD NOW #5) — 가장 최근 지난 시술의 약제·상태를 기록폼 기본값으로.
+  const lastTreatment = consultation.isReturning
+    ? customerTreatments[0]
+    : undefined;
 
   return (
     <MobileFrame tone="muted">
@@ -50,6 +54,9 @@ export default async function DesignerReportPage({
         <RecordForm
           token={token}
           customerLocale={consultation.customerLocale}
+          beforeUrl={consultation.beforePhotoUrl}
+          defaultProducts={lastTreatment?.products}
+          defaultGrade={lastTreatment?.stateGrade}
           labels={{
             products: t("record.products"),
             productsHint: t("record.productsHint"),
@@ -67,6 +74,7 @@ export default async function DesignerReportPage({
               4: t("record.satisfactionLevel.4"),
               5: t("record.satisfactionLevel.5"),
             },
+            beforePhoto: t("record.beforePhoto"),
             afterPhoto: t("record.afterPhoto"),
             addPhoto: t("record.addPhoto"),
             removePhoto: t("record.removePhoto"),
@@ -75,6 +83,9 @@ export default async function DesignerReportPage({
             sent: t("record.sent"),
             failed: t("record.failed"),
             needInput: t("record.needInput"),
+            needPhotos: t("record.needPhotos"),
+            prefillHint: t("record.prefillHint"),
+            prefillClear: t("record.prefillClear"),
             openReport: t("record.openReport"),
             gradeHigh: t("record.grade.high"),
             gradeMid: t("record.grade.mid"),

@@ -8,7 +8,7 @@ import { getSalonInfo } from "@/lib/service";
 import { customerEntryPath, adminGatePath } from "@/lib/links";
 import { buttonVariants } from "@/components/ui/button";
 import { MobileFrame, ScreenBody } from "@/components/ui/mobile-frame";
-import { GlobeIcon } from "@/components/icons";
+import { LogoSymbol } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/lib/domain/types";
 
@@ -62,15 +62,20 @@ export default async function Home({
   return (
     <MobileFrame>
       <ScreenBody className="flex flex-col justify-center gap-8 py-10">
-        <div className="animate-rise space-y-3 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            <GlobeIcon className="size-3.5" />
-            AI Reception
-          </span>
-          <h1 className="text-4xl font-bold tracking-tight">{t.hi}</h1>
-          <p className="mx-auto max-w-xs text-pretty text-sm text-muted-foreground">
-            {t.sub}
-          </p>
+        <div className="space-y-5 text-center">
+          <LogoSymbol
+            className="animate-logo mx-auto size-16 text-brand"
+            title={t.hi}
+          />
+          <div
+            className="animate-rise space-y-2.5"
+            style={{ animationDelay: "120ms" }}
+          >
+            <h1 className="text-3xl font-bold tracking-tight">{t.hi}</h1>
+            <p className="mx-auto max-w-xs text-pretty text-sm leading-relaxed text-muted-foreground">
+              {t.sub}
+            </p>
+          </div>
         </div>
 
         <div

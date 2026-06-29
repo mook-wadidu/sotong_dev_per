@@ -18,24 +18,33 @@
 
   --border: #e4e4e7;
   --input: #e4e4e7;
-  --ring: #111111; /* 포커스 링 = 잉크색 */
+  --ring: #7c3aed; /* 포커스 링 = 브랜드 보라(흰 배경에서 명확) */
 
-  --primary: #111111; /* 잉크 */
+  --primary: #111111; /* 잉크 — 본문·구조 CTA */
   --primary-foreground: #ffffff;
 
   --secondary: #f4f4f5;
   --secondary-foreground: #111111;
 
-  /* 액센트 = 잉크(블랙). 장식이 아니라 채움/외곽선으로 강조한다. */
-  --accent: #111111;
-  --accent-foreground: #ffffff;
-  --accent-soft: #f4f4f5; /* 선택된 칩 배경 (옅은 그레이) */
+  /*
+   * 브랜드 = 보라(K-뷰티 포인트 컬러). 색은 *포인트*이고 본문·구조는 잉크 유지.
+   * 의미 구분은 여전히 채움/외곽선/굵기/형태(체크·도트)로도 병행한다(색 단독 금지).
+   */
+  --brand: #7c3aed; /* violet-600 — CTA 채움(흰 글자 ~4.9:1 AA) */
+  --brand-text: #6d28d9; /* violet-700 — 흰 배경 위 브랜드 텍스트/링크(~6.5:1) */
+  --brand-soft: #f5f3ff; /* violet-50 — 선택 칩/연한 강조 배경 */
+  --brand-border: #c4b5fd; /* violet-300 — 선택 외곽선 보조 */
 
-  /* CTA 면색 — 잉크 + 흰 글자 */
-  --accent-strong: #111111;
+  /* 액센트 = 브랜드 보라로 repoint(전 화면 즉시 반영). */
+  --accent: #7c3aed;
+  --accent-foreground: #ffffff;
+  --accent-soft: #f5f3ff; /* 선택된 칩 배경 (연한 보라) */
+
+  /* CTA 면색 — 브랜드 보라 + 흰 글자 */
+  --accent-strong: #7c3aed;
   --accent-strong-foreground: #ffffff;
-  /* 밝은 배경 위 강조 텍스트 — 잉크 */
-  --accent-text: #111111;
+  /* 밝은 배경 위 강조 텍스트 — 브랜드 보라(접근성 안전 셰이드) */
+  --accent-text: #6d28d9;
 
   /* 상태색 — 그레이 단계. 의미는 색이 아니라 채움/외곽선 + 텍스트로 구분. */
   --warning: #111111;
@@ -70,6 +79,10 @@
   --color-accent-strong: var(--accent-strong);
   --color-accent-strong-foreground: var(--accent-strong-foreground);
   --color-accent-text: var(--accent-text);
+  --color-brand: var(--brand);
+  --color-brand-text: var(--brand-text);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-border: var(--brand-border);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
@@ -87,10 +100,27 @@
   --font-sans: "Pretendard Variable", Pretendard, -apple-system,
     BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
     "Noto Sans JP", "Apple SD Gothic Neo", system-ui, sans-serif;
+
+  /*
+   * Elevation 스케일 — 잉크 틴트의 부드러운 그림자(프리미엄 깊이감).
+   * Tailwind 기본 shadow-* 를 덮어써 전 컴포넌트(카드·버튼·모달)에 즉시 반영.
+   */
+  --shadow-xs: 0 1px 2px 0 rgb(17 17 17 / 0.04);
+  --shadow-sm: 0 1px 3px 0 rgb(17 17 17 / 0.06), 0 1px 2px -1px rgb(17 17 17 / 0.05);
+  --shadow-md: 0 4px 14px -3px rgb(17 17 17 / 0.08), 0 2px 6px -3px rgb(17 17 17 / 0.05);
+  --shadow-lg: 0 14px 34px -8px rgb(17 17 17 / 0.12), 0 4px 12px -5px rgb(17 17 17 / 0.07);
+  --shadow-xl: 0 26px 56px -14px rgb(20 12 38 / 0.2);
 }
 
-* {
-  border-color: var(--color-border);
+/*
+ * 기본 보더색 = 토큰 그레이. @layer base 안에 둬야 Tailwind 유틸리티(border-accent,
+ * border-destructive 등, utilities 레이어)가 정상적으로 덮어쓴다.
+ * (unlayered 로 두면 레이어 규칙보다 우선해 colored-border 유틸이 안 먹음.)
+ */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
 }
 
 html {
@@ -164,6 +194,37 @@ body {
   animation: sotong-fade 0.3s ease both;
 }
 
+/* 로고 리빌 — 심볼 fade+scale, 워드마크 살짝 늦게 따라옴(브랜드 인트로) */
+@keyframes sotong-logo-rise {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-logo {
+  animation: sotong-logo-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 로고 획 드로잉(SVG path) — stroke-dash 로 그려지는 느낌 */
+@keyframes sotong-logo-draw {
+  from {
+    stroke-dashoffset: var(--logo-dash, 240);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-logo-draw {
+  stroke-dasharray: var(--logo-dash, 240);
+  animation: sotong-logo-draw 0.9s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
 /*
  * 모션 민감성 가드 (WCAG 2.3.3 / prefers-reduced-motion).
  * 등장 애니메이션·스크롤 애니메이션·transition 을 무력화하되,
@@ -184,10 +245,13 @@ body {
   }
 
   .animate-rise,
-  .animate-fade {
+  .animate-fade,
+  .animate-logo,
+  .animate-logo-draw {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+    stroke-dashoffset: 0 !important;
   }
 
   /* 탭 어포던스는 유지 — 매우 짧게 */

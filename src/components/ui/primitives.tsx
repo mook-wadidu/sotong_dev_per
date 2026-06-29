@@ -48,7 +48,7 @@ export const Input = React.forwardRef<
   <input
     ref={ref}
     className={cn(
-      "h-13 w-full rounded-xl border border-input bg-card px-4 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-destructive disabled:opacity-50",
+      "h-13 w-full rounded-xl border border-input bg-card px-4 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground hover:border-foreground/20 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-destructive disabled:opacity-50",
       className,
     )}
     {...props}
@@ -64,7 +64,7 @@ export const Textarea = React.forwardRef<
   <textarea
     ref={ref}
     className={cn(
-      "min-h-22 w-full resize-none rounded-xl border border-input bg-card px-4 py-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-destructive disabled:opacity-50",
+      "min-h-22 w-full resize-none rounded-xl border border-input bg-card px-4 py-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground hover:border-foreground/20 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-destructive disabled:opacity-50",
       className,
     )}
     {...props}

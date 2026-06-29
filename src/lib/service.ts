@@ -1191,9 +1191,22 @@ export async function completeConsultation(input: {
     return null;
   }
 
-  // before 소스 결정: 요약 단계에서 찍어둔 상담의 beforePhotoUrl 우선,
-  // 없으면 리포트 폼 입력(input.beforePhotoUrl) 폴백. after 는 그대로 input.
-  const beforeUrl = c.beforePhotoUrl ?? input.beforePhotoUrl;
+  // before 소스 결정: 기록폼이 보낸 값(요약 단계 촬영분으로 프리필되며 교체 가능)을 우선,
+  // 없으면 상담에 저장된 beforePhotoUrl 폴백. after 는 그대로 input.
+  const beforeUrl = input.beforePhotoUrl ?? c.beforePhotoUrl;
+
+  // PRD NOW #4 — 비포/애프터 사진 2장 필수(서버측 방어 게이트). 클라 우회 시에도
+  // 빈-사진 완결을 차단해 데이터 엔진 그라운드트루스를 보장(동의 게이트와 동일 패턴).
+  if (!beforeUrl || !input.afterPhotoUrl) {
+    await logIssue({
+      salonSlug: c.salonSlug,
+      severity: "warning",
+      source: "report",
+      message: "비포/애프터 사진 누락으로 완결 차단(2장 필수)",
+      consultationId: c.id,
+    });
+    return null;
+  }
 
   try {
     const salon = await repo.getSalon(c.salonSlug);

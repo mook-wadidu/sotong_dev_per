@@ -10,6 +10,7 @@ import { ConsultationListItem } from "@/components/designer/consultation-list-it
 import { AssignButton } from "@/components/designer/assign-button";
 import { NotificationSetup } from "@/components/designer/notification-setup";
 import { InboxRefresh } from "@/components/designer/inbox-refresh";
+import { DesignerHelp } from "@/components/designer/designer-help";
 import { config } from "@/lib/config";
 import type {
   ConsultationListItem as Item,
@@ -89,10 +90,13 @@ export default async function DesignerInboxPage({
         title={salon.name}
         subtitle={designer.name}
         trailing={
-          <InboxRefresh
-            label={t("inbox.refresh")}
-            refreshingLabel={t("inbox.refreshing")}
-          />
+          <div className="flex items-center gap-1">
+            <DesignerHelp />
+            <InboxRefresh
+              label={t("inbox.refresh")}
+              refreshingLabel={t("inbox.refreshing")}
+            />
+          </div>
         }
       />
       <ScreenBody className="space-y-5">

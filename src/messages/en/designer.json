@@ -1,4 +1,16 @@
 {
+  "help": {
+    "button": "Guide",
+    "title": "Sotong guide",
+    "subtitle": "Set up once and you're done.",
+    "notifyTitle": "① First time — turn on notifications",
+    "notifyBody": "Adding to the home screen alone won't deliver alerts. Open the app (home-screen icon) and tap ‘Turn on notifications → Allow’. On iPhone, requires iOS 16.4+ and must be done inside the installed app.",
+    "flowTitle": "② Daily flow",
+    "flowBody": "Push alert → guest summary in inbox → [Start consultation] translated chat → [Start service] → 30-sec record → report auto-sent to the guest.",
+    "photoTitle": "③ Record needs both before & after photos",
+    "photoBody": "You must capture both before and after photos to send the report (rear camera, the treated area). For returning guests, last visit's products & condition are pre-filled.",
+    "tip": "If alerts don't arrive, ask the owner for your ‘current inbox link’. Old links won't open the inbox."
+  },
   "inbox": {
     "title": "Waiting guests",
     "subtitle": "Consultations that came in today",
@@ -146,6 +158,7 @@
       "4": "Happy",
       "5": "Delighted"
     },
+    "beforePhoto": "Before photo",
     "afterPhoto": "After photo",
     "addPhoto": "Add photo",
     "removePhoto": "Remove",
@@ -154,6 +167,9 @@
     "sent": "Report sent",
     "failed": "Failed to send. Please try again.",
     "needInput": "Please enter at least one detail to record.",
+    "needPhotos": "Please capture both before and after photos (required).",
+    "prefillHint": "Loaded last visit's record — keep if same, edit if different.",
+    "prefillClear": "Clear last record",
     "openReport": "Open guest report",
     "grade": {
       "high": "High",

@@ -1,4 +1,13 @@
 {
+  "help": {
+    "trigger": "How does it work?",
+    "title": "Here's how it works",
+    "subtitle": "No install, no sign-up.",
+    "step1": "Scan the QR — it opens right away, no install or sign-up.",
+    "step2": "Pick your language and tap to tell us the service and style you want (1–2 min).",
+    "step3": "Your stylist receives it in Korean and consults; afterward you get a report in your language.",
+    "consent": "If photos (before/after) are involved, you'll confirm consent first on the intake screen."
+  },
   "langSelect": {
     "title": "Which language can we help you in?",
     "subtitle": "No app to install — start right away",

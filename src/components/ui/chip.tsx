@@ -62,7 +62,7 @@ export const Chip = React.forwardRef<HTMLButtonElement, ChipProps>(
           // 선택 신호: 채움(soft 배경) + 두꺼운 외곽선(잉크) — 색이 아니라 굵기로 구분
           selected
             ? "border-accent bg-accent-soft ring-1 ring-accent"
-            : "border-border bg-card hover:bg-muted",
+            : "border-border bg-card hover:border-foreground/15 hover:bg-muted hover:shadow-sm",
           className,
         )}
         {...props}
@@ -174,7 +174,7 @@ export const PictoChip = React.forwardRef<HTMLButtonElement, PictoChipProps>(
           // 선택 시 색 외 신호: 두꺼운 링 (ring-2)
           selected
             ? "border-accent bg-accent-soft ring-2 ring-accent"
-            : "border-border bg-card hover:bg-muted",
+            : "border-border bg-card hover:border-foreground/15 hover:bg-muted hover:shadow-sm",
           className,
         )}
         {...props}

@@ -10,6 +10,7 @@ import {
   RadioGroup,
   Spinner,
   SectionLabel,
+  Checkbox,
   toast,
   buttonVariants,
 } from "@/components/ui";
@@ -62,6 +63,7 @@ export function RecordForm({
   beforeUrl,
   defaultProducts,
   defaultGrade,
+  serviceOptions,
   labels,
 }: {
   token: string;
@@ -72,9 +74,12 @@ export function RecordForm({
   defaultProducts?: string[];
   /** 재방문 손님의 지난 모발 상태 등급. */
   defaultGrade?: ThreeLevel;
+  /** 실제 시술 선택지(살롱 메뉴 id + ko 라벨) — 디자이너가 실제 한 시술 기록(학습 정답). */
+  serviceOptions?: { value: string; label: string }[];
   labels: Labels;
 }) {
   const router = useRouter();
+  const [serviceIds, setServiceIds] = React.useState<string[]>([]);
   // 재방문 프리필 — 지난 시술 약제를 카탈로그 id / 커스텀 문자열로 분리해 초기값.
   const catalogIds = React.useMemo(() => new Set(PRODUCTS.map((p) => p.id)), []);
   const [productIds, setProductIds] = React.useState<string[]>(() =>
@@ -90,11 +95,13 @@ export function RecordForm({
   const [satisfaction, setSatisfaction] = React.useState<number | null>(null);
   // 만족도는 선택 — 기본 접힘. 펼치거나 이미 값이 있으면 노출.
   const [satisfactionOpen, setSatisfactionOpen] = React.useState(false);
-  // 비포는 요약 단계 촬영분으로 프리필(교체 가능), 애프터는 기록폼에서 촬영. 둘 다 필수.
+  // 비포는 요약 단계 촬영분으로 프리필(교체 가능), 애프터는 기록폼에서 촬영. 사진은 선택(#5).
   const [beforePhoto, setBeforePhoto] = React.useState<string | undefined>(
     beforeUrl,
   );
   const [afterUrl, setAfterUrl] = React.useState<string | undefined>();
+  // 사진 2장 미만이어도 "사진 없이 기록"을 명시 선택하면 발송 가능(무심코 스킵 방지 — #5 의도적 선택).
+  const [skipPhotosAck, setSkipPhotosAck] = React.useState(false);
   // 재방문 프리필 안내 — 프리필이 있을 때만 노출, '비우기'로 초기화.
   const hasPrefill = (defaultProducts?.length ?? 0) > 0 || defaultGrade != null;
   const [prefillCleared, setPrefillCleared] = React.useState(false);
@@ -129,7 +136,7 @@ export function RecordForm({
     try {
       set(await resizeToDataUrl(file));
     } catch {
-      toast.error(labels.failed);
+      toast.error("사진을 불러오지 못했어요. 다른 사진으로 다시 시도해 주세요.");
     }
   };
 
@@ -140,8 +147,10 @@ export function RecordForm({
     setPrefillCleared(true);
   };
 
-  // PRD NOW #4 — 비포/애프터 사진 2장 필수(데이터 엔진 그라운드트루스).
-  const canSubmit = Boolean(beforePhoto) && Boolean(afterUrl);
+  // 사진 선택화(#5): 2장 다 있거나, "사진 없이 기록"을 명시 선택하면 발송 가능.
+  // 사진 유무는 서버에서 has_before/after_photo 로 기록(H4 촬영습관 측정).
+  const bothPhotos = Boolean(beforePhoto) && Boolean(afterUrl);
+  const canSubmit = bothPhotos || skipPhotosAck;
 
   const submit = () => {
     if (!canSubmit) {
@@ -156,8 +165,10 @@ export function RecordForm({
             products: [...productIds, ...customProducts],
             stateGrade: grade ?? undefined,
             satisfactionScore: satisfaction ?? undefined,
+            // 실제 한 시술(있으면) → 학습 'actual'. 없으면 서버가 손님 분류로 폴백(intent 태그).
+            serviceIds: serviceIds.length ? serviceIds : undefined,
           },
-          // before/after 둘 다 필수 — 기록폼에 표시된 값을 그대로 전송.
+          // 사진은 선택 — 있으면 전송(서버가 유무를 has_before/after_photo 로 기록).
           beforePhotoUrl: beforePhoto,
           afterPhotoUrl: afterUrl,
         });
@@ -208,6 +219,22 @@ export function RecordForm({
             {labels.prefillClear}
           </button>
         </div>
+      ) : null}
+
+      {/* 실제 시술 (살롱 메뉴) — 손님 분류를 보고 실제 한 시술 확정(학습 정답) */}
+      {serviceOptions && serviceOptions.length > 0 ? (
+        <section>
+          <SectionLabel>실제 시술</SectionLabel>
+          <p className="mb-2.5 text-xs text-muted-foreground">
+            손님이 고른 분류를 보고, 실제로 한 시술을 골라주세요.
+          </p>
+          <ToggleGroup
+            options={serviceOptions}
+            value={serviceIds}
+            onValueChange={setServiceIds}
+            label="실제 시술"
+          />
+        </section>
       ) : null}
 
       {/* 사용 약제·제품 (다중 + 직접추가) */}
@@ -324,8 +351,12 @@ export function RecordForm({
         )}
       </section>
 
-      {/* 비포·애프터 사진 — 둘 다 필수(PRD NOW #4). 비포는 요약 단계 촬영분 프리필. */}
+      {/* 비포·애프터 사진 — 선택(권장). 비포는 요약 단계 촬영분 프리필. 2장 미만이면 의도적 체크 필요(#5). */}
       <section>
+        <SectionLabel>비포 · 애프터 사진 (선택)</SectionLabel>
+        <p className="mb-2.5 text-xs text-muted-foreground">
+          남기면 재방문 상담·결과 비교와 학습 데이터 정확도에 큰 도움이 돼요.
+        </p>
         <div className="grid max-w-sm grid-cols-2 gap-3">
           <PhotoSlot
             label={labels.beforePhoto}
@@ -344,10 +375,14 @@ export function RecordForm({
             onRemove={() => setAfterUrl(undefined)}
           />
         </div>
-        {!canSubmit ? (
-          <p className="mt-2 text-xs text-muted-foreground" role="status">
-            {labels.needPhotos}
-          </p>
+        {!bothPhotos ? (
+          <div className="mt-3">
+            <Checkbox
+              checked={skipPhotosAck}
+              onChange={(e) => setSkipPhotosAck(e.target.checked)}
+              label="사진 없이(또는 일부만) 이대로 기록할게요"
+            />
+          </div>
         ) : null}
       </section>
 

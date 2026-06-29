@@ -5,6 +5,7 @@ import {
   adminCreateSalon as adminCreateSalonSvc,
   assignConsultation as assignConsultationSvc,
   completeConsultation,
+  recordDesignerIntake as recordDesignerIntakeSvc,
   getAdminData as getAdminDataSvc,
   getConsultationStatus as getConsultationStatusSvc,
   getDesignerInbox as getDesignerInboxSvc,
@@ -40,6 +41,7 @@ import type {
   ConsultationStatus,
   Customer,
   CustomerHairProfile,
+  DesignerHairInput,
   IntakeDraft,
   Locale,
   LocalizedText,
@@ -140,11 +142,21 @@ export async function finishAndSendReport(input: {
     stateGrade?: ThreeLevel;
     /** 실제 캡처한 만족도/결과 점수(AI 추론값 아님) — 카르테에 영속 */
     satisfactionScore?: number;
+    /** 디자이너가 실제로 한 시술(살롱 메뉴 id) — 없으면 손님 분류 폴백(태그 구분). */
+    serviceIds?: string[];
   };
   beforePhotoUrl?: string;
   afterPhotoUrl?: string;
 }) {
   return completeConsultation(input);
+}
+
+/* ── 디자이너: 신체정보 입력(요약 '디자이너 입력' 카드) ───────── */
+export async function recordDesignerIntake(
+  designerToken: string,
+  fields: DesignerHairInput,
+): Promise<{ ok: boolean }> {
+  return recordDesignerIntakeSvc(designerToken, fields);
 }
 
 /* ── 디자이너: 시술 전 사진 저장 (요약 단계 촬영 → 상담건에 보존) ───── */

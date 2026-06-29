@@ -6,9 +6,6 @@ import { useTranslations } from "next-intl";
 import {
   Button,
   Checkbox,
-  Divider,
-  FormField,
-  Input,
   MobileFrame,
   ProgressSteps,
   RadioGroup,
@@ -27,18 +24,10 @@ import {
   type RadioOption,
   type ToggleOption,
 } from "@/components/ui";
-import {
-  CONCERNS,
-  CROWN_VOLUME,
-  FACE_SHAPES,
-  formatPrice,
-  HAIR_DENSITY,
-  HAIR_TYPE,
-} from "@/lib/catalog";
+import { CONCERNS, INTAKE_CATEGORIES } from "@/lib/catalog";
 import { submitIntake } from "@/lib/actions";
 import {
   getServiceCategoryIcon,
-  getFaceShapeIcon,
   getConcernIcon,
   getTreatmentTypeIcon,
   SpinnerIcon,
@@ -47,48 +36,16 @@ import { customerThreadPath } from "@/lib/links";
 import {
   emptyIntake,
   type CustomerHairProfile,
-  type FaceShape,
   type IntakeDraft,
   type Locale,
   type LocalizedText,
-  type ThreeLevel,
-  type HairType,
   type TreatmentType,
   type TreatmentRecency,
-  type YesNoUnknown,
 } from "@/lib/domain/types";
 import { resizeImageToDataUrl } from "./resize-image";
 
-const TOTAL_STEPS = 9;
+const TOTAL_STEPS = 6;
 const MAX_PHOTOS = 5;
-
-/** 성별 옵션 (다국어) — IntakeDraft.gender 와 동일 union. 선택. */
-const GENDER_OPTIONS: { id: NonNullable<IntakeDraft["gender"]>; key: string }[] = [
-  { id: "female", key: "female" },
-  { id: "male", key: "male" },
-  { id: "other", key: "other" },
-];
-
-/** 연령대 칩 — 탭으로 빠르게. 각 칩의 mid 값을 draft.age 에 저장(대표값). */
-const AGE_BANDS: { id: string; mid: number }[] = [
-  { id: "10s", mid: 19 },
-  { id: "20s", mid: 25 },
-  { id: "30s", mid: 35 },
-  { id: "40s", mid: 45 },
-  { id: "50s", mid: 55 },
-  { id: "60s", mid: 65 },
-];
-
-/** draft.age(숫자) → 해당 연령대 칩 id. 미입력/범위밖이면 null. */
-function ageToBand(age: number | undefined): string | null {
-  if (age == null) return null;
-  if (age < 20) return "10s";
-  if (age < 30) return "20s";
-  if (age < 40) return "30s";
-  if (age < 50) return "40s";
-  if (age < 60) return "50s";
-  return "60s";
-}
 
 /** 살롱별 메뉴(서버에서 해석한 가격 포함) — 전역 catalog 대체 */
 export interface IntakeMenuCategory {
@@ -119,12 +76,6 @@ const TREATMENT_RECENCIES: {
   { id: "3m", label: { ko: "3개월 내", ja: "3ヶ月以内", en: "Within 3 months", zh: "3个月内" } },
   { id: "older", label: { ko: "그 이전", ja: "それ以前", en: "Earlier", zh: "更早之前" } },
 ];
-const COWLICK_OPTIONS: { id: YesNoUnknown; key: string }[] = [
-  { id: "yes", key: "yes" },
-  { id: "no", key: "no" },
-  { id: "unknown", key: "unknown" },
-];
-
 /** 서버(getReturningContext)가 넘기는 재방문 프리필 컨텍스트. */
 export interface ReturningContext {
   isReturning: boolean;
@@ -174,7 +125,6 @@ export function IntakeStepper({
   entryToken,
   locale,
   salonName,
-  categories,
   services,
   returning,
 }: {
@@ -301,10 +251,10 @@ export function IntakeStepper({
     titleRef.current?.focus();
   }, [step, phase]);
 
-  const canSubmit = draft.serviceIds.length >= 1 && consent;
+  const canSubmit = draft.serviceCategoryIds.length >= 1 && consent;
 
   const goNext = () => {
-    if (step === 1 && draft.serviceIds.length < 1) {
+    if (step === 1 && draft.serviceCategoryIds.length < 1) {
       toast.error(t("intake.needService"));
       return;
     }
@@ -317,7 +267,7 @@ export function IntakeStepper({
   };
 
   const onSubmit = async () => {
-    if (draft.serviceIds.length < 1) {
+    if (draft.serviceCategoryIds.length < 1) {
       setStep(1);
       toast.error(t("intake.needService"));
       return;
@@ -463,29 +413,17 @@ export function IntakeStepper({
         ) : null}
 
         {step === 1 && (
-          <ServicesStep
-            t={t}
-            locale={locale}
-            draft={draft}
-            patch={patch}
-            categories={categories}
-            services={services}
-          />
+          <ServicesStep t={t} locale={locale} draft={draft} patch={patch} />
         )}
         {step === 2 && <PhotosStep t={t} draft={draft} patch={patch} />}
         {step === 3 && (
-          <FaceHairStep t={t} locale={locale} draft={draft} patch={patch} />
-        )}
-        {step === 4 && (
           <HistoryStep t={t} locale={locale} draft={draft} patch={patch} />
         )}
-        {step === 5 && (
+        {step === 4 && (
           <ConcernStep t={t} locale={locale} draft={draft} patch={patch} />
         )}
-        {step === 6 && <AllergyStep t={t} draft={draft} patch={patch} />}
-        {step === 7 && <PhoneStep t={t} draft={draft} patch={patch} />}
-        {step === 8 && <AboutYouStep t={t} draft={draft} patch={patch} />}
-        {step === 9 && (
+        {step === 5 && <AllergyStep t={t} draft={draft} patch={patch} />}
+        {step === 6 && (
           <ConsentStep
             t={t}
             consent={consent}
@@ -560,101 +498,49 @@ function formatLastVisit(iso: string, locale: Locale): string {
 const STEP_TITLE_KEYS = [
   "intake.step.services",
   "intake.step.photos",
-  "intake.step.face",
-  "intake.step.hair",
+  "intake.step.history",
   "intake.concern.title",
   "intake.step.allergy",
-  "intake.step.phone",
-  "intake.step.about",
   "intake.step.consent",
 ] as const;
 
-/* ── ① 시술 (다중, 살롱별 카테고리·가격) + 스타일 메모 ─────── */
+/* ── ① 시술 분류 (큰 분류만 — 세부·가격은 디자이너가) ─────── */
 function ServicesStep({
   t,
   locale,
   draft,
   patch,
-  categories,
-  services,
 }: {
   t: T;
   locale: Locale;
   draft: IntakeDraft;
   patch: Patch;
-  categories: IntakeMenuCategory[];
-  services: IntakeMenuService[];
 }) {
-  const priceMap = React.useMemo(
-    () => new Map(services.map((s) => [s.id, s.priceFrom])),
-    [services],
-  );
-  const priceWon = draft.serviceIds.reduce(
-    (sum, id) => sum + (priceMap.get(id) ?? 0),
-    0,
-  );
-  const hasPrice = draft.serviceIds.some((id) => priceMap.has(id));
-  const sortedCats = [...categories].sort((a, b) => a.sort - b.sort);
-
   return (
     <div className="space-y-5">
       <p className="-mt-2 text-sm text-muted-foreground">
         {t("intake.services.hint")}
       </p>
-      {sortedCats.map((cat) => {
-        const catServices = services.filter((s) => s.categoryId === cat.id);
-        if (catServices.length === 0) return null;
-        const CatIcon = getServiceCategoryIcon(cat.id);
-        return (
-          <div key={cat.id} className="space-y-2">
-            <SectionLabel className="mb-1.5 flex items-center gap-1.5">
-              {CatIcon ? <CatIcon className="size-4 text-foreground" /> : null}
-              {cat.label[locale] ?? cat.label.ko}
-            </SectionLabel>
-            <ToggleGroup
-              label={cat.label[locale] ?? cat.label.ko}
-              options={catServices.map<ToggleOption<string>>((s) => ({
-                value: s.id,
-                label: s.label[locale] ?? s.label.ko,
-                sublabel: s.priceFrom
-                  ? formatPrice(s.priceFrom, locale)
-                  : undefined,
-                icon: CatIcon ? <CatIcon /> : undefined,
-              }))}
-              value={draft.serviceIds}
-              onValueChange={(ids) => patch({ serviceIds: ids })}
-            />
-          </div>
-        );
-      })}
-
-      {/* 예상 가격 요약 (sticky 느낌의 카드) */}
-      <div className="rounded-xl border border-border bg-accent-soft/60 px-4 py-3">
-        <p className="text-xs font-medium text-muted-foreground">
-          {t("intake.services.estimate")}
-        </p>
-        <p className="mt-0.5 text-lg font-bold text-accent-text">
-          {hasPrice
-            ? formatPrice(priceWon, locale)
-            : t("intake.services.estimateNone")}
-        </p>
-      </div>
-
-      {/* 원하는 스타일 자유 메모 (손님 언어, 요약에 번역 반영) */}
-      <div className="space-y-1.5">
-        <SectionLabel className="mb-1">{t("intake.services.styleNote")}</SectionLabel>
-        <Textarea
-          value={draft.styleNote ?? ""}
-          onChange={(e) => patch({ styleNote: e.target.value })}
-          placeholder={t("intake.services.styleNotePlaceholder")}
-          aria-label={t("intake.services.styleNote")}
-        />
-      </div>
+      {/* 큰 분류만 — 세부 시술·가격은 디자이너가 상담/기록에서 정한다(외국인은 방향만). */}
+      <ToggleGroup
+        variant="grid"
+        label={t("intake.step.services")}
+        options={INTAKE_CATEGORIES.map<ToggleOption<string>>((c) => {
+          const CatIcon = getServiceCategoryIcon(c.id);
+          return {
+            value: c.id,
+            label: c.label[locale] ?? c.label.ko,
+            icon: CatIcon ? <CatIcon /> : undefined,
+          };
+        })}
+        value={draft.serviceCategoryIds}
+        onValueChange={(ids) => patch({ serviceCategoryIds: ids })}
+      />
     </div>
   );
 }
 
-/* ── ② 스타일 사진 (0..n, 클라 리사이즈) ───────────────── */
+/* ── ② 원하는 스타일 — 메모(위) + 참고 사진(아래) (0..n, 클라 리사이즈) ─── */
 function PhotosStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patch }) {
   const [busy, setBusy] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -693,9 +579,21 @@ function PhotosStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patc
 
   return (
     <div className="space-y-5">
-      <p className="-mt-2 text-sm text-muted-foreground">
-        {t("intake.photos.hint")}
-      </p>
+      {/* 원하는 스타일 메모 (손님 언어, 요약에 번역 반영) — 위 */}
+      <div className="space-y-1.5">
+        <SectionLabel className="mb-1">
+          {t("intake.services.styleNote")}
+        </SectionLabel>
+        <Textarea
+          value={draft.styleNote ?? ""}
+          onChange={(e) => patch({ styleNote: e.target.value })}
+          placeholder={t("intake.services.styleNotePlaceholder")}
+          aria-label={t("intake.services.styleNote")}
+        />
+      </div>
+
+      {/* 참고 사진 — 아래 */}
+      <p className="text-sm text-muted-foreground">{t("intake.photos.hint")}</p>
 
       <div className="grid grid-cols-3 gap-2.5">
         {photos.map((url, i) => (
@@ -757,130 +655,7 @@ function PhotosStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patc
   );
 }
 
-/* ── ③ 얼굴형(단일 그리드) + 두상/머리숱/모질(단일 각각) ── */
-function FaceHairStep({
-  t,
-  locale,
-  draft,
-  patch,
-}: {
-  t: T;
-  locale: Locale;
-  draft: IntakeDraft;
-  patch: Patch;
-}) {
-  const faceOpts = FACE_SHAPES.map((f) => {
-    const FaceIcon = getFaceShapeIcon(f.id);
-    return {
-      value: f.id,
-      label: f.label[locale] ?? f.label.ko,
-      icon: FaceIcon ? <FaceIcon /> : undefined,
-    };
-  });
-  return (
-    <div className="space-y-5">
-      <div className="space-y-2">
-        <p className="-mt-2 text-sm text-muted-foreground">
-          {t("intake.face.hint")}
-        </p>
-        <RadioGroup
-          variant="grid"
-          label={t("intake.step.face")}
-          options={faceOpts}
-          value={(draft.faceShape as FaceShape | undefined) ?? null}
-          onValueChange={(v) => patch({ faceShape: v as FaceShape })}
-        />
-      </div>
-
-      <Divider />
-
-      <LevelRadio
-        label={t("intake.hair.crownVolume")}
-        items={CROWN_VOLUME}
-        locale={locale}
-        value={draft.crownVolume ?? null}
-        onChange={(v) => patch({ crownVolume: v as ThreeLevel })}
-      />
-      <LevelRadio
-        label={t("intake.hair.density")}
-        items={HAIR_DENSITY}
-        locale={locale}
-        value={draft.hairDensity ?? null}
-        onChange={(v) => patch({ hairDensity: v as ThreeLevel })}
-      />
-      <LevelRadio
-        label={t("intake.hair.type")}
-        items={HAIR_TYPE}
-        locale={locale}
-        value={draft.hairType ?? null}
-        onChange={(v) => patch({ hairType: v as HairType })}
-      />
-
-      <Divider />
-
-      {/* 가마 / 뻗침 (컷·스타일링 참고) */}
-      <div className="space-y-2">
-        <SectionLabel className="mb-1.5">{t("intake.hair.cowlickWhorl")}</SectionLabel>
-        <RadioGroup
-          variant="grid"
-          label={t("intake.hair.cowlickWhorl")}
-          options={COWLICK_OPTIONS.map((o) => ({
-            value: o.id,
-            label: t(`intake.hair.cowlick.${o.key}`),
-          }))}
-          value={draft.cowlickWhorl ?? null}
-          onValueChange={(v) => patch({ cowlickWhorl: v as YesNoUnknown })}
-        />
-      </div>
-      <div className="space-y-2">
-        <SectionLabel className="mb-1.5">{t("intake.hair.cowlickSticking")}</SectionLabel>
-        <RadioGroup
-          variant="grid"
-          label={t("intake.hair.cowlickSticking")}
-          options={COWLICK_OPTIONS.map((o) => ({
-            value: o.id,
-            label: t(`intake.hair.cowlick.${o.key}`),
-          }))}
-          value={draft.cowlickSticking ?? null}
-          onValueChange={(v) => patch({ cowlickSticking: v as YesNoUnknown })}
-        />
-      </div>
-    </div>
-  );
-}
-
-function LevelRadio({
-  label,
-  items,
-  locale,
-  value,
-  onChange,
-}: {
-  label: string;
-  items: { id: string; label: LocalizedText }[];
-  locale: Locale;
-  value: string | null;
-  onChange: (v: string) => void;
-}) {
-  const opts: RadioOption<string>[] = items.map((i) => ({
-    value: i.id,
-    label: i.label[locale] ?? i.label.ko,
-  }));
-  return (
-    <div className="space-y-2">
-      <SectionLabel className="mb-1.5">{label}</SectionLabel>
-      <RadioGroup
-        variant="grid"
-        label={label}
-        options={opts}
-        value={value}
-        onValueChange={onChange}
-      />
-    </div>
-  );
-}
-
-/* ── ④ 최근 시술 이력 (타입 다중 + 선택 타입별 시기) ─────── */
+/* ── ③ 최근 시술 이력 (타입 다중 + 선택 타입별 시기) ─────── */
 function HistoryStep({
   t,
   locale,
@@ -1046,164 +821,7 @@ function AllergyStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Pat
   );
 }
 
-/* ── ⑦ 전화 (선택, 이점 안내) + 연락처 없음 ──────────────── */
-function PhoneStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patch }) {
-  return (
-    <div className="space-y-5">
-      {/* 번호를 남기는 이점 안내 */}
-      <div className="rounded-xl border border-border bg-accent-soft/60 px-4 py-3">
-        <p className="text-sm leading-relaxed text-accent-text">
-          {t("intake.phone.benefit")}
-        </p>
-      </div>
-      <FormField label={t("intake.step.phone")} hint={t("intake.phone.hint")}>
-        <Input
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder={t("intake.phone.placeholder")}
-          value={draft.phone ?? ""}
-          disabled={draft.contactOptOut}
-          onChange={(e) => patch({ phone: e.target.value })}
-        />
-      </FormField>
-      <Checkbox
-        checked={draft.contactOptOut ?? false}
-        onChange={(e) =>
-          patch({
-            contactOptOut: e.target.checked,
-            phone: e.target.checked ? "" : draft.phone,
-          })
-        }
-        label={t("intake.phone.optOut")}
-      />
-    </div>
-  );
-}
-
-/* ── ⑧ 손님 정보 (성별·나이·셀카 — 모두 선택) ─────────────── */
-function AboutYouStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patch }) {
-  const [busy, setBusy] = React.useState(false);
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const ageBand = ageToBand(draft.age);
-
-  const onSelfie = async (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file) return;
-    setBusy(true);
-    try {
-      const url = await resizeImageToDataUrl(file);
-      patch({ selfiePhotoUrl: url });
-    } catch {
-      toast.error(t("intake.about.selfieError"));
-    } finally {
-      setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  };
-
-  return (
-    <div className="space-y-5">
-      <p className="-mt-2 text-sm text-muted-foreground">
-        {t("intake.about.hint")}
-      </p>
-
-      {/* 성별 (선택) */}
-      <div className="space-y-2">
-        <SectionLabel className="mb-1.5">{t("intake.about.gender")}</SectionLabel>
-        <RadioGroup
-          variant="grid"
-          label={t("intake.about.gender")}
-          options={GENDER_OPTIONS.map((g) => ({
-            value: g.id,
-            label: t(`intake.about.genderOpt.${g.key}`),
-          }))}
-          value={draft.gender ?? null}
-          onValueChange={(v) =>
-            patch({ gender: v as NonNullable<IntakeDraft["gender"]> })
-          }
-        />
-      </div>
-
-      <Divider />
-
-      {/* 나이 (선택) — 연령대 칩 */}
-      <div className="space-y-2">
-        <SectionLabel className="mb-1.5">{t("intake.about.age")}</SectionLabel>
-        <RadioGroup
-          variant="grid"
-          label={t("intake.about.age")}
-          options={AGE_BANDS.map((b) => ({
-            value: b.id,
-            label: t(`intake.about.ageBand.${b.id}`),
-          }))}
-          value={ageBand}
-          onValueChange={(id) => {
-            const band = AGE_BANDS.find((b) => b.id === id);
-            if (band) patch({ age: band.mid });
-          }}
-        />
-      </div>
-
-      <Divider />
-
-      {/* 셀카 (선택, 1장) */}
-      <div className="space-y-2">
-        <SectionLabel className="mb-1.5">{t("intake.about.selfie")}</SectionLabel>
-        <p className="-mt-1 text-sm text-muted-foreground">
-          {t("intake.about.selfieHint")}
-        </p>
-        {draft.selfiePhotoUrl ? (
-          <div className="relative aspect-square w-32 overflow-hidden rounded-xl border border-border bg-card">
-            {/* 인테이크 미리보기 — 다음 next/image 비대상(dataURL) */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={draft.selfiePhotoUrl}
-              alt={t("intake.about.selfie")}
-              className="size-full object-cover"
-            />
-            <button
-              type="button"
-              onClick={() => patch({ selfiePhotoUrl: undefined })}
-              aria-label={t("intake.about.selfieRemove")}
-              className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-foreground/65 text-base font-semibold leading-none text-card outline-none backdrop-blur-sm transition-colors hover:bg-foreground/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
-            >
-              <span aria-hidden="true">×</span>
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={busy}
-            className="flex aspect-square w-32 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-card text-muted-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
-          >
-            {busy ? (
-              <SpinnerIcon className="size-6 animate-spin" aria-hidden="true" />
-            ) : (
-              <span className="text-2xl font-light leading-none" aria-hidden="true">
-                +
-              </span>
-            )}
-            <span className="text-xs font-medium">
-              {busy ? t("intake.photos.uploading") : t("intake.about.selfieAdd")}
-            </span>
-          </button>
-        )}
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          capture="user"
-          className="sr-only"
-          onChange={(e) => onSelfie(e.target.files)}
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ── ⑨ 동의 (필수) + 상세 Sheet ──────────────────────── */
+/* ── ⑥ 동의 (필수) + 상세 Sheet ──────────────────────── */
 function ConsentStep({
   t,
   consent,

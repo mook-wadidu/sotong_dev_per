@@ -86,6 +86,15 @@ export interface IntakeDraft {
   age?: number;
   /** 손님 성별 (선택) — 시술명/추천 보정에 참고. */
   gender?: "female" | "male" | "other";
+  /**
+   * 손님이 고른 **큰 시술 분류**(컷·펌·염색·클리닉/케어·스타일링·기타).
+   * MVP: 손님은 분류만 고르고, 실제 세부 시술(serviceIds)은 디자이너가 기록폼에서 정한다.
+   */
+  serviceCategoryIds: string[];
+  /**
+   * 실제 시술 id(살롱 메뉴). MVP에서 손님 인테이크는 더 이상 채우지 않고
+   * 디자이너가 기록 시 확정한다. 레거시 인테이크 호환 위해 남겨둠.
+   */
   serviceIds: string[];
   stylePhotoUrls: string[];
   /** 손님 셀피 사진 (선택) — 얼굴형/현재 스타일 참고용. */
@@ -147,6 +156,15 @@ export interface TrainingSample {
   satisfactionScore?: number;
   nextVisitWeeks?: number;
   createdAt: string;
+  /** 신체정보(얼굴형·볼륨 등) 출처: designer=디자이너 판단 / customer=레거시 손님값. */
+  inputBy?: "customer" | "designer";
+  /** 시술 출처: designer=실제 한 것 / customer=손님 희망 분류 폴백(실제 아님). 섞지 말 것. */
+  servicesInputBy?: "customer" | "designer";
+  /** 데이터를 받은 디자이너(귀속). */
+  designerId?: string;
+  /** 사진 유무(H4 촬영습관 측정) — 비포/애프터 각각 들어왔는지. */
+  hasBeforePhoto?: boolean;
+  hasAfterPhoto?: boolean;
 }
 
 /** 정확 나이 → 연령대 밴드(학습셋 비식별용). */
@@ -163,12 +181,30 @@ export function ageBand(age: number | undefined): string | undefined {
 export function emptyIntake(): IntakeDraft {
   return {
     phone: "",
+    serviceCategoryIds: [],
     serviceIds: [],
     stylePhotoUrls: [],
     treatmentHistory: [],
     concernIds: [],
     allergy: false,
   };
+}
+
+/**
+ * 디자이너 전문 판단으로 입력하는 신체정보 — 손님 인테이크에서 이동(MVP).
+ * 디자이너가 보면 아는 항목(얼굴형·볼륨·머리숱·모질·가마·성별) + 알레르기 재확인.
+ * D2 요약의 '디자이너 입력' 카드에서 채워 consultations.designer_input(jsonb)에 저장.
+ */
+export interface DesignerHairInput {
+  faceShape?: FaceShape;
+  crownVolume?: ThreeLevel;
+  hairDensity?: ThreeLevel;
+  hairType?: HairType;
+  cowlickWhorl?: YesNoUnknown;
+  cowlickSticking?: YesNoUnknown;
+  gender?: "female" | "male" | "other";
+  /** 손님 자기보고 알레르기를 디자이너가 재확인했는지(안전). */
+  allergyConfirmedByDesigner?: boolean;
 }
 
 /* ── AI 산출물: 디자이너용 한국어 요약 (F4 / §10.1) ─────── */
@@ -248,6 +284,8 @@ export interface Consultation {
   isReturning: boolean;
   intake: IntakeDraft;
   summary?: DesignerSummary;
+  /** 디자이너가 요약 화면에서 입력한 신체정보(이동 항목) — 완료 시 카르테·학습에 반영. */
+  designerInput?: DesignerHairInput;
   /** 시술 전 사진 — 요약 단계에서 촬영, 리포트의 before 로 사용. */
   beforePhotoUrl?: string;
   /** 토큰들 — 손님/디자이너/리포트 각각의 무인증 접근 키 */
@@ -319,6 +357,23 @@ export interface TreatmentRecord {
   satisfactionScore?: number;
   note?: string;
   visitedAt: string;
+  /** 살롱 uuid(명시 FK). 기존 salonSlug 와 병행. */
+  salonId?: string;
+  /** 디자이너가 기록한 신체정보(이동된 항목) — 학습 feature. */
+  faceShape?: FaceShape;
+  crownVolume?: ThreeLevel;
+  hairDensity?: ThreeLevel;
+  hairType?: HairType;
+  gender?: "female" | "male" | "other";
+  /** 신체정보 출처: designer / customer(레거시). */
+  inputBy?: "customer" | "designer";
+  /** 시술 출처: designer=실제 / customer=희망 분류 폴백. */
+  servicesInputBy?: "customer" | "designer";
+  /** 손님 자기보고 알레르기를 디자이너가 재확인(안전). */
+  allergyConfirmedByDesigner?: boolean;
+  /** 사진 유무(H4 촬영습관 측정) — 비포/애프터 각각 들어왔는지. */
+  hasBeforePhoto?: boolean;
+  hasAfterPhoto?: boolean;
 }
 
 /** 국적 라벨 (요약·리포트 표기에 사용) */

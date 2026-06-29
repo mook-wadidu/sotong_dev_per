@@ -35,7 +35,13 @@ export default async function DesignerReportPage({
     );
   }
 
-  const { consultation, staffToken, customerTreatments } = view;
+  const { consultation, staffToken, customerTreatments, salonServiceOptions } =
+    view;
+  // 실제 시술 선택지(살롱 메뉴, ko 라벨) — 디자이너가 실제 한 시술 기록.
+  const serviceOptions = salonServiceOptions.map((s) => ({
+    value: s.id,
+    label: s.label.ko,
+  }));
   // 재방문 프리필(PRD NOW #5) — 가장 최근 지난 시술의 약제·상태를 기록폼 기본값으로.
   const lastTreatment = consultation.isReturning
     ? customerTreatments[0]
@@ -57,6 +63,7 @@ export default async function DesignerReportPage({
           beforeUrl={consultation.beforePhotoUrl}
           defaultProducts={lastTreatment?.products}
           defaultGrade={lastTreatment?.stateGrade}
+          serviceOptions={serviceOptions}
           labels={{
             products: t("record.products"),
             productsHint: t("record.productsHint"),

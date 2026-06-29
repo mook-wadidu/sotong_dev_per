@@ -14,6 +14,7 @@ import {
 import { StatusBadge } from "@/components/designer/status-badge";
 import { BackToInbox } from "@/components/designer/back-to-inbox";
 import { BeforePhotoCapture } from "@/components/designer/before-photo-capture";
+import { DesignerHairInput } from "@/components/designer/designer-hair-input";
 import { StartServiceButton } from "@/components/designer/start-service-button";
 import { DesignerEmr } from "@/components/designer/designer-emr";
 import { CustomerHistory } from "@/components/salon-console/customer-history";
@@ -26,7 +27,7 @@ import {
   CalendarIcon,
 } from "@/components/icons";
 import { designerThreadPath, reportPath } from "@/lib/links";
-import { serviceLabels } from "@/lib/catalog";
+import { serviceLabels, INTAKE_CATEGORIES } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 import type { ConsultationStatus } from "@/lib/domain/types";
 
@@ -63,8 +64,14 @@ export default async function DesignerSummaryPage({
 
   // AI 요약 실패 시에도 'cut_women' 같은 raw id 가 제목으로 노출되지 않게(AUDIT UX P2):
   // 카탈로그 라벨(ko) → 없으면 요약 시술명 → 그래도 없으면 안내 문구.
+  // MVP: 손님은 큰 분류만 고른다 → 분류 라벨(ko)로 표시. 레거시(serviceIds) 폴백.
+  // ?? [] — 레거시/진행중 상담(JSONB 에 serviceCategoryIds 키 없음)에서 .map 크래시 방어.
+  const categoryLabelsKo = (intake.serviceCategoryIds ?? [])
+    .map((id) => INTAKE_CATEGORIES.find((c) => c.id === id)?.label.ko)
+    .filter((x): x is string => !!x);
   const headline =
     s?.headline?.trim() ||
+    categoryLabelsKo.join(", ") ||
     serviceLabels(intake.serviceIds, "ko").join(", ") ||
     s?.services?.join(", ") ||
     t("summary.untitled");
@@ -165,9 +172,11 @@ export default async function DesignerSummaryPage({
         <ConsultationSummary
           language={t(`summaryCard.languageNames.${consultation.customerLocale}`)}
           services={
-            s?.services?.length
-              ? s.services
-              : serviceLabels(intake.serviceIds, "ko")
+            categoryLabelsKo.length
+              ? categoryLabelsKo
+              : s?.services?.length
+                ? s.services
+                : serviceLabels(intake.serviceIds, "ko")
           }
           styleText={s?.styleDetail}
           photos={intake.stylePhotoUrls}
@@ -195,6 +204,16 @@ export default async function DesignerSummaryPage({
               </p>
             </CardContent>
           </Card>
+        ) : null}
+
+        {/* 디자이너 입력 (선택) — 손님 인테이크에서 옮겨온 신체정보 + 알레르기 재확인 */}
+        {!isCompleted ? (
+          <DesignerHairInput
+            designerToken={token}
+            initial={consultation.designerInput}
+            customerAllergy={intake.allergy}
+            customerAllergyNote={intake.allergyNote}
+          />
         ) : null}
 
         {/* 시술 전 사진 촬영 (선택) — 요약 단계에서 찍어두면 리포트 before 로 쓰임 */}

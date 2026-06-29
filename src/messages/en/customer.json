@@ -63,9 +63,10 @@
     },
     "step": {
       "services": "What service would you like?",
-      "photos": "Reference style photos",
+      "photos": "Your desired style",
       "face": "Choose your face shape",
       "hair": "Tell us about your hair",
+      "history": "Select treatments you've had recently",
       "concern": "Any usual concerns?",
       "allergy": "Any scalp or product allergies?",
       "phone": "Contact (optional)",

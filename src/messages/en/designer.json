@@ -167,7 +167,7 @@
     "sent": "Report sent",
     "failed": "Failed to send. Please try again.",
     "needInput": "Please enter at least one detail to record.",
-    "needPhotos": "Please capture both before and after photos (required).",
+    "needPhotos": "Add photos, or choose “record without photos” below.",
     "prefillHint": "Loaded last visit's record — keep if same, edit if different.",
     "prefillClear": "Clear last record",
     "openReport": "Open guest report",

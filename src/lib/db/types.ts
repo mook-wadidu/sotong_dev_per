@@ -3,8 +3,11 @@ import type {
   ConsultationStatus,
   Customer,
   CustomerHairProfile,
+  DesignerHairInput,
   DesignerSummary,
+  FaceShape,
   HairReport,
+  HairType,
   IntakeDraft,
   Locale,
   LocalizedText,
@@ -251,6 +254,7 @@ export interface CreateTreatmentRecordInput {
   consultationId: string;
   customerId?: string;
   salonSlug: string;
+  salonId?: string;
   designerId?: string;
   designerName?: string;
   serviceIds: string[];
@@ -258,6 +262,17 @@ export interface CreateTreatmentRecordInput {
   stateGrade?: ThreeLevel;
   satisfactionScore?: number;
   note?: string;
+  /** 디자이너 입력 신체정보(이동 항목) + 출처 태그(항목 5). */
+  faceShape?: FaceShape;
+  crownVolume?: ThreeLevel;
+  hairDensity?: ThreeLevel;
+  hairType?: HairType;
+  gender?: "female" | "male" | "other";
+  inputBy?: "customer" | "designer";
+  servicesInputBy?: "customer" | "designer";
+  allergyConfirmedByDesigner?: boolean;
+  hasBeforePhoto?: boolean;
+  hasAfterPhoto?: boolean;
 }
 
 export type NewMessage = Omit<Message, "id" | "createdAt"> & {
@@ -389,6 +404,11 @@ export interface Repo {
   setDesignerReportToken(consultationId: string, token: string): Promise<void>;
   /** 시술 전 사진 저장(요약 단계 촬영) — consultation.before_photo_url 갱신. */
   setBeforePhoto(consultationId: string, url: string): Promise<void>;
+  /** 디자이너가 요약 화면에서 입력한 신체정보 스냅샷 — consultation.designer_input 갱신. */
+  setDesignerInput(
+    consultationId: string,
+    input: DesignerHairInput,
+  ): Promise<void>;
 
   /* ── 데이터 엔진: 손님 식별 / 카르테 누적 ─────────────────── */
   /** 기기 토큰으로 살롱별 손님 조회. (salonSlug, deviceToken) 매칭. 없으면 null. */

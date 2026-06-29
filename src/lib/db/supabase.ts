@@ -6,6 +6,7 @@ import type {
   ConsultationStatus,
   Customer,
   CustomerHairProfile,
+  DesignerHairInput,
   DesignerSummary,
   FaceShape,
   HairReport,
@@ -115,6 +116,7 @@ interface ConsultationRow {
   is_returning: boolean;
   intake: IntakeDraft;
   summary: DesignerSummary | null;
+  designer_input: DesignerHairInput | null;
   consultation_token: string;
   designer_token: string;
   report_token: string | null;
@@ -155,6 +157,7 @@ interface TreatmentRecordRow {
   id: string;
   consultation_id: string;
   customer_id: string | null;
+  salon_id: string | null;
   salon_slug: string | null;
   designer_id: string | null;
   designer_name: string | null;
@@ -164,6 +167,16 @@ interface TreatmentRecordRow {
   satisfaction_score: number | null;
   note: string | null;
   visited_at: string;
+  face_shape: FaceShape | null;
+  crown_volume: ThreeLevel | null;
+  hair_density: ThreeLevel | null;
+  hair_type: HairType | null;
+  gender: "female" | "male" | "other" | null;
+  input_by: "customer" | "designer" | null;
+  services_input_by: "customer" | "designer" | null;
+  allergy_confirmed_by_designer: boolean | null;
+  has_before_photo: boolean | null;
+  has_after_photo: boolean | null;
 }
 
 interface MessageRow {
@@ -226,13 +239,13 @@ const SALON_SERVICE_CATEGORY_COLS =
 const SALON_SERVICE_COLS =
   "id,salon_slug,category_id,label_ko,label_translations,base_price_from,rank_prices,active";
 const CONSULTATION_COLS =
-  "id,salon_slug,designer_id,designer_name,customer_id,customer_locale,status,phone,is_returning,intake,summary,consultation_token,designer_token,report_token,designer_report_token,before_photo_url,created_at";
+  "id,salon_slug,designer_id,designer_name,customer_id,customer_locale,status,phone,is_returning,intake,summary,designer_input,consultation_token,designer_token,report_token,designer_report_token,before_photo_url,created_at";
 const CUSTOMER_COLS =
   "id,salon_slug,device_token,phone,contact_opt_out,locale,is_returning,created_at";
 const CUSTOMER_HAIR_PROFILE_COLS =
   "customer_id,face_shape,crown_volume,hair_density,hair_type,cowlick_whorl,cowlick_sticking,treatment_history,concern_ids,style_note,concern_note,allergy,allergy_note,created_at";
 const TREATMENT_RECORD_COLS =
-  "id,consultation_id,customer_id,salon_slug,designer_id,designer_name,service_ids,products,state_grade,satisfaction_score,note,visited_at";
+  "id,consultation_id,customer_id,salon_id,salon_slug,designer_id,designer_name,service_ids,products,state_grade,satisfaction_score,note,visited_at,face_shape,crown_volume,hair_density,hair_type,gender,input_by,services_input_by,allergy_confirmed_by_designer,has_before_photo,has_after_photo";
 const MESSAGE_COLS =
   "id,consultation_id,sender,source_text,source_locale,intent,translations,created_at";
 const REPORT_COLS =
@@ -341,6 +354,7 @@ function toConsultation(r: ConsultationRow): Consultation {
     isReturning: r.is_returning,
     intake: r.intake,
     summary: r.summary ?? undefined,
+    designerInput: r.designer_input ?? undefined,
     consultationToken: r.consultation_token,
     designerToken: r.designer_token,
     reportToken: r.report_token ?? undefined,
@@ -396,6 +410,17 @@ function toTreatmentRecord(r: TreatmentRecordRow): TreatmentRecord {
     satisfactionScore: r.satisfaction_score ?? undefined,
     note: r.note ?? undefined,
     visitedAt: r.visited_at,
+    salonId: r.salon_id ?? undefined,
+    faceShape: r.face_shape ?? undefined,
+    crownVolume: r.crown_volume ?? undefined,
+    hairDensity: r.hair_density ?? undefined,
+    hairType: r.hair_type ?? undefined,
+    gender: r.gender ?? undefined,
+    inputBy: r.input_by ?? undefined,
+    servicesInputBy: r.services_input_by ?? undefined,
+    allergyConfirmedByDesigner: r.allergy_confirmed_by_designer ?? undefined,
+    hasBeforePhoto: r.has_before_photo ?? undefined,
+    hasAfterPhoto: r.has_after_photo ?? undefined,
   };
 }
 
@@ -832,6 +857,17 @@ export class SupabaseRepo implements Repo {
     if (error) fail("setBeforePhoto", error);
   }
 
+  async setDesignerInput(
+    consultationId: string,
+    input: DesignerHairInput,
+  ): Promise<void> {
+    const { error } = await this.client
+      .from("consultations")
+      .update({ designer_input: input })
+      .eq("id", consultationId);
+    if (error) fail("setDesignerInput", error);
+  }
+
   async scrubConsultationPii(redacted: Consultation): Promise<void> {
     // 전화 컬럼 + intake JSONB + 시술전 사진 컬럼을 마스킹된 값으로 덮어쓴다
     // (사진·셀카·자유텍스트 원본 dataURL 제거).
@@ -958,6 +994,16 @@ export class SupabaseRepo implements Repo {
       state_grade: input.stateGrade ?? null,
       satisfaction_score: input.satisfactionScore ?? null,
       note: input.note ?? null,
+      face_shape: input.faceShape ?? null,
+      crown_volume: input.crownVolume ?? null,
+      hair_density: input.hairDensity ?? null,
+      hair_type: input.hairType ?? null,
+      gender: input.gender ?? null,
+      input_by: input.inputBy ?? null,
+      services_input_by: input.servicesInputBy ?? null,
+      allergy_confirmed_by_designer: input.allergyConfirmedByDesigner ?? null,
+      has_before_photo: input.hasBeforePhoto ?? null,
+      has_after_photo: input.hasAfterPhoto ?? null,
     };
     const { data, error } = await this.client
       .from("treatment_records")
@@ -1003,6 +1049,11 @@ export class SupabaseRepo implements Repo {
       hair_state_score: s.hairStateScore ?? null,
       satisfaction_score: s.satisfactionScore ?? null,
       next_visit_weeks: s.nextVisitWeeks ?? null,
+      input_by: s.inputBy ?? null,
+      services_input_by: s.servicesInputBy ?? null,
+      designer_id: s.designerId ?? null,
+      has_before_photo: s.hasBeforePhoto ?? null,
+      has_after_photo: s.hasAfterPhoto ?? null,
     });
     if (error) fail("saveTrainingSample", error);
   }

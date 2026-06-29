@@ -37,17 +37,10 @@ const POLL_MS = 2000;
 /** 자유 타이핑 금지(P0-11) — 흔한 가격 프리셋(KRW won). 손님에겐 formatPrice 로 통화 표기. */
 const PRICE_PRESETS = [30000, 50000, 80000, 100000, 120000, 150000];
 
-/** 입력 영역 인라인 칩 = primary 6개(정의 순서 유지). 나머지는 "더보기" 시트로. */
+/** 빠른답변 = 한 줄 가로 스크롤 스트립. 자주 쓰는 primary 를 앞에, 나머지를 뒤에 이어붙인다. */
 const PRIMARY_REPLIES = QUICK_REPLIES.filter((qr) => qr.primary);
 const SECONDARY_REPLIES = QUICK_REPLIES.filter((qr) => !qr.primary);
-
-/** 시트 섹션 순서 — 빈 그룹은 렌더 시 생략. */
-const GROUP_ORDER: QuickReply["group"][] = [
-  "greeting",
-  "response",
-  "progress",
-  "closing",
-];
+const ALL_REPLIES = [...PRIMARY_REPLIES, ...SECONDARY_REPLIES];
 
 type Pending = {
   tempId: string;
@@ -65,8 +58,6 @@ export function DesignerThread({
   /** 인테이크 기반 예상가(KRW won) — price 칩 자동 프리필용 */
   estimatedPriceWon?: number;
   labels: {
-    quickTitle: string;
-    customLabel: string;
     send: string;
     placeholder: string;
     pricePrompt: string;
@@ -76,18 +67,10 @@ export function DesignerThread({
     autoPrice: string;
     reportCta: string;
     sendError: string;
-    moreLabel: string;
-    moreTitle: string;
-    groupGreeting: string;
-    groupResponse: string;
-    groupProgress: string;
-    groupClosing: string;
   };
 }) {
   const [messages, setMessages] = React.useState<Message[]>(initialMessages);
   const [pendings, setPendings] = React.useState<Pending[]>([]);
-  const [customOpen, setCustomOpen] = React.useState(false);
-  const [moreOpen, setMoreOpen] = React.useState(false);
   const [customText, setCustomText] = React.useState("");
   const [valueSheet, setValueSheet] = React.useState<null | "price" | "time">(
     null,
@@ -220,26 +203,16 @@ export function DesignerThread({
     });
   };
 
-  const groupLabel: Record<QuickReply["group"], string> = {
-    greeting: labels.groupGreeting,
-    response: labels.groupResponse,
-    progress: labels.groupProgress,
-    closing: labels.groupClosing,
-  };
-
   const sendCustom = () => {
     const text = customText.trim();
     if (!text) return;
     setCustomText("");
-    setCustomOpen(false);
     void send({
       intent: "custom",
       text,
       optimisticText: text,
-      onError: () => {
-        setCustomText(text);
-        setCustomOpen(true);
-      },
+      // 실패 시 입력값 복원(입력창은 항상 노출).
+      onError: () => setCustomText(text),
     });
   };
 
@@ -283,79 +256,55 @@ export function DesignerThread({
         <div ref={bottomRef} />
       </div>
 
-      {/* 입력 영역 — 퀵리플라이 칩 우선 */}
-      <div className="sticky bottom-0 z-20 border-t border-border/70 bg-background/95 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur-md">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">
-            {labels.quickTitle}
-          </span>
-          <Link
-            href={designerReportPath(token)}
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "text-accent-text",
-            )}
-          >
-            {labels.reportCta}
-          </Link>
-        </div>
+      {/* 입력 영역 — 자유 텍스트 입력이 기본·주(#3). 시술 기록은 분리·강조(#4). */}
+      <div className="sticky bottom-0 z-20 space-y-2.5 border-t border-border/70 bg-background/95 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur-md">
+        {/* #4 — 시술 기록하러 가기: 빠른답변과 분리, 눈에 띄는 버튼(완결률=데이터가 여기서 나온다). */}
+        <Link
+          href={designerReportPath(token)}
+          className={cn(
+            buttonVariants({ variant: "outline", size: "default" }),
+            "w-full justify-center gap-1.5 border-accent/40 font-semibold text-accent-text",
+          )}
+        >
+          {labels.reportCta}
+          <span aria-hidden="true">→</span>
+        </Link>
 
-        <div className="flex flex-wrap gap-1.5">
-          {PRIMARY_REPLIES.map((qr) => (
-            <button
-              key={qr.replyId}
-              type="button"
-              disabled={sending}
-              onClick={() => onQuickReply(qr)}
-              className="inline-flex items-center rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:opacity-50"
-            >
-              {qr.chipLabel}
-            </button>
-          ))}
-
-          {/* 더보기 — 나머지 칩을 group 별 시트로 */}
-          <button
-            type="button"
-            onClick={() => setMoreOpen(true)}
-            className="inline-flex items-center rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
-            aria-haspopup="dialog"
-            aria-expanded={moreOpen}
-          >
-            {labels.moreLabel}
-          </button>
-
-          {/* 직접 입력 */}
-          <button
-            type="button"
-            onClick={() => setCustomOpen((v) => !v)}
-            className="inline-flex items-center rounded-full border border-foreground bg-accent-soft px-3 py-2 text-sm font-semibold text-accent-text outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
-            aria-expanded={customOpen}
-          >
-            {labels.customLabel}
-          </button>
-        </div>
-
-        {/* 직접 입력 패널 */}
-        {customOpen ? (
-          <div className="mt-2.5 space-y-2">
-            <Textarea
-              value={customText}
-              onChange={(e) => setCustomText(e.target.value)}
-              placeholder={labels.placeholder}
-              rows={2}
-              autoFocus
-            />
-            <Button
-              variant="accent"
-              size="default"
-              className="w-full"
-              onClick={sendCustom}
-              disabled={sending || !customText.trim()}
-            >
-              {labels.send}
-            </Button>
+        {/* #3 — 빠른답변: 한 줄 가로 스크롤(보조 수단). */}
+        <div className="-mx-3 -my-1.5 overflow-x-auto px-3 py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-max gap-1.5">
+            {ALL_REPLIES.map((qr) => (
+              <button
+                key={qr.replyId}
+                type="button"
+                disabled={sending}
+                onClick={() => onQuickReply(qr)}
+                className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:opacity-50"
+              >
+                {qr.chipLabel}
+              </button>
+            ))}
           </div>
-        ) : null}
+        </div>
+
+        {/* #3 — 자유 텍스트 입력: 항상 노출, 기본 입력 수단. */}
+        <div className="space-y-2">
+          <Textarea
+            value={customText}
+            onChange={(e) => setCustomText(e.target.value)}
+            placeholder={labels.placeholder}
+            rows={2}
+          />
+          <Button
+            variant="accent"
+            size="default"
+            className="w-full"
+            onClick={sendCustom}
+            disabled={sending || !customText.trim()}
+          >
+            {labels.send}
+          </Button>
+        </div>
       </div>
 
       {/* 가격 선택 Sheet */}
@@ -420,46 +369,6 @@ export function DesignerThread({
         </SheetContent>
       </Sheet>
 
-      {/* 더보기 — 나머지 칩을 group 섹션으로 */}
-      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent closeLabel="닫기">
-          <SheetHeader>
-            <SheetTitle>{labels.moreTitle}</SheetTitle>
-            <SheetDescription>{labels.translatedNote}</SheetDescription>
-          </SheetHeader>
-          <div className="space-y-4">
-            {GROUP_ORDER.map((group) => {
-              const items = SECONDARY_REPLIES.filter(
-                (qr) => qr.group === group,
-              );
-              if (items.length === 0) return null;
-              return (
-                <section key={group} className="space-y-2">
-                  <h3 className="text-xs font-medium text-muted-foreground">
-                    {groupLabel[group]}
-                  </h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {items.map((qr) => (
-                      <button
-                        key={qr.replyId}
-                        type="button"
-                        disabled={sending}
-                        onClick={() => {
-                          setMoreOpen(false);
-                          onQuickReply(qr);
-                        }}
-                        className="inline-flex items-center rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:opacity-50"
-                      >
-                        {qr.chipLabel}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        </SheetContent>
-      </Sheet>
     </>
   );
 }

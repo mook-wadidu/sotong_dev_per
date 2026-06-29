@@ -31,6 +31,7 @@ import {
   CROWN_VOLUME,
   HAIR_DENSITY,
   HAIR_TYPE,
+  INTAKE_CATEGORIES,
 } from "@/lib/catalog";
 import {
   makeDesignerEntryToken,
@@ -53,6 +54,7 @@ import {
   type ConsultationStatus,
   type Customer,
   type CustomerHairProfile,
+  type DesignerHairInput,
   type HairReport,
   type IntakeDraft,
   type Locale,
@@ -618,7 +620,13 @@ export async function startConsultation(input: {
       input.intake.serviceIds,
       salonServices,
     );
-    const serviceLabelsKo = resolvedServices.map((s) => s.label.ko);
+    // MVP: 손님은 큰 분류만 고른다 → 요약 시술명은 분류 라벨(ko). 레거시(serviceIds) 폴백.
+    const categoryLabelsKo = (input.intake.serviceCategoryIds ?? [])
+      .map((id) => INTAKE_CATEGORIES.find((c) => c.id === id)?.label.ko)
+      .filter((x): x is string => !!x);
+    const serviceLabelsKo = categoryLabelsKo.length
+      ? categoryLabelsKo
+      : resolvedServices.map((s) => s.label.ko);
     const priceWon = estimateSalonPrice(
       input.intake.serviceIds,
       salonServices,
@@ -778,6 +786,8 @@ export interface DesignerConsultationView extends ConsultationView {
    * 어드민 카르테(getCustomerHistory)와 동일 패턴.
    */
   serviceLabelMap: Record<string, LocalizedText>;
+  /** 살롱 시술 메뉴(id+다국어 라벨) — 기록폼 '실제 시술' 선택지. */
+  salonServiceOptions: { id: string; label: LocalizedText }[];
 }
 
 export async function getCustomerView(
@@ -894,28 +904,22 @@ export async function getDesignerView(
     }
   }
 
-  // 카르테에 등장한 serviceId 만 살롱 메뉴 라벨로(어드민 카르테와 동일 패턴). best-effort.
+  // 살롱 메뉴 — 카르테 라벨맵 + 기록폼 '실제 시술' 선택지로 사용. best-effort.
   const serviceLabelMap: Record<string, LocalizedText> = {};
-  const neededIds = new Set<string>([
-    ...(treatmentRecord?.serviceIds ?? []),
-    ...customerTreatments.flatMap((t) => t.serviceIds),
-  ]);
-  if (neededIds.size > 0) {
-    try {
-      const salonServices = await repo.listServices(c.salonSlug);
-      for (const s of salonServices) {
-        if (neededIds.has(s.id)) serviceLabelMap[s.id] = s.label;
-      }
-    } catch (e) {
-      await logIssue({
-        salonSlug: c.salonSlug,
-        severity: "warning",
-        source: "designer-view",
-        message: "시술 라벨맵 조회 실패(라벨 생략)",
-        detail: e instanceof Error ? e.message : String(e),
-        consultationId: c.id,
-      });
-    }
+  let salonServiceOptions: { id: string; label: LocalizedText }[] = [];
+  try {
+    const salonServices = await repo.listServices(c.salonSlug);
+    salonServiceOptions = salonServices.map((s) => ({ id: s.id, label: s.label }));
+    for (const s of salonServices) serviceLabelMap[s.id] = s.label;
+  } catch (e) {
+    await logIssue({
+      salonSlug: c.salonSlug,
+      severity: "warning",
+      source: "designer-view",
+      message: "살롱 시술 메뉴 조회 실패(라벨·선택지 생략)",
+      detail: e instanceof Error ? e.message : String(e),
+      consultationId: c.id,
+    });
   }
 
   return {
@@ -926,6 +930,7 @@ export async function getDesignerView(
     treatmentRecord,
     customerTreatments,
     serviceLabelMap,
+    salonServiceOptions,
   };
 }
 
@@ -1147,6 +1152,22 @@ export async function startService(
   return { ok: true };
 }
 
+/**
+ * 디자이너 신체정보 입력(요약 화면 '디자이너 입력' 카드) — designerToken 권한.
+ * 손님 인테이크에서 옮겨온 항목(얼굴형·볼륨·머리숱·모질·가마·성별) + 알레르기 재확인을
+ * consultation.designer_input 에 저장. 완료 시 카르테·학습에 input_by="designer" 로 반영.
+ */
+export async function recordDesignerIntake(
+  designerToken: string,
+  input: DesignerHairInput,
+): Promise<{ ok: boolean }> {
+  const repo = getRepo();
+  const c = await repo.getByDesignerToken(designerToken);
+  if (!c) return { ok: false };
+  await repo.setDesignerInput(c.id, input);
+  return { ok: true };
+}
+
 /* ── 시술 완료 → 리포트 발송 ───────────────────────────── */
 export async function completeConsultation(input: {
   designerToken: string;
@@ -1155,6 +1176,8 @@ export async function completeConsultation(input: {
     stateGrade?: ThreeLevel;
     /** 실제 캡처한 만족도/결과 점수(AI 추론값 아님) — 카르테에 영속. */
     satisfactionScore?: number;
+    /** 디자이너가 실제로 한 시술(살롱 메뉴 id). 미입력 시 손님 분류로 폴백(태그 구분). */
+    serviceIds?: string[];
   };
   beforePhotoUrl?: string;
   afterPhotoUrl?: string;
@@ -1195,18 +1218,10 @@ export async function completeConsultation(input: {
   // 없으면 상담에 저장된 beforePhotoUrl 폴백. after 는 그대로 input.
   const beforeUrl = input.beforePhotoUrl ?? c.beforePhotoUrl;
 
-  // PRD NOW #4 — 비포/애프터 사진 2장 필수(서버측 방어 게이트). 클라 우회 시에도
-  // 빈-사진 완결을 차단해 데이터 엔진 그라운드트루스를 보장(동의 게이트와 동일 패턴).
-  if (!beforeUrl || !input.afterPhotoUrl) {
-    await logIssue({
-      salonSlug: c.salonSlug,
-      severity: "warning",
-      source: "report",
-      message: "비포/애프터 사진 누락으로 완결 차단(2장 필수)",
-      consultationId: c.id,
-    });
-    return null;
-  }
+  // 사진은 선택(필수 아님) — 디자이너가 바쁘면 사진 없이도 완결 가능(수집률 우선, §12.2 H3).
+  // 단, 사진 유무는 데이터로 기록(H4 촬영습관 측정)하여 파일럿에서 감시한다(아래 has_*_photo).
+  const hasBeforePhoto = !!beforeUrl;
+  const hasAfterPhoto = !!input.afterPhotoUrl;
 
   try {
     const salon = await repo.getSalon(c.salonSlug);
@@ -1349,6 +1364,39 @@ export async function completeConsultation(input: {
       }
     }
 
+    // ── 데이터 출처(provenance) 병합 (항목 5) ─────────────────────
+    // 신체정보: 디자이너 입력(요약 카드) 우선, 없으면 레거시 손님값. 출처로 input_by 결정.
+    const di = c.designerInput;
+    const hasDesignerBody = !!(
+      di &&
+      (di.faceShape || di.crownVolume || di.hairDensity || di.hairType || di.gender)
+    );
+    const hasLegacyBody = !!(
+      c.intake.faceShape ||
+      c.intake.crownVolume ||
+      c.intake.hairDensity ||
+      c.intake.hairType ||
+      c.intake.gender
+    );
+    const faceShape = di?.faceShape ?? c.intake.faceShape;
+    const crownVolume = di?.crownVolume ?? c.intake.crownVolume;
+    const hairDensity = di?.hairDensity ?? c.intake.hairDensity;
+    const hairType = di?.hairType ?? c.intake.hairType;
+    const gender = di?.gender ?? c.intake.gender;
+    const bodyInputBy: "customer" | "designer" | undefined = hasDesignerBody
+      ? "designer"
+      : hasLegacyBody
+        ? "customer"
+        : undefined;
+    // 시술: 디자이너 실제기록 우선(실제 한 것) / 미기록 시 손님 분류 폴백(희망, 실제 아님 — 태그 구분).
+    const actualServiceIds = input.record?.serviceIds ?? [];
+    const recordServiceIds = actualServiceIds.length
+      ? actualServiceIds
+      : (c.intake.serviceCategoryIds ?? []);
+    const servicesInputBy: "customer" | "designer" = actualServiceIds.length
+      ? "designer"
+      : "customer";
+
     // 카르테(treatment_record) 영속 — 방문 1건을 customer 밑에 누적.
     // best-effort: 실패해도 이미 발송된 리포트를 망치지 않는다(try/catch + logIssue).
     try {
@@ -1358,11 +1406,21 @@ export async function completeConsultation(input: {
         salonSlug: c.salonSlug,
         designerId: c.designerId,
         designerName: c.designerName,
-        serviceIds: c.intake.serviceIds,
+        serviceIds: recordServiceIds,
         products: input.record?.products ?? [],
         stateGrade: input.record?.stateGrade,
         satisfactionScore: input.record?.satisfactionScore,
         note: undefined,
+        faceShape,
+        crownVolume,
+        hairDensity,
+        hairType,
+        gender,
+        inputBy: bodyInputBy,
+        servicesInputBy,
+        allergyConfirmedByDesigner: di?.allergyConfirmedByDesigner,
+        hasBeforePhoto,
+        hasAfterPhoto,
       });
     } catch (e) {
       await logIssue({
@@ -1388,21 +1446,28 @@ export async function completeConsultation(input: {
             : `anon-${cryptoToken()}`,
           visitedAt: report.date,
           nationality: c.customerLocale,
-          gender: c.intake.gender,
+          gender,
           ageBand: ageBand(c.intake.age),
-          faceShape: c.intake.faceShape,
-          crownVolume: c.intake.crownVolume,
-          hairDensity: c.intake.hairDensity,
-          hairType: c.intake.hairType,
+          faceShape,
+          crownVolume,
+          hairDensity,
+          hairType,
           concernIds: c.intake.concernIds ?? [],
           allergy: !!c.intake.allergy,
-          serviceIds: c.intake.serviceIds ?? [],
+          serviceIds: recordServiceIds,
           products: input.record?.products ?? report.products ?? [],
           stateGrade: input.record?.stateGrade ?? report.hairStateGrade,
           hairStateScore: report.hairStateScore,
           satisfactionScore: input.record?.satisfactionScore,
           nextVisitWeeks: report.nextVisitWeeks,
           createdAt: new Date().toISOString(),
+          inputBy: bodyInputBy,
+          servicesInputBy,
+          designerId: c.designerId,
+          // H4 촬영습관 측정 — training_sample 은 retention 퍼지 후에도 남는 자산이므로
+          // 반드시 사진 유무를 같이 보존(카르테에만 두면 90일 뒤 측정 불가).
+          hasBeforePhoto,
+          hasAfterPhoto,
         };
         await repo.saveTrainingSample(sample);
       } catch (e) {

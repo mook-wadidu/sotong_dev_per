@@ -4,6 +4,7 @@ import type {
   ConsultationStatus,
   Customer,
   CustomerHairProfile,
+  DesignerHairInput,
   DesignerSummary,
   HairReport,
   Message,
@@ -527,6 +528,14 @@ export class MemoryRepo implements Repo {
     if (c) c.beforePhotoUrl = url;
   }
 
+  async setDesignerInput(
+    consultationId: string,
+    input: DesignerHairInput,
+  ): Promise<void> {
+    const c = store.consultations.get(consultationId);
+    if (c) c.designerInput = input;
+  }
+
   async scrubConsultationPii(redacted: Consultation): Promise<void> {
     // 마스킹된 상담으로 store 항목을 교체(전화·사진·자유텍스트 제거 영속화).
     if (store.consultations.has(redacted.id)) {
@@ -591,6 +600,7 @@ export class MemoryRepo implements Repo {
       consultationId: input.consultationId,
       customerId: input.customerId,
       salonSlug: input.salonSlug,
+      salonId: input.salonId,
       designerId: input.designerId,
       designerName: input.designerName,
       serviceIds: input.serviceIds,
@@ -599,6 +609,16 @@ export class MemoryRepo implements Repo {
       satisfactionScore: input.satisfactionScore,
       note: input.note,
       visitedAt: now(),
+      faceShape: input.faceShape,
+      crownVolume: input.crownVolume,
+      hairDensity: input.hairDensity,
+      hairType: input.hairType,
+      gender: input.gender,
+      inputBy: input.inputBy,
+      servicesInputBy: input.servicesInputBy,
+      allergyConfirmedByDesigner: input.allergyConfirmedByDesigner,
+      hasBeforePhoto: input.hasBeforePhoto,
+      hasAfterPhoto: input.hasAfterPhoto,
     };
     store.treatmentRecords.set(record.id, record);
     return record;

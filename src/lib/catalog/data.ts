@@ -133,6 +133,20 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
 ];
 
+/**
+ * 손님 인테이크용 **고정 큰 분류**(MVP) — 손님은 세부 시술 대신 방향만 고른다.
+ * 실제 세부 시술·가격은 디자이너가 기록폼에서 확정(serviceIds). styling 은 흡수하지 않고
+ * 독립 분류로 둔다(학습 데이터 뭉개짐 방지). "etc"(기타)는 최소 catch-all.
+ */
+export const INTAKE_CATEGORIES = [
+  { id: "cut", label: L("컷", "カット", "Cut", "剪发") },
+  { id: "perm", label: L("펌", "パーマ", "Perm", "烫发") },
+  { id: "color", label: L("염색", "カラー", "Color", "染发") },
+  { id: "clinic", label: L("클리닉·케어", "クリニック・ケア", "Clinic & Care", "护理") },
+  { id: "styling", label: L("스타일링", "スタイリング", "Styling", "造型") },
+  { id: "etc", label: L("기타", "その他", "Other", "其他") },
+];
+
 export const ALL_SERVICES: ServiceItem[] = SERVICE_CATEGORIES.flatMap(
   (c) => c.services,
 );

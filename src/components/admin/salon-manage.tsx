@@ -7,6 +7,7 @@ import { SalonQR } from "@/components/admin/salon-qr";
 import {
   rotateSalonEntryKey,
   rotateDesignerEntryKey,
+  rotateDesignerStaffToken,
   rotateOwnerToken,
 } from "@/lib/actions";
 import { salonConsolePath } from "@/lib/links";
@@ -59,6 +60,7 @@ export function SalonManage({
   const [rotatingDesigner, setRotatingDesigner] = React.useState<string | null>(
     null,
   );
+  const [rotatingInbox, setRotatingInbox] = React.useState<string | null>(null);
   const [rotatingOwner, setRotatingOwner] = React.useState(false);
 
   const onRotateOwner = async () => {
@@ -96,6 +98,20 @@ export function SalonManage({
     if (res.ok) {
       toast.success(t("manage.rotated"));
       onChanged();
+    } else {
+      toast.error(t("console.error"));
+    }
+  };
+
+  // 인박스(staff_token) 재발급 — 디자이너 인박스 링크 유출 대응(옛 링크 무효).
+  const onRotateInbox = async (designerId: string) => {
+    if (!window.confirm(t("manage.rotateInboxConfirm"))) return;
+    setRotatingInbox(designerId);
+    const res = await rotateDesignerStaffToken({ ownerToken, designerId });
+    setRotatingInbox(null);
+    if (res.ok) {
+      toast.success(t("manage.rotated"));
+      onChanged(); // 재조회 → inboxPath 가 새 토큰으로 갱신
     } else {
       toast.error(t("console.error"));
     }
@@ -177,15 +193,26 @@ export function SalonManage({
                   {t("console.designers.inboxLink")}
                 </a>
               ) : null}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => onRotateDesigner(d.id)}
-                disabled={rotatingDesigner === d.id}
-              >
-                {t("manage.rotate")}
-              </Button>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onRotateDesigner(d.id)}
+                  disabled={rotatingDesigner === d.id}
+                >
+                  {t("manage.rotate")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onRotateInbox(d.id)}
+                  disabled={rotatingInbox === d.id}
+                >
+                  {t("manage.rotateInbox")}
+                </Button>
+              </div>
             </div>
           );
         })}

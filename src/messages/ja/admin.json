@@ -28,6 +28,8 @@
     "ownerToken": "オーナーコンソール トークン",
     "consoleLink": "オーナーコンソール リンク",
     "rotate": "QRを再発行",
+    "rotateInbox": "受信箱リンクを再発行",
+    "rotateInboxConfirm": "受信箱トークンを再発行すると、既存の受信箱リンクは使えなくなります。新しいリンクをデザイナーに再共有してください。続けますか？",
     "rotateConfirm": "QRを再発行すると、既存のQR/リンクは使えなくなります。続けますか？",
     "rotated": "QRを再発行しました",
     "rotateOwner": "コンソールトークンを再発行",

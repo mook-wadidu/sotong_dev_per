@@ -28,6 +28,8 @@
     "ownerToken": "오너 콘솔 토큰",
     "consoleLink": "오너 콘솔 링크",
     "rotate": "QR 재발급",
+    "rotateInbox": "인박스 링크 재발급",
+    "rotateInboxConfirm": "인박스 토큰을 재발급하면 기존 인박스 링크는 더 이상 동작하지 않아요. 새 링크를 디자이너에게 다시 전달해야 해요. 계속할까요?",
     "rotateConfirm": "QR을 재발급하면 기존 QR/링크는 더 이상 동작하지 않아요. 계속할까요?",
     "rotated": "QR을 재발급했어요",
     "rotateOwner": "콘솔 토큰 재발급",

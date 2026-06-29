@@ -2261,6 +2261,34 @@ export async function rotateDesignerEntryKey(input: {
   };
 }
 
+/**
+ * 디자이너 인박스 토큰(staff_token) 재발급 — 인박스 링크 유출 대응.
+ * 옛 인박스 URL 은 즉시 무효. 디자이너에게 새 링크를 전달해야 한다.
+ * (QR/입장 토큰은 rotateDesignerEntryKey 로 별도 회전 — 이건 인박스 접근 토큰.)
+ */
+export async function rotateDesignerStaffToken(input: {
+  ownerToken: string;
+  designerId: string;
+}): Promise<{ ok: boolean; staffToken?: string; inboxPath?: string }> {
+  const salon = await authorizeConsole(input.ownerToken, "console");
+  if (!salon) return { ok: false };
+  const repo = getRepo();
+  const existing = await repo.getDesignerById(input.designerId);
+  if (!existing || existing.salonSlug !== salon.slug) {
+    await logIssue({
+      salonSlug: salon.slug,
+      severity: "warning",
+      source: "console",
+      message: "인박스 토큰 재발급 대상 불일치(타 살롱/없음)",
+      detail: `id=${input.designerId}`,
+    });
+    return { ok: false };
+  }
+  const staffToken = `staff_${cryptoToken()}`;
+  await repo.updateDesigner({ ...existing, staffToken });
+  return { ok: true, staffToken, inboxPath: designerInboxPath(staffToken) };
+}
+
 /* ──────────────────────────────────────────────────────────────
  * 플랫폼 어드민 온보딩 (adminKey 권한) — 살롱/디자이너 생성.
  * ──────────────────────────────────────────────────────────────── */

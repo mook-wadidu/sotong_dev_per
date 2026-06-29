@@ -28,6 +28,8 @@
     "ownerToken": "Owner console token",
     "consoleLink": "Owner console link",
     "rotate": "Regenerate QR",
+    "rotateInbox": "Regenerate inbox link",
+    "rotateInboxConfirm": "Regenerating the inbox token will break the existing inbox link. You'll need to re-share the new link with the designer. Continue?",
     "rotateConfirm": "Regenerating the QR will break the existing QR/link. Continue?",
     "rotated": "QR regenerated",
     "rotateOwner": "Regenerate console token",

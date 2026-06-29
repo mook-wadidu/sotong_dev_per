@@ -21,6 +21,7 @@ import {
   startService as startServiceSvc,
   rotateSalonEntryKey as rotateSalonEntryKeySvc,
   rotateDesignerEntryKey as rotateDesignerEntryKeySvc,
+  rotateDesignerStaffToken as rotateDesignerStaffTokenSvc,
   rotateOwnerToken as rotateOwnerTokenSvc,
   salonDeleteService as salonDeleteServiceSvc,
   salonUpdateRanks as salonUpdateRanksSvc,
@@ -293,6 +294,14 @@ export async function rotateDesignerEntryKey(input: {
   designerId: string;
 }): Promise<{ ok: boolean; entryToken?: string; entryPath?: string; version?: number }> {
   return rotateDesignerEntryKeySvc(input);
+}
+
+/** 디자이너 인박스 토큰(staff_token) 재발급 — 인박스 링크 유출 대응(옛 링크 무효). */
+export async function rotateDesignerStaffToken(input: {
+  ownerToken: string;
+  designerId: string;
+}): Promise<{ ok: boolean; staffToken?: string; inboxPath?: string }> {
+  return rotateDesignerStaffTokenSvc(input);
 }
 
 /** 오너 콘솔 토큰 회전 — 새 랜덤 ownerToken 발급(기존 콘솔 링크 무효화). */

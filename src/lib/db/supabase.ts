@@ -352,7 +352,16 @@ function toConsultation(r: ConsultationRow): Consultation {
     status: r.status,
     phone: r.phone ?? undefined,
     isReturning: r.is_returning,
-    intake: r.intake,
+    // 레거시 JSONB 방어: 필드 추가 전 저장된 상담엔 배열 키가 없을 수 있다.
+    // 여기서 한 번 기본값([]) 보정해, 하위 어디서 무가드 .map()/.length 로 읽어도 크래시 안 나게(회귀 클래스 차단).
+    intake: {
+      ...r.intake,
+      serviceCategoryIds: r.intake?.serviceCategoryIds ?? [],
+      serviceIds: r.intake?.serviceIds ?? [],
+      stylePhotoUrls: r.intake?.stylePhotoUrls ?? [],
+      treatmentHistory: r.intake?.treatmentHistory ?? [],
+      concernIds: r.intake?.concernIds ?? [],
+    },
     summary: r.summary ?? undefined,
     designerInput: r.designer_input ?? undefined,
     consultationToken: r.consultation_token,

@@ -1,4 +1,12 @@
 {
+  "qr": {
+    "button": "My QR",
+    "title": "My QR code",
+    "hint": "When a guest scans this QR, they'll be assigned to me.",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "print": "Print"
+  },
   "help": {
     "button": "Guide",
     "title": "Sotong guide",

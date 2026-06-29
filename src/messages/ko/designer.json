@@ -1,4 +1,12 @@
 {
+  "qr": {
+    "button": "내 QR",
+    "title": "내 QR 코드",
+    "hint": "손님이 이 QR을 스캔하면 나에게 배정돼요.",
+    "copy": "링크 복사",
+    "copied": "복사됨",
+    "print": "인쇄"
+  },
   "help": {
     "button": "사용법",
     "title": "소통 사용법",

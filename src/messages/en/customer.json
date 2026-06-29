@@ -1,4 +1,13 @@
 {
+  "scan": {
+    "title": "Scan the QR code",
+    "hint": "Point your camera at the salon or designer's QR code inside the frame",
+    "preparing": "Preparing the camera…",
+    "denied": "Camera permission is required. Please allow camera access in your browser settings.",
+    "error": "Couldn't open the camera. Please ask a staff member.",
+    "retry": "Try again",
+    "back": "Back"
+  },
   "help": {
     "trigger": "How does it work?",
     "title": "Here's how it works",

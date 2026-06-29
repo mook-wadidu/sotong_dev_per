@@ -1,5 +1,8 @@
+import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { getDesignerInbox } from "@/lib/service";
+import { makeDesignerEntryToken } from "@/lib/entry";
+import { customerEntryPath } from "@/lib/links";
 import {
   MobileFrame,
   ScreenHeader,
@@ -11,6 +14,7 @@ import { AssignButton } from "@/components/designer/assign-button";
 import { NotificationSetup } from "@/components/designer/notification-setup";
 import { InboxRefresh } from "@/components/designer/inbox-refresh";
 import { DesignerHelp } from "@/components/designer/designer-help";
+import { DesignerQrSheet } from "@/components/designer/designer-qr-sheet";
 import { config } from "@/lib/config";
 import type {
   ConsultationListItem as Item,
@@ -60,6 +64,17 @@ export default async function DesignerInboxPage({
 
   const { designer, salon, mine, unassigned } = data;
 
+  // '내 QR' — 디자이너 개인 입장 QR(손님 스캔 시 이 디자이너에게 배정).
+  // 절대 URL 은 오너 콘솔과 동일하게 요청 Host 로 서버에서 만든다(LAN/배포 호스트 정확 인코딩).
+  const h = await headers();
+  const host = h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const origin = host ? `${proto}://${host}` : "";
+  const myEntryPath = customerEntryPath(
+    makeDesignerEntryToken(designer.id, designer.entryKeyVersion),
+  );
+  const myEntryUrl = origin ? origin + myEntryPath : myEntryPath;
+
   // ko 고정 라벨 매핑 (색만으로 의미 전달 금지)
   // Phase 2: 대기(intake·consulting) / 진행중(in_service) / 완료(completed)로 단순화.
   const statusLabel = (status: ConsultationStatus): string => {
@@ -91,6 +106,11 @@ export default async function DesignerInboxPage({
         subtitle={designer.name}
         trailing={
           <div className="flex items-center gap-1">
+            <DesignerQrSheet
+              entryUrl={myEntryUrl}
+              entryPath={myEntryPath}
+              salonName={`${salon.name} · ${designer.name}`}
+            />
             <DesignerHelp />
             <InboxRefresh
               label={t("inbox.refresh")}

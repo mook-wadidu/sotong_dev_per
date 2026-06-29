@@ -2,10 +2,7 @@ import Link from "next/link";
 import { hasLocale } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
-import { config } from "@/lib/config";
-import { makeSalonEntryToken } from "@/lib/entry";
-import { getSalonInfo } from "@/lib/service";
-import { customerEntryPath, adminGatePath } from "@/lib/links";
+import { adminGatePath } from "@/lib/links";
 import { buttonVariants } from "@/components/ui/button";
 import { MobileFrame, ScreenBody } from "@/components/ui/mobile-frame";
 import { LogoSymbol } from "@/components/brand/logo";
@@ -51,14 +48,6 @@ export default async function Home({
   if (!hasLocale(routing.locales, locale)) notFound();
   const t = COPY[locale as Locale] ?? COPY.ko!;
 
-  // 데모 손님 진입: 추측 가능한 slug 대신 서명된 살롱 공용(지정없음) 입장 토큰으로.
-  // 살롱의 현재 entryKeyVersion 으로 발급해야 키 회전 후에도 진입이 유효(P1).
-  const demoSalon = await getSalonInfo(config.demoSalonSlug);
-  const demoEntryToken = makeSalonEntryToken(
-    config.demoSalonSlug,
-    demoSalon?.entryKeyVersion ?? 1,
-  );
-
   return (
     <MobileFrame>
       <ScreenBody className="flex flex-col justify-center gap-8 py-10">
@@ -82,9 +71,9 @@ export default async function Home({
           className="animate-rise space-y-3"
           style={{ animationDelay: "60ms" }}
         >
-          {/* 손님 진입 (주 CTA) */}
+          {/* 손님 진입 (주 CTA) — 매장/디자이너 QR 스캔으로(살롱 가정 X) */}
           <Link
-            href={customerEntryPath(demoEntryToken)}
+            href={`/${locale}/scan`}
             className={cn(
               buttonVariants({ variant: "accent", size: "xl" }),
               "w-full",

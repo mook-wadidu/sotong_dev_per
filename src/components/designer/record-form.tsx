@@ -16,10 +16,10 @@ import {
 } from "@/components/ui";
 import { PRODUCTS } from "@/lib/catalog";
 import { finishAndSendReport } from "@/lib/actions";
-import { reportPath } from "@/lib/links";
+import { designerReportViewPath } from "@/lib/links";
 import { resizeToDataUrl } from "@/lib/image";
 import { cn } from "@/lib/utils";
-import type { Locale, ThreeLevel } from "@/lib/domain/types";
+import type { ThreeLevel } from "@/lib/domain/types";
 
 type Labels = {
   products: string;
@@ -51,7 +51,6 @@ type Labels = {
 
 export function RecordForm({
   token,
-  customerLocale,
   beforeUrl,
   defaultProducts,
   defaultGrade,
@@ -59,7 +58,6 @@ export function RecordForm({
   labels,
 }: {
   token: string;
-  customerLocale: Locale;
   /** 요약 단계에서 미리 촬영한 비포 사진(있으면 프리필, 교체 가능). */
   beforeUrl?: string;
   /** 재방문 손님의 지난 시술 약제·제품(카탈로그 id + 커스텀 혼재). */
@@ -165,7 +163,8 @@ export function RecordForm({
           toast.error(labels.failed);
           return;
         }
-        setReportToken(res.reportToken);
+        // 디자이너는 ko 리포트를 본다 — designerReportToken(비-ko 손님) 우선, 없으면 손님 토큰.
+        setReportToken(res.designerReportToken ?? res.reportToken);
         toast.success(labels.sent);
         router.refresh();
       } catch {
@@ -182,7 +181,7 @@ export function RecordForm({
           {labels.sent}
         </p>
         <Link
-          href={reportPath(reportToken, customerLocale)}
+          href={designerReportViewPath(reportToken)}
           className={cn(
             buttonVariants({ variant: "accent", size: "lg" }),
             "w-full",

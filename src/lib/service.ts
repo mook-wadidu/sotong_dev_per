@@ -1200,7 +1200,7 @@ export async function completeConsultation(input: {
   };
   beforePhotoUrl?: string;
   afterPhotoUrl?: string;
-}): Promise<{ reportToken: string } | null> {
+}): Promise<{ reportToken: string; designerReportToken: string } | null> {
   const repo = getRepo();
   const c = await repo.getByDesignerToken(input.designerToken);
   if (!c || !c.summary) return null;
@@ -1301,6 +1301,9 @@ export async function completeConsultation(input: {
     ]);
 
     const reportToken = c.reportToken ?? cryptoToken();
+    // 디자이너용(ko) 리포트 토큰 — 기본은 손님 토큰(ko 손님이거나 ko 생성 실패 시 폴백),
+    // 비-ko 손님이면 아래에서 koToken 으로 교체. record-form 발송 후 링크가 ko 리포트를 가리키게.
+    let designerReportToken = reportToken;
     const report: HairReport = {
       ...draft,
       products: localizedProducts,
@@ -1371,6 +1374,7 @@ export async function completeConsultation(input: {
         };
         await repo.saveReport(koReport);
         await repo.setDesignerReportToken(c.id, koToken);
+        designerReportToken = koToken;
       } catch (e) {
         await logIssue({
           salonSlug: c.salonSlug,
@@ -1503,7 +1507,7 @@ export async function completeConsultation(input: {
       }
     }
 
-    return { reportToken };
+    return { reportToken, designerReportToken };
   } catch (e) {
     await logIssue({
       salonSlug: c.salonSlug,
@@ -1533,6 +1537,8 @@ export interface ReportViewData {
     hairDensity?: ThreeLevel;
     hairType?: HairType;
   };
+  /** 손님이 남긴 만족도(1~5). 디자이너 읽기전용 뷰에서 결과 표시용. 미평가면 undefined. */
+  satisfactionScore?: number;
 }
 
 export async function getReportView(
@@ -1551,6 +1557,13 @@ export async function getReportView(
   let visitCount = 0;
   let lastVisitDate: string | undefined;
   let hair: ReportViewData["hair"];
+  let satisfactionScore: number | undefined;
+  try {
+    const tr = await repo.getTreatmentByConsultation(report.consultationId);
+    satisfactionScore = tr?.satisfactionScore;
+  } catch {
+    // 만족도 조회 실패는 프로필/리포트 표시에 영향 없음(별도 격리).
+  }
   try {
     const c = await repo.getConsultationById(report.consultationId);
     if (c) {
@@ -1578,7 +1591,16 @@ export async function getReportView(
     // 프로필/방문이력 조회 실패는 리포트 표시에 영향 없음
   }
 
-  return { report, customerLocale, gender, age, visitCount, lastVisitDate, hair };
+  return {
+    report,
+    customerLocale,
+    gender,
+    age,
+    visitCount,
+    lastVisitDate,
+    hair,
+    satisfactionScore,
+  };
 }
 
 /**

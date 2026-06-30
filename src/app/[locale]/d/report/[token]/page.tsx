@@ -59,7 +59,6 @@ export default async function DesignerReportPage({
       <ScreenBody>
         <RecordForm
           token={token}
-          customerLocale={consultation.customerLocale}
           beforeUrl={consultation.beforePhotoUrl}
           defaultProducts={lastTreatment?.products}
           defaultGrade={lastTreatment?.stateGrade}

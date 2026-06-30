@@ -231,8 +231,10 @@
     "satisfaction": {
       "title": "今天的服务还满意吗？",
       "thanks": "感谢您的评价！",
-      "error": "保存失败，请重试。"
+      "error": "保存失败，请重试。",
+      "readOnly": "由顾客本人评价"
     },
+    "back": "返回",
     "nationalityNames": {
       "ko": "韩国",
       "ja": "日本",

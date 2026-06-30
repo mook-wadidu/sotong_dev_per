@@ -25,6 +25,7 @@ import {
 } from "@/components/icons";
 import { HairDna } from "./hair-dna";
 import { SatisfactionStars } from "./satisfaction-stars";
+import { BackButton } from "./back-button";
 import { cn } from "@/lib/utils";
 import type {
   HairReport,
@@ -64,7 +65,11 @@ export interface ReportLabels {
     title: string;
     thanks: string;
     error: string;
+    /** 디자이너 읽기전용 안내(손님 입력 영역). */
+    readOnly: string;
   };
+  /** 뒤로 버튼 라벨. */
+  back: string;
   save: string;
   saveToast: string;
   saveError: string;
@@ -101,6 +106,9 @@ export function ReportView({
   visit,
   hair,
   demo = false,
+  canRate = true,
+  satisfactionScore,
+  homeHref,
 }: {
   report: HairReport;
   labels: ReportLabels;
@@ -118,6 +126,12 @@ export function ReportView({
   };
   /** 데모 모드 — 별점은 저장 없이 표시만. */
   demo?: boolean;
+  /** 별점 입력 권한 — 손님(true, 기본)만 입력. 디자이너 뷰는 false → 읽기전용. */
+  canRate?: boolean;
+  /** 디자이너 읽기전용에서 표시할 손님 제출 점수(1~5). */
+  satisfactionScore?: number;
+  /** 뒤로 버튼의 no-history 폴백 경로. 미지정 시 손님 랜딩(`/{report.locale}`). 디자이너 뷰는 디자이너 경로 전달. */
+  homeHref?: string;
 }) {
   const tone = GRADE_TONE[report.hairStateGrade];
   const score = Math.max(0, Math.min(100, report.hairStateScore));
@@ -195,7 +209,19 @@ export function ReportView({
 
   return (
     <MobileFrame tone="muted" lang={report.locale}>
-      <ScreenHeader title={labels.title} subtitle={labels.subtitle} />
+      <ScreenHeader
+        title={labels.title}
+        subtitle={labels.subtitle}
+        leading={
+          // 데모는 자체 하단 내비(Replay 등)를 쓰므로 back 미노출(router.back()이 데모를 벗어남).
+          demo ? undefined : (
+            <BackButton
+              label={labels.back}
+              homeHref={homeHref ?? `/${report.locale}`}
+            />
+          )
+        }
+      />
 
       <ScreenBody className="space-y-4 pb-8">
         {/* 캡처 영역 — 저장/공유/예약 버튼 제외한 리포트 본문 */}
@@ -380,11 +406,13 @@ export function ReportView({
         </div>
         {/* /캡처 영역 */}
 
-        {/* 손님 시술 만족도 별점 — 손님 자기보고(저장: treatment_record + training_sample) */}
+        {/* 손님 시술 만족도 별점 — 손님만 입력(canRate). 디자이너 뷰는 읽기전용. */}
         <SatisfactionStars
           reportToken={report.reportToken}
           labels={labels.satisfaction}
           demo={demo}
+          readOnly={!canRate}
+          value={satisfactionScore ?? 0}
         />
 
         {/* 저장(이미지 PNG) / 공유(링크 복사) */}

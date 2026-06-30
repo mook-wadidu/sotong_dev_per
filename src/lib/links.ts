@@ -44,6 +44,10 @@ export function designerThreadPath(token: string) {
 export function designerReportPath(token: string) {
   return `/ko/d/report/${token}`;
 }
+/** 디자이너용 리포트 '보기'(읽기전용) — 손님 reportToken 재사용, 별점은 읽기전용. */
+export function designerReportViewPath(reportToken: string) {
+  return `/ko/d/r/${reportToken}`;
+}
 
 /**
  * 살롱 오너 콘솔 경로 (ownerToken 필수 — 메뉴/디자이너/직급 편집 권한 키).

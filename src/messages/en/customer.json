@@ -231,8 +231,10 @@
     "satisfaction": {
       "title": "How was your service today?",
       "thanks": "Thanks for your feedback!",
-      "error": "Couldn't save. Please try again."
+      "error": "Couldn't save. Please try again.",
+      "readOnly": "Rated by the guest"
     },
+    "back": "Back",
     "nationalityNames": {
       "ko": "Korea",
       "ja": "Japan",

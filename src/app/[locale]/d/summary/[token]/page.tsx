@@ -26,7 +26,7 @@ import {
   CareIcon,
   CalendarIcon,
 } from "@/components/icons";
-import { designerThreadPath, reportPath } from "@/lib/links";
+import { designerThreadPath, designerReportViewPath } from "@/lib/links";
 import { serviceLabels, INTAKE_CATEGORIES } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 import type { ConsultationStatus } from "@/lib/domain/types";
@@ -251,11 +251,10 @@ export default async function DesignerSummaryPage({
             />
             {consultation.designerReportToken ?? consultation.reportToken ? (
               <Link
-                href={reportPath(
-                  // 디자이너는 한국어 리포트(designerReportToken)를 본다.
+                href={designerReportViewPath(
+                  // 디자이너는 한국어 리포트(designerReportToken)를 읽기전용으로 본다.
                   // 옛 완료건(없음)은 손님 리포트로 폴백(내용 언어는 report.locale 고정).
                   consultation.designerReportToken ?? consultation.reportToken!,
-                  "ko",
                 )}
                 className={cn(
                   buttonVariants({ variant: "outline", size: "lg" }),

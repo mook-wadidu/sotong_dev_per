@@ -1183,6 +1183,12 @@ export async function recordDesignerIntake(
   const repo = getRepo();
   const c = await repo.getByDesignerToken(designerToken);
   if (!c) return { ok: false };
+  // 레이트리밋(P0) — designerToken당 분당 디자이너 입력 저장 상한(스팸 방지).
+  await enforceRate(`designer-intake:${designerToken}`, 12, 60_000, {
+    salonSlug: c.salonSlug,
+    source: "designer-intake",
+    consultationId: c.id,
+  });
   await repo.setDesignerInput(c.id, input);
   return { ok: true };
 }
@@ -1667,6 +1673,10 @@ export async function getReturningContext(entryToken: string): Promise<{
   lastVisitedAt?: string;
 } | null> {
   const repo = getRepo();
+  // 레이트리밋(P0) — 입장토큰당 분당 상한(재방문 프로필 열거/폭주 방지).
+  await enforceRate(`returning:${entryToken}`, 60, 60_000, {
+    source: "returning-context",
+  });
   const resolved = await resolveEntry(entryToken, "returning-context");
   if (!resolved) return null;
 
@@ -1893,6 +1903,8 @@ export async function getDesignerInbox(staffToken: string): Promise<{
   unassigned: ConsultationListItem[];
 } | null> {
   const repo = getRepo();
+  // 레이트리밋(P0) — staffToken당 분당 인박스 조회 상한(폴 폭주/열거 완화).
+  await enforceRate(`inbox:${staffToken}`, 30, 60_000, { source: "inbox" });
   const designer = await repo.getDesignerByStaffToken(staffToken);
   if (!designer) {
     await logIssue({
@@ -1937,6 +1949,8 @@ export async function assignConsultation(
   consultationToken: string,
 ): Promise<{ ok: boolean }> {
   const repo = getRepo();
+  // 레이트리밋(P0) — staffToken당 분당 배정 상한(재배정 스팸 방지).
+  await enforceRate(`assign:${staffToken}`, 20, 60_000, { source: "inbox" });
   const designer = await repo.getDesignerByStaffToken(staffToken);
   if (!designer) {
     await logIssue({

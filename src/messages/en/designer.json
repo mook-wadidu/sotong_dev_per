@@ -53,17 +53,17 @@
     "backToInbox": "Inbox"
   },
   "notify": {
-    "title": "새 손님 알림",
-    "description": "새 손님이 접수하면 휴대폰으로 바로 알려드려요.",
-    "enable": "알림 켜기",
-    "enabling": "켜는 중…",
-    "on": "알림이 켜져 있어요",
-    "off": "알림이 꺼져 있어요",
-    "denied": "알림이 차단되어 있어요. 브라우저 설정에서 알림을 허용한 뒤 다시 시도해 주세요.",
-    "unsupported": "이 기기/브라우저는 알림을 지원하지 않아요.",
-    "success": "알림을 켰어요. 새 손님이 오면 알려드릴게요.",
-    "failed": "알림을 켜지 못했어요. 다시 시도해 주세요.",
-    "iosHint": "아이폰은 Safari 공유 버튼(아래 가운데) → '홈 화면에 추가' 로 설치한 뒤, 홈 화면에 생긴 소통 아이콘으로 열어서 '알림 켜기'를 눌러주세요. (Safari 탭에서는 알림을 켤 수 없어요)"
+    "title": "New guest alerts",
+    "description": "Get notified on your phone the moment a new guest checks in.",
+    "enable": "Turn on notifications",
+    "enabling": "Turning on…",
+    "on": "Notifications are on",
+    "off": "Notifications are off",
+    "denied": "Notifications are blocked. Allow notifications in your browser settings and try again.",
+    "unsupported": "This device/browser doesn't support notifications.",
+    "success": "Notifications are on. We'll let you know when a new guest arrives.",
+    "failed": "Couldn't turn on notifications. Please try again.",
+    "iosHint": "On iPhone, install via the Safari share button (bottom center) → 'Add to Home Screen', then open the Sotong icon on your home screen and tap 'Turn on notifications'. (You can't enable notifications from a Safari tab.)"
   },
   "summary": {
     "title": "Guest summary",

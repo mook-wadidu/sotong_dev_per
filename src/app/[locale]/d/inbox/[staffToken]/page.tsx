@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { getDesignerInbox } from "@/lib/service";
 import { makeDesignerEntryToken } from "@/lib/entry";
 import { customerEntryPath } from "@/lib/links";
+import { shareOrigin } from "@/lib/origin";
 import {
   MobileFrame,
   ScreenHeader,
@@ -65,11 +66,9 @@ export default async function DesignerInboxPage({
   const { designer, salon, mine, unassigned } = data;
 
   // '내 QR' — 디자이너 개인 입장 QR(손님 스캔 시 이 디자이너에게 배정).
-  // 절대 URL 은 오너 콘솔과 동일하게 요청 Host 로 서버에서 만든다(LAN/배포 호스트 정확 인코딩).
+  // 절대 URL — 운영 정식 도메인 우선(보호된 프리뷰 호스트 인코딩 방지), 없으면 요청 Host.
   const h = await headers();
-  const host = h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const origin = host ? `${proto}://${host}` : "";
+  const origin = shareOrigin(h.get("host"), h.get("x-forwarded-proto") ?? "http");
   const myEntryPath = customerEntryPath(
     makeDesignerEntryToken(designer.id, designer.entryKeyVersion),
   );

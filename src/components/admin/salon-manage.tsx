@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Button, toast } from "@/components/ui";
 import { SalonQR } from "@/components/admin/salon-qr";
+import { CopyButton } from "@/components/admin/copy-button";
 import {
   rotateSalonEntryKey,
   rotateDesignerEntryKey,
@@ -194,6 +195,10 @@ export function SalonManage({
                 </a>
               ) : null}
               <div className="flex flex-wrap justify-center gap-1.5">
+                <CopyButton
+                  value={d.staffToken}
+                  label={t("console.designers.token")}
+                />
                 <Button
                   type="button"
                   variant="ghost"

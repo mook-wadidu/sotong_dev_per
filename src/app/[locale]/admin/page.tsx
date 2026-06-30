@@ -17,7 +17,13 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminInquiries, AdminErrors } from "@/components/admin/admin-sections";
 import { SalonManageSection } from "@/components/admin/salon-manage-section";
 import { Onboarding } from "@/components/admin/onboarding";
-import { adminPath, salonConsolePath, type AdminView } from "@/lib/links";
+import {
+  adminPath,
+  adminGatePath,
+  salonConsolePath,
+  type AdminView,
+} from "@/lib/links";
+import { shareOrigin } from "@/lib/origin";
 
 const VIEWS: AdminView[] = [
   "dashboard",
@@ -75,17 +81,16 @@ export default async function AdminPage({
     return (
       <AdminShell title={t("title")} subtitle={t("subtitle")}>
         <div className="mx-auto mt-12 max-w-md rounded-2xl border-2 border-foreground bg-card p-8 text-center">
-          <h2 className="text-lg font-semibold">{t("authError.title")}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("authError.hint")}
-          </p>
+          <h2 className="text-lg font-semibold">{t("gate.title")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("gate.hint")}</p>
+          {/* 같은(틀린) 키로 재이동하면 변화가 없으므로, 키 없는 게이트(입력 폼)로 보낸다. */}
           <Link
-            href={adminPath(key)}
+            href={adminGatePath()}
             className={
               buttonVariants({ variant: "outline", size: "lg" }) + " mt-6"
             }
           >
-            {t("authError.retry")}
+            {t("gate.retry")}
           </Link>
         </div>
       </AdminShell>
@@ -97,11 +102,10 @@ export default async function AdminPage({
     ? (viewParam as AdminView)
     : "dashboard";
 
-  // QR 절대 URL 은 요청 Host 로 서버에서 만든다(클라 origin 의존 제거).
+  // QR 절대 URL — 운영 정식 도메인(NEXT_PUBLIC_BASE_URL) 우선(보호된 프리뷰 호스트
+  // 인코딩 → 모바일 Vercel 로그인 벽 방지), 미설정 시 요청 Host 폴백.
   const h = await headers();
-  const host = h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const origin = host ? `${proto}://${host}` : "";
+  const origin = shareOrigin(h.get("host"), h.get("x-forwarded-proto") ?? "http");
 
   const stats = [
     { label: t("stats.salons"), value: salons.length },

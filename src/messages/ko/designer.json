@@ -154,18 +154,6 @@
     "addProduct": "추가",
     "addProductPlaceholder": "직접 추가 (예: OO 트리트먼트)",
     "stateGrade": "모발 상태",
-    "satisfaction": "만족도",
-    "satisfactionHint": "손님 반응을 1~5로 남겨주세요 (선택)",
-    "satisfactionToggle": "만족도 남기기 (선택)",
-    "satisfactionClear": "선택 해제",
-    "satisfactionScore": "{score}점",
-    "satisfactionLevel": {
-      "1": "많이 아쉬움",
-      "2": "아쉬움",
-      "3": "보통",
-      "4": "만족",
-      "5": "매우 만족"
-    },
     "beforePhoto": "시술 전 사진",
     "afterPhoto": "시술 후 사진",
     "addPhoto": "사진 추가",

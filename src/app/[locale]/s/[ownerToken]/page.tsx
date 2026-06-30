@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { headers } from "next/headers";
 import { getSalonConsole } from "@/lib/service";
+import { shareOrigin } from "@/lib/origin";
 import { AdminShell } from "@/components/ui";
 import { SalonConsole } from "@/components/salon-console/salon-console";
 
@@ -36,10 +37,9 @@ export default async function SalonConsolePage({
     );
   }
 
+  // QR 절대 URL — 운영 정식 도메인 우선(보호된 프리뷰 호스트 인코딩 방지), 없으면 요청 Host.
   const h = await headers();
-  const host = h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const origin = host ? `${proto}://${host}` : "";
+  const origin = shareOrigin(h.get("host"), h.get("x-forwarded-proto") ?? "http");
 
   return (
     <AdminShell

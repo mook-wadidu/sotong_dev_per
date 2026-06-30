@@ -16,6 +16,7 @@ import {
   toast,
 } from "@/components/ui";
 import { SalonQR } from "@/components/admin/salon-qr";
+import { CopyButton } from "@/components/admin/copy-button";
 import { salonUpsertDesigner } from "@/lib/actions";
 import type { Designer, DesignerRank } from "@/lib/db/types";
 import type { SalonConsole as SalonConsoleData } from "@/lib/actions";
@@ -131,6 +132,12 @@ export function DesignersTab({
                     >
                       {t("console.designers.inboxLink")}
                     </a>
+                    <div className="flex justify-center">
+                      <CopyButton
+                        value={d.staffToken}
+                        label={t("console.designers.token")}
+                      />
+                    </div>
                   </div>
                 ) : null}
               </section>

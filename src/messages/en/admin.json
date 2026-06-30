@@ -216,7 +216,8 @@
       "rank": "Rank",
       "noRank": "No rank",
       "inboxLink": "Open inbox",
-      "qr": "Designer QR"
+      "qr": "Designer QR",
+      "token": "Copy designer token"
     },
     "qr": {
       "hint": "Place this QR at your entrance or mirror. Guests scan it to start instantly."

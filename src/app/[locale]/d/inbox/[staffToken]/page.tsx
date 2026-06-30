@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { getDesignerInbox } from "@/lib/service";
@@ -48,7 +49,7 @@ export default async function DesignerInboxPage({
 }: {
   params: Promise<{ locale: string; staffToken: string }>;
 }) {
-  const { staffToken } = await params;
+  const { locale, staffToken } = await params;
   const t = await getTranslations("Designer");
   const data = await getDesignerInbox(staffToken);
 
@@ -58,6 +59,12 @@ export default async function DesignerInboxPage({
         <ScreenHeader title={t("inbox.title")} />
         <ScreenBody className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <p className="text-sm text-muted-foreground">{t("inbox.invalid")}</p>
+          <Link
+            href={`/${locale}/d`}
+            className="text-sm font-semibold text-brand-text underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            {t("login.retry")}
+          </Link>
         </ScreenBody>
       </MobileFrame>
     );

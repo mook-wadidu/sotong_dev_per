@@ -1,4 +1,12 @@
 {
+  "login": {
+    "title": "Designer login",
+    "hint": "Paste the token from your salon to open your inbox.",
+    "label": "Designer token",
+    "placeholder": "Paste your token",
+    "submit": "Open inbox",
+    "retry": "Log in again"
+  },
   "qr": {
     "button": "My QR",
     "title": "My QR code",

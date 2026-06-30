@@ -15,7 +15,7 @@ import {
   DialogDescription,
 } from "@/components/ui";
 import { salonUpdateRanks } from "@/lib/actions";
-import type { DesignerRank } from "@/lib/db/types";
+import { DEFAULT_DESIGNER_RANKS, type DesignerRank } from "@/lib/db/types";
 import type { LocalizedText } from "@/lib/domain/types";
 
 /**
@@ -109,6 +109,26 @@ export function RanksEditor({
   const addRow = () =>
     setRows((rs) => [...rs, { key: nextKey(), ko: "", ja: "", en: "", zh: "" }]);
 
+  // 프리셋 직급 빠른 추가 — 4언어 라벨을 한 번에 채운다. preset.id 를 그대로 보존해
+  // (1) 중복 추가를 막고(이미 같은 id 있으면 무시) (2) 저장 시 stable id 로 저장된다.
+  // 항상 append 만 — 기존 행(커스텀 포함)은 절대 건드리지 않는다.
+  const addPreset = (preset: DesignerRank) =>
+    setRows((rs) =>
+      rs.some((r) => r.id === preset.id)
+        ? rs
+        : [
+            ...rs,
+            {
+              key: nextKey(),
+              id: preset.id,
+              ko: preset.label.ko,
+              ja: preset.label.ja ?? "",
+              en: preset.label.en ?? "",
+              zh: preset.label.zh ?? "",
+            },
+          ],
+    );
+
   const removeRow = (key: string) =>
     setRows((rs) => rs.filter((r) => r.key !== key));
 
@@ -176,6 +196,29 @@ export function RanksEditor({
           {t("console.ranks.add")}
         </Button>
       </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">
+          {t("console.ranks.presets")}
+        </span>
+        {DEFAULT_DESIGNER_RANKS.map((preset) => {
+          const added = rows.some((r) => r.id === preset.id);
+          return (
+            <Button
+              key={preset.id}
+              size="sm"
+              variant="outline"
+              disabled={added}
+              onClick={() => addPreset(preset)}
+            >
+              + {preset.label.ko}
+            </Button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {t("console.ranks.presetHint")}
+      </p>
 
       {rows.length === 0 ? (
         <div className="mt-4 rounded-lg border border-dashed border-border bg-card/50 p-8 text-center text-sm text-muted-foreground">

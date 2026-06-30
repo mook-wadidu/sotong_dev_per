@@ -11,7 +11,8 @@ import { ConsoleQrTab } from "./qr-tab";
 import { ConsoleInquiriesTab } from "./inquiries-tab";
 
 /**
- * 살롱 오너 콘솔 셸 — 탭(메뉴/디자이너/QR/문의).
+ * 살롱 오너 콘솔 셸 — 탭(문의·리포트/디자이너/메뉴/QR).
+ * 일상 사용(문의·리포트)을 첫 탭으로, 세팅성(메뉴·QR)은 뒤로.
  * 편집 액션은 각 탭이 server action 을 호출한 뒤 router.refresh() 로 재로드한다.
  */
 export function SalonConsole({
@@ -28,16 +29,16 @@ export function SalonConsole({
   const refresh = React.useCallback(() => router.refresh(), [router]);
 
   return (
-    <Tabs defaultValue="menu">
+    <Tabs defaultValue="inquiries">
       <TabsList>
-        <TabsTrigger value="menu">{t("console.tabs.menu")}</TabsTrigger>
-        <TabsTrigger value="designers">
-          {t("console.tabs.designers")}
-        </TabsTrigger>
-        <TabsTrigger value="qr">{t("console.tabs.qr")}</TabsTrigger>
         <TabsTrigger value="inquiries">
           {t("console.tabs.inquiries")}
         </TabsTrigger>
+        <TabsTrigger value="designers">
+          {t("console.tabs.designers")}
+        </TabsTrigger>
+        <TabsTrigger value="menu">{t("console.tabs.menu")}</TabsTrigger>
+        <TabsTrigger value="qr">{t("console.tabs.qr")}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="menu">

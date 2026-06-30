@@ -69,14 +69,14 @@
   },
   "qr": {
     "title": "Salon QR",
-    "hint": "Place this QR at your entrance or tables. Guests scan it to start instantly.",
+    "hint": "Show this QR to your guest. They scan it to start instantly.",
     "copy": "Copy link",
     "copied": "Copied",
     "print": "Print",
     "download": "Save image",
     "placement": "Placement",
     "regenerate": "Regenerate QR",
-    "sharedLabel": "Shared (unassigned)"
+    "sharedLabel": "Front desk"
   },
   "inquiries": {
     "title": "Intakes",
@@ -203,7 +203,9 @@
       "deleteTitle": "Delete rank",
       "deleteConfirm": "Delete the \"{name}\" rank? Designers using it will be unassigned and matching per-rank prices in the menu will be removed (base price kept).",
       "removeRow": "Remove",
-      "usageHint": "Removing a rank in use automatically unassigns it from designers and the menu."
+      "usageHint": "Removing a rank in use automatically unassigns it from designers and the menu.",
+      "presets": "Common ranks",
+      "presetHint": "Tap a button to auto-fill the label in all 4 languages. Leave blank to show Korean. Use Add rank for a custom one."
     },
     "designers": {
       "hint": "Add designers and assign ranks. Each gets a QR and inbox.",
@@ -220,7 +222,7 @@
       "token": "Copy designer token"
     },
     "qr": {
-      "hint": "Place this QR at your entrance or mirror. Guests scan it to start instantly."
+      "hint": "Show this QR to your guest. They scan it to start instantly."
     },
     "customers": {
       "title": "Member treatment history",

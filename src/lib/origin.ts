@@ -12,7 +12,16 @@ export function shareOrigin(
   host: string | null | undefined,
   proto: string,
 ): string {
+  // 1) 명시 설정(커스텀 도메인 등) 최우선.
   const base = config.baseUrl?.trim();
   if (base) return base.replace(/\/+$/, "");
+  // 2) Vercel 운영 도메인 자동 — 어드민이 보호된 프리뷰(*.vercel.app, 랜덤 해시)에서
+  //    링크를 복사해도, Vercel 이 주입하는 운영 도메인으로 나가 로그인 벽을 피한다.
+  //    (VERCEL_URL 은 '현재 배포' URL이라 프리뷰면 그대로 보호됨 → 쓰지 않는다.)
+  const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (prod) {
+    return `https://${prod.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`;
+  }
+  // 3) 요청 호스트 폴백(LAN/로컬 dev).
   return host ? `${proto}://${host}` : "";
 }

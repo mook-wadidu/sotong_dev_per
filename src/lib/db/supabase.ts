@@ -878,6 +878,14 @@ export class SupabaseRepo implements Repo {
   }
 
   async scrubConsultationPii(redacted: Consultation): Promise<void> {
+    // 비식별 보존: 영구 자산(training_sample)의 재식별 조인키를 **먼저** 끊는다.
+    // 이 단계가 실패하면 throw → 상담 PII 마스킹 전이라 hasPii 가 여전히 true →
+    // 다음 retention 런에서 스크럽 전체가 재시도된다(부분실패 시 링크가 영구히 남는 회귀 방지).
+    const { error: e2 } = await this.client
+      .from("training_samples")
+      .update({ consultation_id: null })
+      .eq("consultation_id", redacted.id);
+    if (e2) fail("scrubConsultationPii(training link)", e2);
     // 전화 컬럼 + intake JSONB + 시술전 사진 컬럼을 마스킹된 값으로 덮어쓴다
     // (사진·셀카·자유텍스트 원본 dataURL 제거).
     const { error } = await this.client
@@ -1063,8 +1071,21 @@ export class SupabaseRepo implements Repo {
       designer_id: s.designerId ?? null,
       has_before_photo: s.hasBeforePhoto ?? null,
       has_after_photo: s.hasAfterPhoto ?? null,
+      consultation_id: s.consultationId ?? null,
     });
     if (error) fail("saveTrainingSample", error);
+  }
+
+  async updateTrainingSampleSatisfaction(
+    consultationId: string,
+    score: number,
+  ): Promise<void> {
+    if (!consultationId) return;
+    const { error } = await this.client
+      .from("training_samples")
+      .update({ satisfaction_score: score })
+      .eq("consultation_id", consultationId);
+    if (error) fail("updateTrainingSampleSatisfaction", error);
   }
 
   async getTreatmentByConsultation(
@@ -1080,6 +1101,22 @@ export class SupabaseRepo implements Repo {
       .maybeSingle();
     if (error) fail("getTreatmentByConsultation", error);
     return data ? toTreatmentRecord(data as TreatmentRecordRow) : null;
+  }
+
+  async updateTreatmentRecord(
+    id: string,
+    fields: Partial<Pick<TreatmentRecord, "satisfactionScore">>,
+  ): Promise<void> {
+    const row: Record<string, unknown> = {};
+    if (fields.satisfactionScore !== undefined) {
+      row.satisfaction_score = fields.satisfactionScore;
+    }
+    if (Object.keys(row).length === 0) return;
+    const { error } = await this.client
+      .from("treatment_records")
+      .update(row)
+      .eq("id", id);
+    if (error) fail("updateTreatmentRecord", error);
   }
 
   async getLastConsultationForCustomer(
@@ -1130,6 +1167,19 @@ export class SupabaseRepo implements Repo {
     const { data, error } = await q;
     if (error) fail("listMessages", error);
     return ((data ?? []) as MessageRow[]).map(toMessage);
+  }
+
+  async updateMessageTranslations(
+    consultationId: string,
+    messageId: string,
+    translations: Message["translations"],
+  ): Promise<void> {
+    const { error } = await this.client
+      .from("messages")
+      .update({ translations })
+      .eq("consultation_id", consultationId)
+      .eq("id", messageId);
+    if (error) fail("updateMessageTranslations", error);
   }
 
   /* ── 리포트 ───────────────────────────────────────────── */

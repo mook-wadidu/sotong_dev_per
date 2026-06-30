@@ -23,7 +23,6 @@ import {
   concernLabels,
   faceShapeLabel,
   formatKRW,
-  formatNextVisit,
   formatPrice,
   PRODUCTS,
   QUICK_REPLIES,
@@ -61,6 +60,8 @@ import {
   type TrainingSample,
   type Message,
   type QuickReplyIntent,
+  type FaceShape,
+  type HairType,
   type ThreeLevel,
   type TreatmentHistoryItem,
   type TreatmentRecency,
@@ -824,7 +825,13 @@ export async function getCustomerView(
     salon: salon ? toPublicSalon(salon) : null,
     // 손님 뷰는 phone 미반환(PII, P1-37). intake.phone 도 함께 제거.
     consultation: stripPhone(c),
-    messages: await repo.listMessages(c.id),
+    // 초기 메시지도 viewer(손님 언어) 번역을 채워 반환 — 번역이 send 경로에서 빠졌으므로
+    // SSR 초기 렌더에서 미번역 노출 방지(폴은 초기셋 이후만 가져오므로 여기서 채워야 함).
+    messages: await fillViewerTranslations(
+      c.id,
+      await repo.listMessages(c.id),
+      c.customerLocale,
+    ),
     serviceLabelMap,
   };
 }
@@ -925,7 +932,12 @@ export async function getDesignerView(
   return {
     salon: salon ? toPublicSalon(salon) : null,
     consultation: c,
-    messages: await repo.listMessages(c.id),
+    // 디자이너 뷰(ko)도 초기 메시지 번역을 채워 반환(SSR 미번역 방지, 위와 동일 이유).
+    messages: await fillViewerTranslations(
+      c.id,
+      await repo.listMessages(c.id),
+      "ko",
+    ),
     staffToken,
     treatmentRecord,
     customerTreatments,
@@ -934,25 +946,33 @@ export async function getDesignerView(
   };
 }
 
-/* ── 메시지 전송 (번역 포함) ───────────────────────────── */
-async function buildTranslations(
-  sourceText: string,
-  sourceLocale: Locale,
-  customerLocale: Locale,
-): Promise<Partial<Record<Locale, string>>> {
+/* ── 메시지 전송/번역 ───────────────────────────────────
+ * 번역은 send 경로에서 동기로 기다리지 않는다(보낸 사람은 자기 원문만 보면 됨).
+ * 수신자가 폴(getMessagesSince)할 때, viewer 로케일이 비어있는 메시지만 그때 번역해
+ * 캐시(updateMessageTranslations)한다 → "sending" 지연 제거(라이브 latency 버그). */
+async function fillViewerTranslations(
+  consultationId: string,
+  messages: Message[],
+  viewer: Locale,
+): Promise<Message[]> {
+  const repo = getRepo();
   const ai = getAi();
-  const out: Partial<Record<Locale, string>> = { [sourceLocale]: sourceText };
-  const targets = new Set<Locale>(["ko", customerLocale]);
-  targets.delete(sourceLocale);
-  for (const to of targets) {
-    out[to] = await ai.translate({
-      text: sourceText,
-      from: sourceLocale,
-      to,
-      domain: "salon",
-    });
+  for (const m of messages) {
+    if (m.sourceLocale === viewer || m.translations[viewer] != null) continue;
+    try {
+      const translated = await ai.translate({
+        text: m.sourceText,
+        from: m.sourceLocale,
+        to: viewer,
+        domain: "salon",
+      });
+      m.translations = { ...m.translations, [viewer]: translated };
+      await repo.updateMessageTranslations(consultationId, m.id, m.translations);
+    } catch {
+      // 번역 실패 → 원문 폴백(메시지는 전달), 다음 폴에서 재시도.
+    }
   }
-  return out;
+  return messages;
 }
 
 export async function postMessage(input: {
@@ -1036,18 +1056,14 @@ export async function postMessage(input: {
     const text = (input.text ?? "").trim();
     if (!text) return null;
     const sourceLocale: Locale = input.role === "customer" ? c.customerLocale : "ko";
-    const translations = await buildTranslations(
-      text,
-      sourceLocale,
-      c.customerLocale,
-    );
+    // 원문만 저장하고 즉시 반환 — 번역은 수신자 폴 시점(fillViewerTranslations)에 채운다.
     const msg = await repo.addMessage({
       consultationId: c.id,
       sender: input.role,
       sourceText: text,
       sourceLocale,
       intent: input.intent,
-      translations,
+      translations: { [sourceLocale]: text },
     });
     return msg;
   } catch (e) {
@@ -1078,7 +1094,10 @@ export async function getMessagesSince(input: {
       ? await repo.getByConsultationToken(input.token)
       : await repo.getByDesignerToken(input.token);
   if (!c) return [];
-  return repo.listMessages(c.id, input.sinceIso);
+  const msgs = await repo.listMessages(c.id, input.sinceIso);
+  // viewer 로케일이 빈 메시지만 그때 번역·캐시(send 경로에서 뺀 번역을 읽는 쪽에서 채움).
+  const viewer: Locale = input.role === "customer" ? c.customerLocale : "ko";
+  return fillViewerTranslations(c.id, msgs, viewer);
 }
 
 /* ── 시술 전 사진 저장 (요약 단계 촬영) ─────────────────────────
@@ -1468,6 +1487,8 @@ export async function completeConsultation(input: {
           // 반드시 사진 유무를 같이 보존(카르테에만 두면 90일 뒤 측정 불가).
           hasBeforePhoto,
           hasAfterPhoto,
+          // 손님 별점이 완결 후 도착하면 이 id 로 샘플을 찾아 satisfactionScore 갱신(퍼지 시 NULL).
+          consultationId: c.id,
         };
         await repo.saveTrainingSample(sample);
       } catch (e) {
@@ -1505,6 +1526,13 @@ export interface ReportViewData {
   visitCount: number;
   /** 가장 최근 방문일(ISO). 없으면 undefined. */
   lastVisitDate?: string;
+  /** 헤어/얼굴형 DNA 시각화용 — 디자이너 입력 우선, 없으면 손님 인테이크. 없으면 미표시. */
+  hair?: {
+    faceShape?: FaceShape;
+    crownVolume?: ThreeLevel;
+    hairDensity?: ThreeLevel;
+    hairType?: HairType;
+  };
 }
 
 export async function getReportView(
@@ -1522,12 +1550,21 @@ export async function getReportView(
   let age: number | undefined;
   let visitCount = 0;
   let lastVisitDate: string | undefined;
+  let hair: ReportViewData["hair"];
   try {
     const c = await repo.getConsultationById(report.consultationId);
     if (c) {
       customerLocale = c.customerLocale;
       gender = c.intake.gender;
       age = c.intake.age;
+      // DNA 시각화: 디자이너 전문 판단 우선, 없으면 손님 인테이크.
+      const b = c.designerInput ?? c.intake;
+      hair = {
+        faceShape: b?.faceShape,
+        crownVolume: b?.crownVolume,
+        hairDensity: b?.hairDensity,
+        hairType: b?.hairType,
+      };
       if (c.customerId) {
         const treatments = await repo.listCustomerTreatments(c.customerId);
         visitCount = treatments.length;
@@ -1541,7 +1578,59 @@ export async function getReportView(
     // 프로필/방문이력 조회 실패는 리포트 표시에 영향 없음
   }
 
-  return { report, customerLocale, gender, age, visitCount, lastVisitDate };
+  return { report, customerLocale, gender, age, visitCount, lastVisitDate, hair };
+}
+
+/**
+ * 손님 별점(만족도) 저장 — 공개 리포트 토큰에서 호출. 1~5 정수.
+ * treatment_record(EMR) + training_sample(학습 정답) 둘 다 갱신.
+ * 만족도는 디자이너 추정이 아니라 손님 자기보고(출처=customer).
+ */
+export async function saveSatisfactionRating(
+  reportToken: string,
+  score: number,
+): Promise<{ ok: boolean }> {
+  if (!Number.isInteger(score) || score < 1 || score > 5) return { ok: false };
+  const repo = getRepo();
+  const report = await repo.getReport(reportToken);
+  if (!report) return { ok: false };
+  // 레이트리밋(P0) — 공개 토큰 어뷰즈 방지.
+  await enforceRate(`rating:${reportToken}`, 10, 60_000, {
+    salonSlug: report.salonName,
+    source: "report",
+    consultationId: report.consultationId,
+  });
+  // EMR(treatment_record)이 1차 기록 — 실패 시에만 손님에게 {ok:false}.
+  try {
+    const tr = await repo.getTreatmentByConsultation(report.consultationId);
+    if (tr) {
+      await repo.updateTreatmentRecord(tr.id, { satisfactionScore: score });
+    }
+  } catch (e) {
+    await logIssue({
+      salonSlug: report.salonName,
+      severity: "warning",
+      source: "report",
+      message: "손님 별점 저장 실패",
+      detail: e instanceof Error ? e.message : String(e),
+      consultationId: report.consultationId,
+    });
+    return { ok: false };
+  }
+  // 학습 샘플 반영은 best-effort — 실패해도 EMR 은 저장됐으니 성공으로 응답(별점 리셋 방지).
+  try {
+    await repo.updateTrainingSampleSatisfaction(report.consultationId, score);
+  } catch (e) {
+    await logIssue({
+      salonSlug: report.salonName,
+      severity: "warning",
+      source: "report",
+      message: "학습샘플 만족도 갱신 실패(EMR은 저장됨)",
+      detail: e instanceof Error ? e.message : String(e),
+      consultationId: report.consultationId,
+    });
+  }
+  return { ok: true };
 }
 
 /* ── 재방문 프리필 컨텍스트 (인테이크 진입 — 읽기 전용) ──────────
@@ -1642,11 +1731,6 @@ export async function getCustomerHistory(
 /** 손님 대면 가격(formatPrice) 헬퍼 — FE 가 손님 로케일로 표기할 때 사용. */
 export function customerPrice(won: number, locale: Locale): string {
   return formatPrice(won, locale);
-}
-
-/** 손님 대면 "다음 방문 권장" 문구 — 리포트의 nextVisitWeeks 표기(P1-18). */
-export function nextVisitLabel(weeks: number, locale: Locale): string {
-  return formatNextVisit(weeks, locale);
 }
 
 const PRODUCT_MAP = new Map(PRODUCTS.map((p) => [p.id, p]));

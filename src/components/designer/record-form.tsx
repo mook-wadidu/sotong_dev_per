@@ -27,13 +27,6 @@ type Labels = {
   addProduct: string;
   addProductPlaceholder: string;
   stateGrade: string;
-  satisfaction: string;
-  satisfactionHint: string;
-  satisfactionClear: string;
-  /** 만족도 섹션을 펼치는 디스클로저 라벨 (기본 접힘 — 선택) */
-  satisfactionToggle: string;
-  /** 1~5 점수별 텍스트 라벨 (흑백·접근성 — 별/색 대신 말로) */
-  satisfactionLevels: Record<1 | 2 | 3 | 4 | 5, string>;
   beforePhoto: string;
   afterPhoto: string;
   addPhoto: string;
@@ -55,7 +48,6 @@ type Labels = {
   gradeLow: string;
 };
 
-const SATISFACTION_SCORES = [1, 2, 3, 4, 5] as const;
 
 export function RecordForm({
   token,
@@ -92,9 +84,6 @@ export function RecordForm({
   const [grade, setGrade] = React.useState<ThreeLevel | null>(
     defaultGrade ?? null,
   );
-  const [satisfaction, setSatisfaction] = React.useState<number | null>(null);
-  // 만족도는 선택 — 기본 접힘. 펼치거나 이미 값이 있으면 노출.
-  const [satisfactionOpen, setSatisfactionOpen] = React.useState(false);
   // 비포는 요약 단계 촬영분으로 프리필(교체 가능), 애프터는 기록폼에서 촬영. 사진은 선택(#5).
   const [beforePhoto, setBeforePhoto] = React.useState<string | undefined>(
     beforeUrl,
@@ -164,7 +153,7 @@ export function RecordForm({
           record: {
             products: [...productIds, ...customProducts],
             stateGrade: grade ?? undefined,
-            satisfactionScore: satisfaction ?? undefined,
+            // 만족도는 디자이너가 추정하지 않는다 — 손님이 리포트에서 별점으로 직접 입력(#4b).
             // 실제 한 시술(있으면) → 학습 'actual'. 없으면 서버가 손님 분류로 폴백(intent 태그).
             serviceIds: serviceIds.length ? serviceIds : undefined,
           },
@@ -307,48 +296,6 @@ export function RecordForm({
           label={labels.stateGrade}
           variant="grid"
         />
-      </section>
-
-      {/* 만족도 (선택) — 기본 접힘. 토글로 펼치거나 이미 값이 있으면 노출. */}
-      <section>
-        {satisfactionOpen || satisfaction !== null ? (
-          <>
-            <SectionLabel>{labels.satisfaction}</SectionLabel>
-            <p className="mb-2.5 text-xs text-muted-foreground">
-              {labels.satisfactionHint}
-            </p>
-            <RadioGroup
-              variant="list"
-              label={labels.satisfaction}
-              options={SATISFACTION_SCORES.map((n) => ({
-                value: String(n),
-                label: `${n} · ${labels.satisfactionLevels[n]}`,
-              }))}
-              value={satisfaction === null ? null : String(satisfaction)}
-              onValueChange={(v) => setSatisfaction(Number(v))}
-            />
-            {satisfaction !== null ? (
-              <button
-                type="button"
-                onClick={() => setSatisfaction(null)}
-                className="mt-2 text-sm font-medium text-muted-foreground underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                {labels.satisfactionClear}
-              </button>
-            ) : null}
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setSatisfactionOpen(true)}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            <span className="text-base leading-none" aria-hidden="true">
-              +
-            </span>
-            {labels.satisfactionToggle}
-          </button>
-        )}
       </section>
 
       {/* 비포·애프터 사진 — 선택(권장). 비포는 요약 단계 촬영분 프리필. 2장 미만이면 의도적 체크 필요(#5). */}

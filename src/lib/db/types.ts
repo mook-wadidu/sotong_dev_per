@@ -432,8 +432,18 @@ export interface Repo {
   ): Promise<TreatmentRecord>;
   /** 손님의 시술 기록 목록 — visitedAt desc. */
   listCustomerTreatments(customerId: string): Promise<TreatmentRecord[]>;
+  /** 기존 카르테 일부 필드 갱신(예: 손님 별점 만족도 후입력). */
+  updateTreatmentRecord(
+    id: string,
+    fields: Partial<Pick<TreatmentRecord, "satisfactionScore">>,
+  ): Promise<void>;
   /** 비식별 ML 학습 샘플 적재(학습 옵트인 동의 건만). retention 파기와 독립. */
   saveTrainingSample(sample: TrainingSample): Promise<void>;
+  /** 학습 샘플 만족도 갱신 — 완결 후 도착한 손님 별점을 consultationId 로 찾아 반영. */
+  updateTrainingSampleSatisfaction(
+    consultationId: string,
+    score: number,
+  ): Promise<void>;
   /**
    * 상담 1건의 시술 기록(완료건 EMR 용). consultation_id 매칭 최신 1건.
    * 없으면 null. (완료 상담은 보통 1건이나 방어적으로 최신을 고른다.)
@@ -458,6 +468,12 @@ export interface Repo {
 
   addMessage(msg: NewMessage): Promise<Message>;
   listMessages(consultationId: string, sinceIso?: string): Promise<Message[]>;
+  /** 메시지 번역 캐시 갱신(읽기 시점 lazy 번역 영속용). */
+  updateMessageTranslations(
+    consultationId: string,
+    messageId: string,
+    translations: Message["translations"],
+  ): Promise<void>;
 
   saveReport(report: HairReport): Promise<void>;
   getReport(reportToken: string): Promise<HairReport | null>;

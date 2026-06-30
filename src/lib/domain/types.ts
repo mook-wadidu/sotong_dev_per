@@ -165,6 +165,11 @@ export interface TrainingSample {
   /** 사진 유무(H4 촬영습관 측정) — 비포/애프터 각각 들어왔는지. */
   hasBeforePhoto?: boolean;
   hasAfterPhoto?: boolean;
+  /**
+   * 손님 별점(만족도)이 완결 후에 도착해 이 샘플을 찾아 갱신하기 위한 조인키.
+   * 비식별 보존: retention 퍼지 시 NULL 처리해 영구 자산에 재식별 링크를 남기지 않는다.
+   */
+  consultationId?: string;
 }
 
 /** 정확 나이 → 연령대 밴드(학습셋 비식별용). */

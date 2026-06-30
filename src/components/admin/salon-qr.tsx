@@ -61,6 +61,7 @@ export function SalonQR({
         `h1{font-size:24px;margin:0 0 4px}` +
         `p{font-size:14px;color:#6b7280;margin:0 0 24px}` +
         `.qr{padding:20px;border:1px solid #e4e4e7;border-radius:16px;background:#fff}` +
+        `.qr svg{width:340px;height:auto;display:block}` +
         `.url{font-size:11px;color:#6b7280;margin-top:20px;word-break:break-all;max-width:320px}` +
         `</style></head><body>` +
         `<h1>${safeName}</h1>` +
@@ -89,12 +90,12 @@ export function SalonQR({
           <QRCodeSVG
             id={`qr-${entryPath}`}
             value={url}
-            size={148}
+            size={240}
             level="M"
             marginSize={0}
           />
         ) : (
-          <div className="size-[148px] animate-pulse rounded-lg bg-muted" />
+          <div className="size-[240px] animate-pulse rounded-lg bg-muted" />
         )}
       </div>
       <div className="flex w-full gap-2">

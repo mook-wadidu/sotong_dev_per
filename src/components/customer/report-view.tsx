@@ -21,8 +21,17 @@ import {
   CalendarIcon,
   PhotoIcon,
   GlobeIcon,
+  AlertIcon,
 } from "@/components/icons";
-import type { HairReport, ThreeLevel } from "@/lib/domain/types";
+import { HairDna } from "./hair-dna";
+import { SatisfactionStars } from "./satisfaction-stars";
+import { cn } from "@/lib/utils";
+import type {
+  HairReport,
+  ThreeLevel,
+  FaceShape,
+  HairType,
+} from "@/lib/domain/types";
 
 export interface ReportLabels {
   title: string;
@@ -34,7 +43,6 @@ export interface ReportLabels {
   products: string;
   hairState: string;
   homeCare: string;
-  nextVisit: string;
   before: string;
   after: string;
   /** 손님 요청 스타일 섹션 라벨(신규 보강) */
@@ -43,8 +51,20 @@ export interface ReportLabels {
   concerns: string;
   /** 시술 주의사항 섹션 라벨(신규 보강) */
   cautions: string;
-  book: string;
-  bookToast: string;
+  /** 헤어/얼굴형 DNA 카드 라벨. */
+  dna: {
+    title: string;
+    volume: string;
+    density: string;
+    wave: string;
+    faceShape: string;
+  };
+  /** 손님 만족도 별점 라벨. */
+  satisfaction: {
+    title: string;
+    thanks: string;
+    error: string;
+  };
   save: string;
   saveToast: string;
   saveError: string;
@@ -77,21 +97,34 @@ export function ReportView({
   report,
   labels,
   dateLabel,
-  nextVisitText,
   profile,
   visit,
+  hair,
+  demo = false,
 }: {
   report: HairReport;
   labels: ReportLabels;
   dateLabel: string;
-  nextVisitText: string;
   /** 손님 프로필(목업②) — 값 있는 항목만 노출. */
   profile?: { nationality?: string; gender?: string; ageText?: string };
   /** 방문 이력(카르테 연결 시). */
   visit?: { totalText: string; lastText?: string };
+  /** 헤어/얼굴형 DNA 시각화 데이터 — 없으면 카드 미표시. */
+  hair?: {
+    faceShape?: FaceShape;
+    crownVolume?: ThreeLevel;
+    hairDensity?: ThreeLevel;
+    hairType?: HairType;
+  };
+  /** 데모 모드 — 별점은 저장 없이 표시만. */
+  demo?: boolean;
 }) {
   const tone = GRADE_TONE[report.hairStateGrade];
   const score = Math.max(0, Math.min(100, report.hairStateScore));
+  const hasDna = !!(
+    hair &&
+    (hair.faceShape || hair.crownVolume || hair.hairDensity || hair.hairType)
+  );
   // 캡처 대상 — 리포트 카드 본문(저장/공유 버튼 영역은 제외).
   const captureRef = React.useRef<HTMLDivElement>(null);
   const [saving, setSaving] = React.useState(false);
@@ -235,6 +268,11 @@ export function ReportView({
           </Card>
         ) : null}
 
+        {/* 헤어 & 얼굴형 DNA — 분석 시각요소(값 있을 때만) */}
+        {hasDna && hair ? (
+          <HairDna hair={hair} locale={report.locale} labels={labels.dna} />
+        ) : null}
+
         {/* 오늘 시술 */}
         <section>
           <SectionLabel className="flex items-center gap-1.5">
@@ -254,7 +292,11 @@ export function ReportView({
           <TextSection label={labels.concerns} value={report.concerns} />
         ) : null}
         {report.cautions ? (
-          <TextSection label={labels.cautions} value={report.cautions} />
+          <TextSection
+            label={labels.cautions}
+            value={report.cautions}
+            tone="warn"
+          />
         ) : null}
 
         {/* 모발 상태 게이지 */}
@@ -335,30 +377,15 @@ export function ReportView({
           </section>
         )}
 
-        {/* 다음 방문 권장 + 예약 */}
-        <Card>
-          <CardContent className="space-y-3 p-5">
-            <div>
-              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <CalendarIcon className="size-4" />
-                {labels.nextVisit}
-              </p>
-              <p className="mt-0.5 text-base font-semibold text-accent-text">
-                {nextVisitText}
-              </p>
-            </div>
-            <Button
-              variant="accent"
-              size="lg"
-              className="w-full"
-              onClick={() => toast.success(labels.bookToast)}
-            >
-              {labels.book}
-            </Button>
-          </CardContent>
-        </Card>
         </div>
         {/* /캡처 영역 */}
+
+        {/* 손님 시술 만족도 별점 — 손님 자기보고(저장: treatment_record + training_sample) */}
+        <SatisfactionStars
+          reportToken={report.reportToken}
+          labels={labels.satisfaction}
+          demo={demo}
+        />
 
         {/* 저장(이미지 PNG) / 공유(링크 복사) */}
         <div className="grid grid-cols-2 gap-3">
@@ -379,14 +406,60 @@ export function ReportView({
   );
 }
 
-/** 보강 텍스트 섹션(요청 스타일·고민·주의) — 값이 있을 때만 렌더된다. */
-function TextSection({ label, value }: { label: string; value: string }) {
+/**
+ * 보강 콜아웃(요청 스타일·고민·주의) — 문단 덩어리 대신 카드+불릿으로 스캔되게.
+ * 줄바꿈이 여러 개면 불릿 목록, 한 줄이면 단문. 주의(warn)는 경고 톤.
+ */
+function TextSection({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "warn";
+}) {
+  const warn = tone === "warn";
+  const items = value
+    .split(/\n+/)
+    .map((s) => s.replace(/^[-•·]\s*/, "").trim())
+    .filter(Boolean);
   return (
-    <section>
-      <SectionLabel>{label}</SectionLabel>
-      <p className="text-pretty text-[0.95rem] leading-relaxed text-foreground">
-        {value}
+    <section
+      className={cn(
+        "rounded-2xl border p-4",
+        warn ? "border-destructive/50 bg-card" : "border-border bg-card",
+      )}
+    >
+      <p
+        className={cn(
+          "mb-1.5 flex items-center gap-1.5 text-xs font-semibold",
+          warn ? "text-destructive" : "text-muted-foreground",
+        )}
+      >
+        {warn ? <AlertIcon className="size-4" /> : null}
+        {label}
       </p>
+      {items.length > 1 ? (
+        <ul className="space-y-1.5">
+          {items.map((it, i) => (
+            <li
+              key={i}
+              className="flex gap-2 text-[0.95rem] leading-snug text-foreground"
+            >
+              <span
+                aria-hidden="true"
+                className="mt-[0.5rem] size-1 shrink-0 rounded-full bg-current opacity-40"
+              />
+              {it}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-pretty text-[0.95rem] leading-snug text-foreground">
+          {items[0] ?? value}
+        </p>
+      )}
     </section>
   );
 }

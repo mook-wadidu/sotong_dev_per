@@ -38,6 +38,16 @@ export const SparkleIcon = React.forwardRef<SVGSVGElement, IconProps>(
 );
 SparkleIcon.displayName = "SparkleIcon";
 
+/** 별점(만족도) — 손님 리포트 평가. 선택 시 className="fill-current" 로 채움. */
+export const StarIcon = React.forwardRef<SVGSVGElement, IconProps>(
+  (props, ref) => (
+    <IconBase ref={ref} {...props}>
+      <path d="M12 3.4l2.47 5.01 5.53.8-4 3.9.94 5.5L12 16.9l-4.95 2.6.94-5.5-4-3.9 5.53-.8L12 3.4Z" />
+    </IconBase>
+  ),
+);
+StarIcon.displayName = "StarIcon";
+
 /** 환영/언어(글로브) — 홈·언어선택 */
 export const GlobeIcon = React.forwardRef<SVGSVGElement, IconProps>(
   (props, ref) => (

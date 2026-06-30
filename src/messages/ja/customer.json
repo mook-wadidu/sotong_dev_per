@@ -224,10 +224,22 @@
       "low": "ケアが必要"
     },
     "nationality": "国籍",
+    "dna": {
+      "title": "ヘア＆顔型DNA",
+      "volume": "ボリューム",
+      "density": "毛量",
+      "wave": "ウェーブ",
+      "faceShape": "顔型"
+    },
+    "satisfaction": {
+      "title": "本日の施術はいかがでしたか？",
+      "thanks": "ご評価ありがとうございます！",
+      "error": "保存に失敗しました。もう一度お試しください。"
+    },
     "nationalityNames": {
       "ko": "韓国",
       "ja": "日本",
-      "en": "アメリカ",
+      "en": "英語圏",
       "zh": "中国"
     },
     "gender": "性別",

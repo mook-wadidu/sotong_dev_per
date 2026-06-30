@@ -198,7 +198,7 @@ export function buildReportPrompt(input: ReportInput): string {
     "",
     "[Rules]",
     `- Write ALL text fields in ${lang}.`,
-    "- serviceSummary: one warm sentence summarizing today's service.",
+    "- serviceSummary: ONE warm, concise sentence (max ~20 words) summarizing today's service — scannable, not a paragraph.",
     "- products: array of product names the customer can recognize (translate/localize the Korean product names naturally; if none given, suggest 1-2 suitable aftercare products).",
     "- hairStateGrade: must be exactly one of 'high' | 'mid' | 'low', matching the given grade.",
     "- hairStateScore: integer 0-100 consistent with the grade (high ~80-95, mid ~60-75, low ~40-55).",

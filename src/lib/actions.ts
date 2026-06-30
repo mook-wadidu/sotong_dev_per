@@ -17,6 +17,7 @@ import {
   getSalonInfo,
   getSalonInfoByEntry,
   postMessage,
+  saveSatisfactionRating as saveSatisfactionRatingSvc,
   saveBeforePhoto as saveBeforePhotoSvc,
   saveDesignerPush,
   startService as startServiceSvc,
@@ -118,6 +119,14 @@ export async function pollMessages(input: {
   sinceIso?: string;
 }): Promise<Message[]> {
   return getMessagesSince(input);
+}
+
+/* ── 손님: 리포트에서 시술 만족도 별점 저장(1~5) ───────────── */
+export async function saveSatisfactionRating(
+  reportToken: string,
+  score: number,
+): Promise<{ ok: boolean }> {
+  return saveSatisfactionRatingSvc(reportToken, score);
 }
 
 /* ── 손님: 상담 상태 폴링 (완료 + 리포트 도착 감지) ─────────── */

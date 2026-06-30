@@ -63,10 +63,9 @@ import {
   DEMO_REPORT_DATE_LABEL,
   DEMO_REPORT_DATE_LABEL_KO,
   DEMO_REPORT_KO,
+  DEMO_REPORT_HAIR,
   DEMO_REPORT_LABELS,
   DEMO_REPORT_LABELS_KO,
-  DEMO_REPORT_NEXT_VISIT,
-  DEMO_REPORT_NEXT_VISIT_KO,
   DEMO_REPORT_PROFILE,
   DEMO_REPORT_PROFILE_KO,
   DEMO_REPORT_VISIT,
@@ -321,11 +320,10 @@ export function DemoPlayer({ url }: { url: string }) {
           report={isKo ? DEMO_REPORT_KO : DEMO_REPORT}
           labels={isKo ? DEMO_REPORT_LABELS_KO : DEMO_REPORT_LABELS}
           dateLabel={isKo ? DEMO_REPORT_DATE_LABEL_KO : DEMO_REPORT_DATE_LABEL}
-          nextVisitText={
-            isKo ? DEMO_REPORT_NEXT_VISIT_KO : DEMO_REPORT_NEXT_VISIT
-          }
           profile={isKo ? DEMO_REPORT_PROFILE_KO : DEMO_REPORT_PROFILE}
           visit={isKo ? DEMO_REPORT_VISIT_KO : DEMO_REPORT_VISIT}
+          hair={DEMO_REPORT_HAIR}
+          demo
         />
         <div className="pointer-events-none fixed inset-x-0 bottom-4 z-10 flex justify-center">
           <Button

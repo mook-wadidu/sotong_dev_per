@@ -224,10 +224,22 @@
       "low": "Needs care"
     },
     "nationality": "Nationality",
+    "dna": {
+      "title": "Hair & Face DNA",
+      "volume": "Volume",
+      "density": "Density",
+      "wave": "Wave",
+      "faceShape": "Face shape"
+    },
+    "satisfaction": {
+      "title": "How was your service today?",
+      "thanks": "Thanks for your feedback!",
+      "error": "Couldn't save. Please try again."
+    },
     "nationalityNames": {
       "ko": "Korea",
       "ja": "Japan",
-      "en": "United States",
+      "en": "English-speaking",
       "zh": "China"
     },
     "gender": "Gender",

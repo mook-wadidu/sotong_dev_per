@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { getReportView, nextVisitLabel } from "@/lib/service";
+import { getReportView } from "@/lib/service";
 import { formatDate } from "@/lib/catalog";
 import type { ThreeLevel } from "@/lib/domain/types";
 import { InvalidEntry } from "@/components/customer/invalid-entry";
@@ -21,8 +21,15 @@ export default async function CustomerReportPage({
     return <InvalidEntry kind="report" />;
   }
 
-  const { report, customerLocale, gender, age, visitCount, lastVisitDate } =
-    data;
+  const {
+    report,
+    customerLocale,
+    gender,
+    age,
+    visitCount,
+    lastVisitDate,
+    hair,
+  } = data;
 
   // 리포트는 항상 발급 당시 손님 언어(report.locale)로 렌더한다.
   // 라우트 locale 과 다를 수 있어, report.locale 로 번역을 직접 해석해 클라에 넘긴다.
@@ -39,14 +46,23 @@ export default async function CustomerReportPage({
     products: t("report.products"),
     hairState: t("report.hairState"),
     homeCare: t("report.homeCare"),
-    nextVisit: t("report.nextVisit"),
     before: t("report.before"),
     after: t("report.after"),
     styleRequest: t("report.styleRequest"),
     concerns: t("report.concerns"),
     cautions: t("report.cautions"),
-    book: t("report.book"),
-    bookToast: t("report.bookToast"),
+    dna: {
+      title: t("report.dna.title"),
+      volume: t("report.dna.volume"),
+      density: t("report.dna.density"),
+      wave: t("report.dna.wave"),
+      faceShape: t("report.dna.faceShape"),
+    },
+    satisfaction: {
+      title: t("report.satisfaction.title"),
+      thanks: t("report.satisfaction.thanks"),
+      error: t("report.satisfaction.error"),
+    },
     save: t("report.save"),
     saveToast: t("report.saveToast"),
     saveError: t("report.saveError"),
@@ -84,9 +100,9 @@ export default async function CustomerReportPage({
       report={report}
       labels={labels}
       dateLabel={formatDate(report.date, loc)}
-      nextVisitText={nextVisitLabel(report.nextVisitWeeks, loc)}
       profile={profile}
       visit={visit}
+      hair={hair}
     />
   );
 }

@@ -95,7 +95,7 @@ export const DEMO_CONSENT_HINT =
 export const DEMO_INBOX = {
   name: "Emma",
   language: "English",
-  nationalityKo: "미국",
+  nationalityKo: "영어권",
   headlineKo: "여성 컷 · 염색",
   time: "오후 12:30",
 };
@@ -107,7 +107,7 @@ export const DEMO_SUMMARY_KO = {
   allergy: "없음",
   estimatedPrice: "약 12만원",
   aiSummary:
-    "미국 손님(영어). 롱 레이어드 컷 + 소프트 웨이브에 애쉬 브라운 풀 컬러를 원합니다. 자연스러운 볼륨과 손질이 쉬운 스타일 선호. 모발 끝이 다소 건조해 염색 직후 고열은 피하는 게 좋아요.",
+    "영어권 손님(영어). 롱 레이어드 컷 + 소프트 웨이브에 애쉬 브라운 풀 컬러를 원합니다. 자연스러운 볼륨과 손질이 쉬운 스타일 선호. 모발 끝이 다소 건조해 염색 직후 고열은 피하는 게 좋아요.",
 };
 
 /** 디자이너 시술 기록(흉내). */
@@ -277,14 +277,23 @@ export const DEMO_REPORT_LABELS: ReportLabels = {
   products: "Products used",
   hairState: "Hair condition",
   homeCare: "Home-care guide",
-  nextVisit: "Recommended next visit",
   before: "Before",
   after: "After",
   styleRequest: "Style you requested",
   concerns: "Concerns",
   cautions: "Care notes",
-  book: "Book next visit",
-  bookToast: "Booking request received. The salon will contact you soon.",
+  dna: {
+    title: "Hair & Face DNA",
+    volume: "Volume",
+    density: "Density",
+    wave: "Wave",
+    faceShape: "Face shape",
+  },
+  satisfaction: {
+    title: "How was your service today?",
+    thanks: "Thanks for your feedback!",
+    error: "Couldn't save. Please try again.",
+  },
   save: "Save as image",
   saveToast: "Report saved.",
   saveError: "Couldn't save the image. Please try again.",
@@ -307,14 +316,23 @@ export const DEMO_REPORT_LABELS_KO: ReportLabels = {
   products: "사용한 제품",
   hairState: "모발 상태",
   homeCare: "홈케어 가이드",
-  nextVisit: "다음 방문 권장",
   before: "시술 전",
   after: "시술 후",
   styleRequest: "요청하신 스타일",
   concerns: "상담 시 고민",
   cautions: "시술 주의사항",
-  book: "다음 예약하기",
-  bookToast: "예약 요청이 접수되었어요. 살롱에서 곧 연락드려요.",
+  dna: {
+    title: "헤어 & 얼굴형 DNA",
+    volume: "볼륨",
+    density: "숱",
+    wave: "웨이브",
+    faceShape: "얼굴형",
+  },
+  satisfaction: {
+    title: "오늘 시술은 만족스러우셨나요?",
+    thanks: "소중한 평가 감사합니다!",
+    error: "저장에 실패했어요. 다시 시도해 주세요.",
+  },
   save: "이미지로 저장",
   saveToast: "리포트를 저장했어요",
   saveError: "이미지를 저장하지 못했어요. 다시 시도해주세요.",
@@ -328,18 +346,24 @@ export const DEMO_REPORT_LABELS_KO: ReportLabels = {
   visitHistory: "방문 이력",
 };
 
+// 데모 헤어/얼굴형 DNA — 삼각형이 또렷하게 보이도록 섞인 값.
+export const DEMO_REPORT_HAIR = {
+  faceShape: "oval",
+  crownVolume: "mid",
+  hairDensity: "high",
+  hairType: "wavy",
+} as const;
+
 export const DEMO_REPORT_DATE_LABEL = "Jun 25, 2026";
 export const DEMO_REPORT_DATE_LABEL_KO = "2026. 6. 25.";
-export const DEMO_REPORT_NEXT_VISIT = "In about 8 weeks";
-export const DEMO_REPORT_NEXT_VISIT_KO = "약 8주 후";
 
 export const DEMO_REPORT_PROFILE = {
-  nationality: "United States",
+  nationality: "English-speaking",
   gender: "Female",
   ageText: "29",
 };
 export const DEMO_REPORT_PROFILE_KO = {
-  nationality: "미국",
+  nationality: "영어권",
   gender: "여성",
   ageText: "29세",
 };

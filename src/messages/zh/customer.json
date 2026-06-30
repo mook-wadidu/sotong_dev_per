@@ -224,10 +224,22 @@
       "low": "需护理"
     },
     "nationality": "国籍",
+    "dna": {
+      "title": "发型 & 脸型 DNA",
+      "volume": "蓬松度",
+      "density": "发量",
+      "wave": "卷曲度",
+      "faceShape": "脸型"
+    },
+    "satisfaction": {
+      "title": "今天的服务还满意吗？",
+      "thanks": "感谢您的评价！",
+      "error": "保存失败，请重试。"
+    },
     "nationalityNames": {
       "ko": "韩国",
       "ja": "日本",
-      "en": "美国",
+      "en": "英语圈",
       "zh": "中国"
     },
     "gender": "性别",

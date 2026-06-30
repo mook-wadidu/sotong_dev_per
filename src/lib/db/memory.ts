@@ -537,6 +537,10 @@ export class MemoryRepo implements Repo {
   }
 
   async scrubConsultationPii(redacted: Consultation): Promise<void> {
+    // 비식별 보존: 영구 자산(training_sample)의 재식별 조인키를 먼저 끊는다(supabase 와 동일 순서).
+    for (const s of store.trainingSamples) {
+      if (s.consultationId === redacted.id) s.consultationId = undefined;
+    }
     // 마스킹된 상담으로 store 항목을 교체(전화·사진·자유텍스트 제거 영속화).
     if (store.consultations.has(redacted.id)) {
       store.consultations.set(redacted.id, redacted);
@@ -633,8 +637,26 @@ export class MemoryRepo implements Repo {
       .sort((a, b) => (a.visitedAt < b.visitedAt ? 1 : -1));
   }
 
+  async updateTreatmentRecord(
+    id: string,
+    fields: Partial<Pick<TreatmentRecord, "satisfactionScore">>,
+  ): Promise<void> {
+    const r = store.treatmentRecords.get(id);
+    if (r) store.treatmentRecords.set(id, { ...r, ...fields });
+  }
+
   async saveTrainingSample(sample: TrainingSample): Promise<void> {
     store.trainingSamples.push(sample);
+  }
+
+  async updateTrainingSampleSatisfaction(
+    consultationId: string,
+    score: number,
+  ): Promise<void> {
+    if (!consultationId) return;
+    for (const s of store.trainingSamples) {
+      if (s.consultationId === consultationId) s.satisfactionScore = score;
+    }
   }
 
   async getTreatmentByConsultation(
@@ -675,6 +697,16 @@ export class MemoryRepo implements Repo {
   ): Promise<Message[]> {
     const arr = store.messages.get(consultationId) ?? [];
     return sinceIso ? arr.filter((m) => m.createdAt > sinceIso) : [...arr];
+  }
+
+  async updateMessageTranslations(
+    consultationId: string,
+    messageId: string,
+    translations: Message["translations"],
+  ): Promise<void> {
+    const arr = store.messages.get(consultationId);
+    const m = arr?.find((x) => x.id === messageId);
+    if (m) m.translations = translations;
   }
 
   async saveReport(report: HairReport): Promise<void> {

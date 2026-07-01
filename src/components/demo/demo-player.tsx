@@ -342,7 +342,10 @@ export function DemoPlayer() {
       <ScreenBody className="space-y-4 pb-2">
         <div ref={topRef} aria-hidden="true" />
         {phase === "narration" ? (
-          <NarrationScreen text={DEMO_NARRATION[stage] ?? ""} />
+          <NarrationScreen
+            headline={DEMO_NARRATION[stage]?.headline ?? ""}
+            detail={DEMO_NARRATION[stage]?.detail}
+          />
         ) : (
           <>
             {stage === "intro" ? <IntroScreen /> : null}
@@ -380,18 +383,29 @@ export function DemoPlayer() {
 
 /* ── 나래이션(큰 그레이 화면) ────────────────────────────── */
 
-function NarrationScreen({ text }: { text: string }) {
+function NarrationScreen({
+  headline,
+  detail,
+}: {
+  headline: string;
+  detail?: string;
+}) {
   return (
     <div
       lang="ko"
-      className="flex min-h-[22rem] flex-col items-center justify-center gap-5 px-2 py-10 text-center"
+      className="flex min-h-[22rem] flex-col items-center justify-center gap-2.5 px-3 py-10 text-center"
     >
-      <span className="flex size-11 items-center justify-center rounded-full border border-foreground bg-foreground text-background">
+      <span className="mb-2 flex size-11 items-center justify-center rounded-full border border-foreground bg-foreground text-background">
         <SparkleIcon className="size-5" />
       </span>
-      <p className="max-w-[19rem] text-xl font-bold leading-relaxed tracking-tight text-foreground sm:text-[1.55rem]">
-        {text}
-      </p>
+      <h2 className="max-w-[20rem] text-balance break-keep text-2xl font-bold leading-snug tracking-tight text-foreground">
+        {headline}
+      </h2>
+      {detail ? (
+        <p className="max-w-[20rem] text-balance break-keep text-[0.95rem] font-normal leading-relaxed text-muted-foreground">
+          {detail}
+        </p>
+      ) : null}
     </div>
   );
 }

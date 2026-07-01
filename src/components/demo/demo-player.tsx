@@ -80,6 +80,7 @@ import {
 } from "./demo-script";
 
 type Track = "customer" | "designer";
+type Phase = "narration" | "content";
 type Stage =
   | "intro"
   | "lang"
@@ -88,7 +89,6 @@ type Stage =
   | "chat"
   | "inservice"
   | "report"
-  | "handoff"
   | "d-inbox"
   | "d-summary"
   | "d-chat"
@@ -97,8 +97,11 @@ type Stage =
 
 const TYPE_MS = 38;
 const INTAKE_STEPS = 6;
+const reduceMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 const trackOf = (stage: Stage): Track =>
-  stage === "handoff" || stage.startsWith("d-") ? "designer" : "customer";
+  stage.startsWith("d-") ? "designer" : "customer";
 const isOwn = (entry: ChatEntry, t: Track): boolean =>
   t === "customer" ? entry.kind === "customer" : entry.kind === "designer";
 
@@ -112,50 +115,41 @@ const FACE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 };
 
 /**
- * MVP 데모 — QR 하나로 같은 상담을 손님(영어) → 디자이너(한국어) 화면으로 탭 재생.
- * 인테이크는 자동채움 스텝, 채팅은 입력바 자동 타이핑 + Send만 누름. 완전 하드코딩.
+ * MVP 데모 — 큰 그레이 나래이션(원장에게 말 걸기) + "이어서 보기" 한 번이면
+ * 그 구간(인테이크 자동채움·채팅 자동전송·정적화면)이 탭 없이 자동 재생 → 다음 나래이션.
+ * QR 하나로 같은 상담을 손님(영어) → 원장(한국어) 화면으로 보여준다. 완전 하드코딩.
  */
 export function DemoPlayer({ url }: { url: string }) {
   const [stage, setStage] = React.useState<Stage>("intro");
+  const [phase, setPhase] = React.useState<Phase>("content"); // intro = 랜딩(content)
   const [intakeStep, setIntakeStep] = React.useState(0);
   const [intakeFilled, setIntakeFilled] = React.useState(false);
   const [intakeNote, setIntakeNote] = React.useState("");
   const [typing, setTyping] = React.useState<string | null>(null);
-  const [armed, setArmed] = React.useState(false);
-  const [chatDone, setChatDone] = React.useState(false);
   const [incoming, setIncoming] = React.useState(false); // 상대 메시지 도착 중(···)
-  const [chatCount, setChatCountState] = React.useState(0);
+  const [chatCount, setChatCount] = React.useState(0);
   const countRef = React.useRef(0);
-  const armedRef = React.useRef(false); // 동기 가드(연타 시 중복 전송 방지)
   const timer = React.useRef<number | null>(null);
   const topRef = React.useRef<HTMLDivElement>(null);
   const track = trackOf(stage);
 
-  React.useEffect(() => {
-    return () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    };
+  const clearTimer = React.useCallback(() => {
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = null;
   }, []);
 
-  // 스테이지/인테이크 스텝 전환 시 스크롤 상단 복귀(긴→짧은 화면 어긋남 방지).
+  React.useEffect(() => () => clearTimer(), [clearTimer]);
+
+  // stage/phase/인테이크 스텝 전환 시 스크롤 상단 복귀.
   React.useEffect(() => {
     topRef.current?.scrollIntoView({ block: "start" });
-  }, [stage, intakeStep]);
-
-  const arm = React.useCallback((v: boolean) => {
-    armedRef.current = v;
-    setArmed(v);
-  }, []);
+  }, [stage, phase, intakeStep]);
 
   const typeOut = React.useCallback(
     (text: string, onChar: (s: string) => void, onDone: () => void) => {
-      // reduced-motion: 타이핑 건너뛰고 즉시 완성.
-      const reduce =
-        typeof window !== "undefined" &&
-        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-      if (reduce) {
+      if (reduceMotion()) {
         onChar(text);
-        timer.current = window.setTimeout(onDone, 200);
+        timer.current = window.setTimeout(onDone, 150);
         return;
       }
       let i = 0;
@@ -164,157 +158,148 @@ export function DemoPlayer({ url }: { url: string }) {
         i += 1;
         onChar(text.slice(0, i));
         if (i < text.length) timer.current = window.setTimeout(tick, TYPE_MS);
-        else timer.current = window.setTimeout(onDone, 280);
+        else timer.current = window.setTimeout(onDone, 260);
       };
       timer.current = window.setTimeout(tick, TYPE_MS);
     },
     [],
   );
 
-  /* ── 인테이크 자동채움 ─────────────────────────────────── */
-  const enterIntakeStep = React.useCallback(
-    (k: number) => {
-      if (timer.current) window.clearTimeout(timer.current);
-      setIntakeStep(k);
-      setIntakeFilled(false);
-      if (k === 1) {
-        typeOut(DEMO_INTAKE.styleNoteEn, setIntakeNote, () =>
-          setIntakeFilled(true),
+  // ── 자동재생 엔진 ────────────────────────────────────────
+  // 아래 함수들은 서로를 런타임(타이머/클릭)에서만 호출 → const 선언 순서 무관(TDZ 안전).
+
+  // 인테이크 6스텝 자동채움 + 자동 진행.
+  const runIntakeStep = (k: number) => {
+    clearTimer();
+    setIntakeStep(k);
+    setIntakeFilled(false);
+    const afterFill = () => {
+      setIntakeFilled(true);
+      timer.current = window.setTimeout(
+        () => (k < INTAKE_STEPS - 1 ? runIntakeStep(k + 1) : goTo("summary")),
+        reduceMotion() ? 500 : 1050,
+      );
+    };
+    if (k === 1) typeOut(DEMO_INTAKE.styleNoteEn, setIntakeNote, afterFill);
+    else timer.current = window.setTimeout(afterFill, reduceMotion() ? 250 : 520);
+  };
+
+  // 채팅 자동 타이핑 + 자동 전송(수동 Send 없음).
+  const pump = (t: Track) => {
+    const step = () => {
+      const i = countRef.current;
+      const entry = DEMO_CHAT[i];
+      if (!entry) {
+        setIncoming(false);
+        goTo(t === "customer" ? "inservice" : "d-record");
+        return;
+      }
+      const commit = (delay: number) => {
+        timer.current = window.setTimeout(() => {
+          setIncoming(false);
+          setTyping(null);
+          countRef.current = i + 1;
+          setChatCount(i + 1);
+          step();
+        }, delay);
+      };
+      if (isOwn(entry, t)) {
+        // 내 메시지 — 입력바 자동 타이핑 후 잠깐 뒤 자동 전송.
+        typeOut(t === "customer" ? entry.en : entry.ko, setTyping, () =>
+          commit(reduceMotion() ? 250 : 650),
         );
       } else {
-        timer.current = window.setTimeout(() => setIntakeFilled(true), 450);
+        // 상대 메시지 — "···" 인디케이터 후 도착(시스템 노트 제외).
+        const showDots = entry.kind !== "system";
+        if (showDots) setIncoming(true);
+        commit(showDots ? (reduceMotion() ? 350 : 950) : 500);
       }
-    },
-    [typeOut],
-  );
+    };
+    step();
+  };
 
-  /* ── 채팅: 자동 타이핑 + Send 만 ──────────────────────── */
-  const pump = React.useCallback(
-    (t: Track) => {
-      const step = () => {
-        const i = countRef.current;
-        const entry = DEMO_CHAT[i];
-        if (!entry) {
-          arm(false);
-          setIncoming(false);
-          setChatDone(true);
-          return;
-        }
-        if (isOwn(entry, t)) {
-          // 내 메시지 — 입력바에 자동 타이핑 후 Send 활성(전송 대기).
-          typeOut(t === "customer" ? entry.en : entry.ko, setTyping, () =>
-            arm(true),
-          );
-        } else {
-          // 상대 메시지는 도착 전 "···" 인디케이터(시스템 노트는 제외).
-          const showDots = entry.kind !== "system";
-          if (showDots) setIncoming(true);
-          timer.current = window.setTimeout(
-            () => {
-              setIncoming(false);
-              countRef.current = i + 1;
-              setChatCountState(i + 1);
-              step();
-            },
-            showDots ? 900 : 450,
-          );
-        }
-      };
-      step();
-    },
-    [typeOut, arm],
-  );
+  const startChat = (t: Track) => {
+    clearTimer();
+    setTyping(null);
+    setIncoming(false);
+    countRef.current = 0;
+    setChatCount(0);
+    pump(t);
+  };
 
-  const startChat = React.useCallback(
-    (t: Track) => {
-      if (timer.current) window.clearTimeout(timer.current);
-      setTyping(null);
-      arm(false);
-      setChatDone(false);
-      setIncoming(false);
-      countRef.current = 0;
-      setChatCountState(0);
-      pump(t);
-    },
-    [pump, arm],
-  );
-
-  const onSend = React.useCallback(
-    (t: Track) => {
-      if (!armedRef.current) return; // 동기 가드 — 연타 중복 전송 차단
-      const next = countRef.current + 1;
-      countRef.current = next;
-      setChatCountState(next);
-      setTyping(null);
-      arm(false);
-      pump(t);
-    },
-    [pump, arm],
-  );
-
-  const busy = typing !== null && !armed; // 자동 타이핑 진행 중
-
-  const advance = React.useCallback(() => {
-    if (busy) return;
-    switch (stage) {
-      case "intro":
-        setStage("lang");
-        break;
+  // stage 콘텐츠 진입 시 자동재생 시작(정적 화면은 읽기 딜레이 후 다음 비트로).
+  const startContent = (s: Stage) => {
+    clearTimer();
+    switch (s) {
       case "lang":
-        setStage("intake");
-        enterIntakeStep(0);
+        timer.current = window.setTimeout(() => goTo("intake"), reduceMotion() ? 400 : 900);
         break;
       case "intake":
-        if (intakeStep < INTAKE_STEPS - 1) enterIntakeStep(intakeStep + 1);
-        else setStage("summary");
+        runIntakeStep(0);
         break;
       case "summary":
-        setStage("chat");
-        startChat("customer");
+        timer.current = window.setTimeout(() => goTo("chat"), reduceMotion() ? 1200 : 2800);
         break;
       case "chat":
-        setStage("inservice");
+        startChat("customer");
         break;
       case "inservice":
-        setStage("report");
-        break;
-      case "handoff":
-        setStage("d-inbox");
+        timer.current = window.setTimeout(() => goTo("report"), reduceMotion() ? 1200 : 2800);
         break;
       case "d-inbox":
-        setStage("d-summary");
+        timer.current = window.setTimeout(() => goTo("d-summary"), reduceMotion() ? 1200 : 2800);
         break;
       case "d-summary":
-        setStage("d-chat");
-        startChat("designer");
+        timer.current = window.setTimeout(() => goTo("d-chat"), reduceMotion() ? 1500 : 3600);
         break;
       case "d-chat":
-        setStage("d-record");
+        startChat("designer");
         break;
       case "d-record":
-        setStage("d-report");
+        timer.current = window.setTimeout(() => goTo("d-report"), reduceMotion() ? 1400 : 3200);
         break;
+      // intro / report / d-report — 자동재생 없음(자체 버튼).
       default:
         break;
     }
-  }, [busy, stage, intakeStep, enterIntakeStep, startChat]);
+  };
 
-  const reset = React.useCallback(() => {
-    if (timer.current) window.clearTimeout(timer.current);
+  // 다음 stage 로 이동 — 나래이션 있으면 그레이 게이트, 없으면 바로 콘텐츠 자동재생.
+  const goTo = (s: Stage) => {
+    clearTimer();
     setTyping(null);
-    arm(false);
-    setChatDone(false);
     setIncoming(false);
     countRef.current = 0;
-    setChatCountState(0);
+    setChatCount(0);
+    setStage(s);
+    if (DEMO_NARRATION[s]) {
+      setPhase("narration");
+    } else {
+      setPhase("content");
+      startContent(s);
+    }
+  };
+
+  const continueFromNarration = () => {
+    setPhase("content");
+    startContent(stage);
+  };
+
+  const reset = () => {
+    clearTimer();
+    setTyping(null);
+    setIncoming(false);
+    countRef.current = 0;
+    setChatCount(0);
     setIntakeStep(0);
     setIntakeFilled(false);
     setIntakeNote("");
     setStage("intro");
-  }, [arm]);
+    setPhase("content");
+  };
 
-  // ── 리포트 화면(자체 MobileFrame) ──
-  if (stage === "report" || stage === "d-report") {
+  // ── 리포트 화면(자체 MobileFrame) — content phase 에서만 ──
+  if ((stage === "report" || stage === "d-report") && phase === "content") {
     const isKo = stage === "d-report";
     return (
       <div className="relative">
@@ -332,7 +317,7 @@ export function DemoPlayer({ url }: { url: string }) {
             variant="default"
             size="sm"
             className="pointer-events-auto shadow-lg"
-            onClick={() => (isKo ? reset() : setStage("handoff"))}
+            onClick={() => (isKo ? reset() : goTo("d-inbox"))}
           >
             {isKo ? "↺ Replay demo" : DEMO_HANDOFF.cta}
           </Button>
@@ -354,37 +339,59 @@ export function DemoPlayer({ url }: { url: string }) {
 
       <ScreenBody className="space-y-4 pb-2">
         <div ref={topRef} aria-hidden="true" />
-        <DemoNarrator text={DEMO_NARRATION[stage]} />
-        {stage === "intro" ? <IntroScreen url={url} /> : null}
-        {stage === "lang" ? <LangScreen onPick={advance} /> : null}
-        {stage === "intake" ? (
-          <IntakeFlow step={intakeStep} filled={intakeFilled} note={intakeNote} />
-        ) : null}
-        {stage === "summary" ? <CustomerSummaryScreen /> : null}
-        {stage === "chat" || stage === "d-chat" ? (
-          <ChatScreen visible={chatCount} track={track} incoming={incoming} />
-        ) : null}
-        {stage === "inservice" ? <InServiceScreen /> : null}
-        {stage === "handoff" ? <HandoffScreen /> : null}
-        {stage === "d-inbox" ? <InboxScreen /> : null}
-        {stage === "d-summary" ? <DesignerSummaryScreen /> : null}
-        {stage === "d-record" ? <RecordScreen /> : null}
+        {phase === "narration" ? (
+          <NarrationScreen text={DEMO_NARRATION[stage] ?? ""} />
+        ) : (
+          <>
+            {stage === "intro" ? <IntroScreen url={url} /> : null}
+            {stage === "lang" ? <LangScreen /> : null}
+            {stage === "intake" ? (
+              <IntakeFlow
+                step={intakeStep}
+                filled={intakeFilled}
+                note={intakeNote}
+              />
+            ) : null}
+            {stage === "summary" ? <CustomerSummaryScreen /> : null}
+            {stage === "chat" || stage === "d-chat" ? (
+              <ChatScreen visible={chatCount} track={track} incoming={incoming} />
+            ) : null}
+            {stage === "inservice" ? <InServiceScreen /> : null}
+            {stage === "d-inbox" ? <InboxScreen /> : null}
+            {stage === "d-summary" ? <DesignerSummaryScreen /> : null}
+            {stage === "d-record" ? <RecordScreen /> : null}
+          </>
+        )}
       </ScreenBody>
 
       <ScreenFooter>
-        <StageFooter
+        <DemoFooter
           stage={stage}
-          track={track}
-          intakeStep={intakeStep}
-          busy={busy}
+          phase={phase}
           typing={typing}
-          armed={armed}
-          chatDone={chatDone}
-          onAdvance={advance}
-          onSend={onSend}
+          onContinue={continueFromNarration}
+          onStart={() => goTo("lang")}
         />
       </ScreenFooter>
     </MobileFrame>
+  );
+}
+
+/* ── 나래이션(큰 그레이 화면) ────────────────────────────── */
+
+function NarrationScreen({ text }: { text: string }) {
+  return (
+    <div
+      lang="ko"
+      className="flex min-h-[22rem] flex-col items-center justify-center gap-5 px-2 py-10 text-center"
+    >
+      <span className="flex size-11 items-center justify-center rounded-full border border-foreground bg-foreground text-background">
+        <SparkleIcon className="size-5" />
+      </span>
+      <p className="max-w-[19rem] text-xl font-bold leading-relaxed tracking-tight text-foreground sm:text-[1.6rem]">
+        {text}
+      </p>
+    </div>
   );
 }
 
@@ -450,7 +457,8 @@ function IntroScreen({ url }: { url: string }) {
   );
 }
 
-function LangScreen({ onPick }: { onPick: () => void }) {
+function LangScreen() {
+  // 자동 선택(약 0.9s) — 버튼은 비인터랙티브 표시용(영어 강조).
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
@@ -462,13 +470,13 @@ function LangScreen({ onPick }: { onPick: () => void }) {
           No app, no sign-up. Just pick your language.
         </p>
       </div>
-      <div className="grid gap-3">
+      <div className="grid gap-3 [&_button]:pointer-events-none">
         {DEMO_LANGS.map((l) => (
           <LanguageButton
             key={l.locale}
             nativeLabel={l.native}
             subLabel={l.sub}
-            onClick={onPick}
+            onClick={() => {}}
             className={cn(
               l.highlight &&
                 "border-foreground ring-2 ring-foreground ring-offset-2 ring-offset-muted",
@@ -492,7 +500,7 @@ function IntakeFlow({
   note: string;
 }) {
   return (
-    // 자동채움 — 칩/입력은 비인터랙티브(탭해도 무반응이 의도). 진행은 하단 버튼.
+    // 자동채움 — 칩/입력은 비인터랙티브(진행은 자동).
     <div className="space-y-4 [&_button]:pointer-events-none">
       <ProgressSteps total={INTAKE_STEPS} current={step + 1} label="Intake" />
       <p className="text-base font-semibold text-foreground">
@@ -652,21 +660,7 @@ function InServiceScreen() {
   );
 }
 
-/* ── 트랙 전환 + 디자이너 화면 ──────────────────────────── */
-
-function HandoffScreen() {
-  return (
-    <div className="flex flex-col items-center gap-4 py-10 text-center">
-      <span className="flex size-14 items-center justify-center rounded-full border border-foreground bg-foreground text-background">
-        <CutIcon className="size-7" />
-      </span>
-      <h2 className="text-xl font-bold tracking-tight">{DEMO_HANDOFF.title}</h2>
-      <p className="max-w-[18rem] text-sm leading-relaxed text-muted-foreground">
-        {DEMO_HANDOFF.subtitle}
-      </p>
-    </div>
-  );
-}
+/* ── 원장(디자이너) 화면 ────────────────────────────────── */
 
 function InboxScreen() {
   return (
@@ -759,7 +753,7 @@ function DesignerSummaryScreen() {
 function RecordScreen() {
   return (
     <div className="space-y-4">
-      {/* 고객 프로필(목업② 고객 기록) */}
+      {/* 고객 프로필 */}
       <Card>
         <CardContent className="flex items-center justify-between gap-3 p-4">
           <div className="space-y-0.5">
@@ -886,125 +880,66 @@ function ChatRow({ entry, track }: { entry: ChatEntry; track: Track }) {
   );
 }
 
-/* ── 푸터(탭 진행) ───────────────────────────────────────── */
+/* ── 푸터 ─────────────────────────────────────────────────── */
 
-function StageFooter({
+function DemoFooter({
   stage,
-  track,
-  intakeStep,
-  busy,
+  phase,
   typing,
-  armed,
-  chatDone,
-  onAdvance,
-  onSend,
+  onContinue,
+  onStart,
 }: {
   stage: Stage;
-  track: Track;
-  intakeStep: number;
-  busy: boolean;
+  phase: Phase;
   typing: string | null;
-  armed: boolean;
-  chatDone: boolean;
-  onAdvance: () => void;
-  onSend: (t: Track) => void;
+  onContinue: () => void;
+  onStart: () => void;
 }) {
-  if (stage === "lang") {
+  if (phase === "narration") {
     return (
-      <p className="w-full text-center text-xs text-muted-foreground">
-        Tap a language to continue
-      </p>
+      <Button variant="accent" size="lg" className="w-full" onClick={onContinue}>
+        이어서 보기 ›
+      </Button>
+    );
+  }
+
+  if (stage === "intro") {
+    return (
+      <Button variant="accent" size="lg" className="w-full" onClick={onStart}>
+        {DEMO_INTRO.cta}
+      </Button>
     );
   }
 
   if (stage === "chat" || stage === "d-chat") {
     const ko = stage === "d-chat";
-    if (chatDone) {
-      return (
-        <Button
-          variant="accent"
-          size="lg"
-          className="w-full"
-          onClick={onAdvance}
-        >
-          {ko ? "다음 ›" : "Next ›"}
-        </Button>
-      );
-    }
+    // 자동 타이핑 입력바(전송 버튼 없음 — 자동 전송).
     return (
-      <div className="flex w-full items-end gap-2">
-        <div className="flex-1" role="status" aria-live="polite" aria-atomic="true">
-          <Input
-            value={typing ?? ""}
-            readOnly
-            aria-label={ko ? "작성 중인 메시지" : "Message being typed"}
-            placeholder={ko ? "메시지 입력…" : "Type a message…"}
-          />
-        </div>
-        <Button
-          variant="accent"
-          size="lg"
-          className="h-13 shrink-0 rounded-xl"
-          onClick={() => onSend(track)}
-          disabled={!armed}
-        >
-          {ko ? "전송 ›" : "Send ›"}
-        </Button>
+      <div
+        className="w-full"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <Input
+          value={typing ?? ""}
+          readOnly
+          aria-label={ko ? "작성 중인 메시지" : "Message being typed"}
+          placeholder={ko ? "메시지 입력…" : "Type a message…"}
+        />
       </div>
     );
   }
 
-  const label =
-    stage === "intro"
-      ? DEMO_INTRO.cta
-      : stage === "intake"
-        ? intakeStep < INTAKE_STEPS - 1
-          ? "Next ›"
-          : "Send to designer ›"
-        : stage === "summary"
-          ? "Next ›"
-          : stage === "inservice"
-            ? "See my report ›"
-            : stage === "handoff"
-              ? DEMO_HANDOFF.cta
-              : stage === "d-inbox"
-                ? "상담 열기 ›"
-                : stage === "d-summary"
-                  ? "시술 시작 ›"
-                  : stage === "d-record"
-                    ? "리포트 발송 ›"
-                    : "Next ›";
-
+  // 자동 진행 정적 구간 — 진행 중 안내(탭 불필요).
   return (
-    <Button
-      variant="accent"
-      size="lg"
-      className="w-full"
-      onClick={onAdvance}
-      disabled={busy}
-    >
-      {label}
-    </Button>
+    <p className="w-full text-center text-xs text-muted-foreground">
+      잠시 후 자동으로 이어져요…
+    </p>
   );
 }
 
 /* ── 작은 헬퍼 ───────────────────────────────────────────── */
-
-/**
- * 데모 나레이터 — 원장에게 말 거는 한국어 한 줄(토스 톤). ScreenBody 상단.
- * 해당 stage 에 나레이션이 없으면 렌더하지 않는다(intro/handoff/report 제외).
- */
-function DemoNarrator({ text }: { text?: string }) {
-  if (!text) return null;
-  return (
-    <p
-      lang="ko"
-      className="rounded-xl bg-accent-soft px-3.5 py-2.5 text-sm font-medium leading-snug text-foreground"
-    >
-      {text}
-    </p>
-  );
-}
 
 function TrackBadge({ track }: { track: Track }) {
   return (

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { QRCodeSVG } from "qrcode.react";
 import {
   Badge,
   Button,
@@ -49,9 +48,7 @@ import {
   DEMO_FACE_SELECTED,
   DEMO_FACE_SHAPES,
   DEMO_GENDERS,
-  DEMO_HANDOFF,
   DEMO_INBOX,
-  DEMO_INSERVICE_EN,
   DEMO_INTAKE,
   DEMO_INTAKE_CONCERNS,
   DEMO_INTAKE_SERVICES,
@@ -59,16 +56,11 @@ import {
   DEMO_INTAKE_TITLES,
   DEMO_RECEIVED_NOTE,
   DEMO_RECORD_KO,
-  DEMO_REPORT,
-  DEMO_REPORT_DATE_LABEL,
-  DEMO_REPORT_DATE_LABEL_KO,
   DEMO_REPORT_KO,
   DEMO_REPORT_HAIR,
-  DEMO_REPORT_LABELS,
   DEMO_REPORT_LABELS_KO,
-  DEMO_REPORT_PROFILE,
+  DEMO_REPORT_DATE_LABEL_KO,
   DEMO_REPORT_PROFILE_KO,
-  DEMO_REPORT_VISIT,
   DEMO_REPORT_VISIT_KO,
   DEMO_SUMMARY_KO,
   DEMO_SUMMARY_LABELS,
@@ -86,9 +78,6 @@ type Stage =
   | "lang"
   | "intake"
   | "summary"
-  | "chat"
-  | "inservice"
-  | "report"
   | "d-inbox"
   | "d-summary"
   | "d-chat"
@@ -100,6 +89,15 @@ const INTAKE_STEPS = 6;
 const reduceMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+// 정적 화면 읽기 dwell(ms) — 콘텐츠 양에 비례(빽빽할수록 길게). reduceMotion 시 단축.
+const READ_MS: Partial<Record<Stage, number>> = {
+  summary: 4500, // 상담 요약 카드
+  "d-inbox": 3000, // 대기 손님 카드 1개(짧게)
+  "d-summary": 6500, // 주의 + AI요약 문단 + 상담정보(가장 빽빽)
+  "d-record": 5000, // 제품 + 스탯 + 전후 사진
+};
+
 const trackOf = (stage: Stage): Track =>
   stage.startsWith("d-") ? "designer" : "customer";
 const isOwn = (entry: ChatEntry, t: Track): boolean =>
@@ -115,11 +113,12 @@ const FACE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 };
 
 /**
- * MVP 데모 — 큰 그레이 나래이션(원장에게 말 걸기) + "이어서 보기" 한 번이면
+ * MVP 데모 — 5비트: 큰 그레이 나래이션(디자이너/원장에게 말 걸기) + "이어서 보기" 한 번이면
  * 그 구간(인테이크 자동채움·채팅 자동전송·정적화면)이 탭 없이 자동 재생 → 다음 나래이션.
- * QR 하나로 같은 상담을 손님(영어) → 원장(한국어) 화면으로 보여준다. 완전 하드코딩.
+ * 손님 화면(입력) → 디자이너 화면(받음·상담·시술지·리포트). 완전 하드코딩.
+ * 정적 화면 dwell 은 콘텐츠 양 비례(READ_MS).
  */
-export function DemoPlayer({ url }: { url: string }) {
+export function DemoPlayer() {
   const [stage, setStage] = React.useState<Stage>("intro");
   const [phase, setPhase] = React.useState<Phase>("content"); // intro = 랜딩(content)
   const [intakeStep, setIntakeStep] = React.useState(0);
@@ -177,11 +176,11 @@ export function DemoPlayer({ url }: { url: string }) {
       setIntakeFilled(true);
       timer.current = window.setTimeout(
         () => (k < INTAKE_STEPS - 1 ? runIntakeStep(k + 1) : goTo("summary")),
-        reduceMotion() ? 500 : 1050,
+        reduceMotion() ? 550 : 1400,
       );
     };
     if (k === 1) typeOut(DEMO_INTAKE.styleNoteEn, setIntakeNote, afterFill);
-    else timer.current = window.setTimeout(afterFill, reduceMotion() ? 250 : 520);
+    else timer.current = window.setTimeout(afterFill, reduceMotion() ? 300 : 650);
   };
 
   // 채팅 자동 타이핑 + 자동 전송(수동 Send 없음).
@@ -191,7 +190,7 @@ export function DemoPlayer({ url }: { url: string }) {
       const entry = DEMO_CHAT[i];
       if (!entry) {
         setIncoming(false);
-        goTo(t === "customer" ? "inservice" : "d-record");
+        goTo("d-record");
         return;
       }
       const commit = (delay: number) => {
@@ -206,13 +205,13 @@ export function DemoPlayer({ url }: { url: string }) {
       if (isOwn(entry, t)) {
         // 내 메시지 — 입력바 자동 타이핑 후 잠깐 뒤 자동 전송.
         typeOut(t === "customer" ? entry.en : entry.ko, setTyping, () =>
-          commit(reduceMotion() ? 250 : 650),
+          commit(reduceMotion() ? 300 : 950),
         );
       } else {
         // 상대 메시지 — "···" 인디케이터 후 도착(시스템 노트 제외).
         const showDots = entry.kind !== "system";
         if (showDots) setIncoming(true);
-        commit(showDots ? (reduceMotion() ? 350 : 950) : 500);
+        commit(showDots ? (reduceMotion() ? 400 : 1200) : 600);
       }
     };
     step();
@@ -227,38 +226,42 @@ export function DemoPlayer({ url }: { url: string }) {
     pump(t);
   };
 
-  // stage 콘텐츠 진입 시 자동재생 시작(정적 화면은 읽기 딜레이 후 다음 비트로).
+  // stage 콘텐츠 진입 시 자동재생 시작(정적 화면은 READ_MS 딜레이 후 다음 비트로).
   const startContent = (s: Stage) => {
     clearTimer();
+    const rest = (next: Stage) => {
+      const base = READ_MS[s] ?? 3000;
+      timer.current = window.setTimeout(
+        () => goTo(next),
+        reduceMotion() ? Math.round(base * 0.4) : base,
+      );
+    };
     switch (s) {
       case "lang":
-        timer.current = window.setTimeout(() => goTo("intake"), reduceMotion() ? 400 : 900);
+        timer.current = window.setTimeout(
+          () => goTo("intake"),
+          reduceMotion() ? 500 : 1100,
+        );
         break;
       case "intake":
         runIntakeStep(0);
         break;
       case "summary":
-        timer.current = window.setTimeout(() => goTo("chat"), reduceMotion() ? 1200 : 2800);
-        break;
-      case "chat":
-        startChat("customer");
-        break;
-      case "inservice":
-        timer.current = window.setTimeout(() => goTo("report"), reduceMotion() ? 1200 : 2800);
+        rest("d-inbox");
         break;
       case "d-inbox":
-        timer.current = window.setTimeout(() => goTo("d-summary"), reduceMotion() ? 1200 : 2800);
+        rest("d-summary");
         break;
       case "d-summary":
-        timer.current = window.setTimeout(() => goTo("d-chat"), reduceMotion() ? 1500 : 3600);
+        rest("d-chat");
         break;
       case "d-chat":
         startChat("designer");
         break;
       case "d-record":
-        timer.current = window.setTimeout(() => goTo("d-report"), reduceMotion() ? 1400 : 3200);
+        rest("d-report");
         break;
-      // intro / report / d-report — 자동재생 없음(자체 버튼).
+      // intro / d-report — 자체 버튼(자동재생 없음).
       default:
         break;
     }
@@ -298,17 +301,16 @@ export function DemoPlayer({ url }: { url: string }) {
     setPhase("content");
   };
 
-  // ── 리포트 화면(자체 MobileFrame) — content phase 에서만 ──
-  if ((stage === "report" || stage === "d-report") && phase === "content") {
-    const isKo = stage === "d-report";
+  // ── 최종 리포트(자체 MobileFrame) — d-report content phase 에서만 ──
+  if (stage === "d-report" && phase === "content") {
     return (
       <div className="relative">
         <ReportView
-          report={isKo ? DEMO_REPORT_KO : DEMO_REPORT}
-          labels={isKo ? DEMO_REPORT_LABELS_KO : DEMO_REPORT_LABELS}
-          dateLabel={isKo ? DEMO_REPORT_DATE_LABEL_KO : DEMO_REPORT_DATE_LABEL}
-          profile={isKo ? DEMO_REPORT_PROFILE_KO : DEMO_REPORT_PROFILE}
-          visit={isKo ? DEMO_REPORT_VISIT_KO : DEMO_REPORT_VISIT}
+          report={DEMO_REPORT_KO}
+          labels={DEMO_REPORT_LABELS_KO}
+          dateLabel={DEMO_REPORT_DATE_LABEL_KO}
+          profile={DEMO_REPORT_PROFILE_KO}
+          visit={DEMO_REPORT_VISIT_KO}
           hair={DEMO_REPORT_HAIR}
           demo
         />
@@ -317,9 +319,9 @@ export function DemoPlayer({ url }: { url: string }) {
             variant="default"
             size="sm"
             className="pointer-events-auto shadow-lg"
-            onClick={() => (isKo ? reset() : goTo("d-inbox"))}
+            onClick={reset}
           >
-            {isKo ? "↺ Replay demo" : DEMO_HANDOFF.cta}
+            ↺ Replay demo
           </Button>
         </div>
       </div>
@@ -333,7 +335,7 @@ export function DemoPlayer({ url }: { url: string }) {
     >
       <ScreenHeader
         title="소통 · Sotong"
-        subtitle={track === "designer" ? "원장님 화면 (KO)" : "손님 화면 미리보기"}
+        subtitle={track === "designer" ? "디자이너 화면 (KO)" : "손님 화면 미리보기"}
         trailing={<TrackBadge track={track} />}
       />
 
@@ -343,7 +345,7 @@ export function DemoPlayer({ url }: { url: string }) {
           <NarrationScreen text={DEMO_NARRATION[stage] ?? ""} />
         ) : (
           <>
-            {stage === "intro" ? <IntroScreen url={url} /> : null}
+            {stage === "intro" ? <IntroScreen /> : null}
             {stage === "lang" ? <LangScreen /> : null}
             {stage === "intake" ? (
               <IntakeFlow
@@ -353,10 +355,9 @@ export function DemoPlayer({ url }: { url: string }) {
               />
             ) : null}
             {stage === "summary" ? <CustomerSummaryScreen /> : null}
-            {stage === "chat" || stage === "d-chat" ? (
+            {stage === "d-chat" ? (
               <ChatScreen visible={chatCount} track={track} incoming={incoming} />
             ) : null}
-            {stage === "inservice" ? <InServiceScreen /> : null}
             {stage === "d-inbox" ? <InboxScreen /> : null}
             {stage === "d-summary" ? <DesignerSummaryScreen /> : null}
             {stage === "d-record" ? <RecordScreen /> : null}
@@ -388,7 +389,7 @@ function NarrationScreen({ text }: { text: string }) {
       <span className="flex size-11 items-center justify-center rounded-full border border-foreground bg-foreground text-background">
         <SparkleIcon className="size-5" />
       </span>
-      <p className="max-w-[19rem] text-xl font-bold leading-relaxed tracking-tight text-foreground sm:text-[1.6rem]">
+      <p className="max-w-[19rem] text-xl font-bold leading-relaxed tracking-tight text-foreground sm:text-[1.55rem]">
         {text}
       </p>
     </div>
@@ -397,7 +398,7 @@ function NarrationScreen({ text }: { text: string }) {
 
 /* ── 손님 화면 ───────────────────────────────────────────── */
 
-function IntroScreen({ url }: { url: string }) {
+function IntroScreen() {
   return (
     <div className="flex flex-col gap-5 py-4" lang="ko">
       <div className="space-y-1.5 text-center">
@@ -407,24 +408,19 @@ function IntroScreen({ url }: { url: string }) {
         <p className="text-sm text-muted-foreground">{DEMO_INTRO.subtitle}</p>
       </div>
 
-      {/* 핵심 장면 — 손님 영어 → 원장 한국어(자동 번역). 전체 플로우 전에 마법부터. */}
-      <div className="space-y-1.5 rounded-2xl border border-border bg-card p-3">
-        <div className="flex justify-start">
-          <span
-            className="max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm text-foreground"
-            lang="en"
-          >
+      {/* 핵심 장면 — "한 메시지"가 번역됨: 원문(영어) → 자동 번역 → 한국어. 한 말풍선에 스택. */}
+      <div className="rounded-2xl border border-border bg-card p-3">
+        <div className="rounded-2xl rounded-bl-sm bg-muted px-3.5 py-2.5">
+          <p className="text-sm text-muted-foreground" lang="en">
             {DEMO_INTRO.previewGuest}
-          </span>
-        </div>
-        <div className="flex items-center justify-center gap-1 py-0.5 text-[0.7rem] font-medium text-muted-foreground">
-          <SparkleIcon className="size-3" />
-          {DEMO_INTRO.previewTag}
-        </div>
-        <div className="flex justify-end">
-          <span className="max-w-[80%] rounded-2xl rounded-br-sm bg-foreground px-3 py-2 text-sm font-medium text-background">
+          </p>
+          <div className="my-1.5 flex items-center gap-1 border-t border-border/60 pt-1.5 text-[0.7rem] font-medium text-muted-foreground">
+            <SparkleIcon className="size-3" />
+            {DEMO_INTRO.previewTag}
+          </div>
+          <p className="text-sm font-semibold text-foreground">
             {DEMO_INTRO.previewOwner}
-          </span>
+          </p>
         </div>
       </div>
 
@@ -444,21 +440,12 @@ function IntroScreen({ url }: { url: string }) {
       <p className="text-center text-xs text-muted-foreground">
         {DEMO_INTRO.duration}
       </p>
-
-      {url ? (
-        <div className="flex flex-col items-center gap-2 pt-1">
-          <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-            <QRCodeSVG value={url} size={120} level="M" marginSize={0} />
-          </div>
-          <p className="text-xs text-muted-foreground">{DEMO_INTRO.qrHint}</p>
-        </div>
-      ) : null}
     </div>
   );
 }
 
 function LangScreen() {
-  // 자동 선택(약 0.9s) — 버튼은 비인터랙티브 표시용(영어 강조).
+  // 자동 선택(약 1.1s) — 버튼은 비인터랙티브 표시용(영어 강조).
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
@@ -641,26 +628,7 @@ function CustomerSummaryScreen() {
   );
 }
 
-function InServiceScreen() {
-  return (
-    <div className="space-y-4">
-      <InServiceBanner copy={DEMO_INSERVICE_EN} />
-      <ConsultationSummary
-        language="English"
-        services={DEMO_INTAKE.servicesEn}
-        styleText={DEMO_INTAKE.styleNoteEn}
-        photos={DEMO_INTAKE.photos}
-        memo={DEMO_INTAKE.memoEn}
-        gender={DEMO_INTAKE.genderEn}
-        age={DEMO_INTAKE.age}
-        status="in_service"
-        labels={DEMO_SUMMARY_LABELS}
-      />
-    </div>
-  );
-}
-
-/* ── 원장(디자이너) 화면 ────────────────────────────────── */
+/* ── 디자이너 화면 ──────────────────────────────────────── */
 
 function InboxScreen() {
   return (
@@ -825,7 +793,7 @@ function RecordScreen() {
   );
 }
 
-/* ── 채팅(트랙 공용) — 스레드만 렌더(자동 타이핑은 입력바) ── */
+/* ── 채팅(디자이너 렌즈) — 스레드만 렌더(자동 타이핑은 입력바) ── */
 
 function ChatScreen({
   visible,
@@ -911,8 +879,7 @@ function DemoFooter({
     );
   }
 
-  if (stage === "chat" || stage === "d-chat") {
-    const ko = stage === "d-chat";
+  if (stage === "d-chat") {
     // 자동 타이핑 입력바(전송 버튼 없음 — 자동 전송).
     return (
       <div
@@ -924,8 +891,8 @@ function DemoFooter({
         <Input
           value={typing ?? ""}
           readOnly
-          aria-label={ko ? "작성 중인 메시지" : "Message being typed"}
-          placeholder={ko ? "메시지 입력…" : "Type a message…"}
+          aria-label="작성 중인 메시지"
+          placeholder="메시지 입력…"
         />
       </div>
     );
@@ -947,7 +914,7 @@ function TrackBadge({ track }: { track: Track }) {
       {track === "designer" ? (
         <>
           <CareIcon className="size-3" />
-          원장님
+          디자이너
         </>
       ) : (
         <>
@@ -999,21 +966,5 @@ function PhotoGrid({ label, photos }: { label: string; photos: string[] }) {
         ))}
       </div>
     </Field>
-  );
-}
-
-function InServiceBanner({
-  copy,
-}: {
-  copy: { title: string; subtitle: string };
-}) {
-  return (
-    <div className="rounded-2xl border border-foreground bg-foreground px-4 py-5 text-center text-background">
-      <p className="flex items-center justify-center gap-1.5 text-lg font-bold">
-        <CareIcon className="size-5" />
-        {copy.title}
-      </p>
-      <p className="mt-1 text-sm text-background/80">{copy.subtitle}</p>
-    </div>
   );
 }

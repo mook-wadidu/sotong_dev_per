@@ -74,6 +74,8 @@ import {
   DEMO_SUMMARY_LABELS,
   DEMO_SUMMARY_LABELS_KO,
   DEMO_LANGS,
+  DEMO_INTRO,
+  DEMO_NARRATION,
   type ChatEntry,
 } from "./demo-script";
 
@@ -340,15 +342,19 @@ export function DemoPlayer({ url }: { url: string }) {
   }
 
   return (
-    <MobileFrame tone="muted" lang={track === "designer" ? "ko" : "en"}>
+    <MobileFrame
+      tone="muted"
+      lang={track === "designer" || stage === "intro" ? "ko" : "en"}
+    >
       <ScreenHeader
         title="소통 · Sotong"
-        subtitle={track === "designer" ? "디자이너 화면 (KO)" : "Live demo"}
+        subtitle={track === "designer" ? "원장님 화면 (KO)" : "손님 화면 미리보기"}
         trailing={<TrackBadge track={track} />}
       />
 
       <ScreenBody className="space-y-4 pb-2">
         <div ref={topRef} aria-hidden="true" />
+        <DemoNarrator text={DEMO_NARRATION[stage]} />
         {stage === "intro" ? <IntroScreen url={url} /> : null}
         {stage === "lang" ? <LangScreen onPick={advance} /> : null}
         {stage === "intake" ? (
@@ -386,24 +392,58 @@ export function DemoPlayer({ url }: { url: string }) {
 
 function IntroScreen({ url }: { url: string }) {
   return (
-    <div className="flex flex-col items-center gap-5 py-6 text-center">
-      <div className="space-y-1.5">
-        <h1 className="text-2xl font-bold tracking-tight">
-          A salon visit, in your language.
+    <div className="flex flex-col gap-5 py-4" lang="ko">
+      <div className="space-y-1.5 text-center">
+        <h1 className="text-2xl font-bold leading-snug tracking-tight">
+          {DEMO_INTRO.title}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          See both sides in a minute — the guest, then the designer. Tap to walk
-          through it.
-        </p>
+        <p className="text-sm text-muted-foreground">{DEMO_INTRO.subtitle}</p>
       </div>
+
+      {/* 핵심 장면 — 손님 영어 → 원장 한국어(자동 번역). 전체 플로우 전에 마법부터. */}
+      <div className="space-y-1.5 rounded-2xl border border-border bg-card p-3">
+        <div className="flex justify-start">
+          <span
+            className="max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm text-foreground"
+            lang="en"
+          >
+            {DEMO_INTRO.previewGuest}
+          </span>
+        </div>
+        <div className="flex items-center justify-center gap-1 py-0.5 text-[0.7rem] font-medium text-muted-foreground">
+          <SparkleIcon className="size-3" />
+          {DEMO_INTRO.previewTag}
+        </div>
+        <div className="flex justify-end">
+          <span className="max-w-[80%] rounded-2xl rounded-br-sm bg-foreground px-3 py-2 text-sm font-medium text-background">
+            {DEMO_INTRO.previewOwner}
+          </span>
+        </div>
+      </div>
+
+      {/* 가치 3줄 — "볼 이유" */}
+      <ul className="space-y-2">
+        {DEMO_INTRO.values.map((v) => (
+          <li key={v} className="flex items-start gap-2 text-sm text-foreground">
+            <CheckIcon
+              className="mt-0.5 size-4 shrink-0 text-accent-strong"
+              strokeWidth={3}
+            />
+            <span className="leading-snug">{v}</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="text-center text-xs text-muted-foreground">
+        {DEMO_INTRO.duration}
+      </p>
+
       {url ? (
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 pt-1">
           <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-            <QRCodeSVG value={url} size={132} level="M" marginSize={0} />
+            <QRCodeSVG value={url} size={120} level="M" marginSize={0} />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Or scan to open on your phone
-          </p>
+          <p className="text-xs text-muted-foreground">{DEMO_INTRO.qrHint}</p>
         </div>
       ) : null}
     </div>
@@ -916,7 +956,7 @@ function StageFooter({
 
   const label =
     stage === "intro"
-      ? "Start ›"
+      ? DEMO_INTRO.cta
       : stage === "intake"
         ? intakeStep < INTAKE_STEPS - 1
           ? "Next ›"
@@ -950,18 +990,34 @@ function StageFooter({
 
 /* ── 작은 헬퍼 ───────────────────────────────────────────── */
 
+/**
+ * 데모 나레이터 — 원장에게 말 거는 한국어 한 줄(토스 톤). ScreenBody 상단.
+ * 해당 stage 에 나레이션이 없으면 렌더하지 않는다(intro/handoff/report 제외).
+ */
+function DemoNarrator({ text }: { text?: string }) {
+  if (!text) return null;
+  return (
+    <p
+      lang="ko"
+      className="rounded-xl bg-accent-soft px-3.5 py-2.5 text-sm font-medium leading-snug text-foreground"
+    >
+      {text}
+    </p>
+  );
+}
+
 function TrackBadge({ track }: { track: Track }) {
   return (
     <Badge variant="outline" className="gap-1">
       {track === "designer" ? (
         <>
           <CareIcon className="size-3" />
-          디자이너
+          원장님
         </>
       ) : (
         <>
           <ChatIcon className="size-3" />
-          Guest
+          손님
         </>
       )}
     </Badge>

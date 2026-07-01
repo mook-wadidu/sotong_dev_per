@@ -26,6 +26,27 @@ export const DEMO_LANGS: {
   { locale: "ko", native: "한국어", sub: "한국어" },
 ];
 
+/**
+ * 인트로(원장용, 한국어) — 콜드 DM 첫인상. 뷰어=한국 미용실 원장이므로
+ * 안내는 한국어. 핵심 장면(손님 영어 → 원장 한국어)을 맨 위에서 먼저 보여준다.
+ */
+export const DEMO_INTRO = {
+  title: "외국인 손님, 이제 파파고 없이 상담하세요",
+  subtitle: "손님은 자기 언어로 탭하고, 원장님껜 한국어로 정리돼 옵니다.",
+  // 핵심 장면 미니 프리뷰 — 손님 영어 말풍선 → 원장 한국어 말풍선(자동 번역).
+  previewGuest: "How long will it take?",
+  previewOwner: "얼마나 걸려요?",
+  previewTag: "자동 번역",
+  values: [
+    "손님이 원하는 스타일·모발 상태를 미리 입력 → 상담 시간 단축",
+    "번역 앱 왔다갔다 없이, 한국어로 깔끔하게 정리",
+    "설치·앱 없음. QR만 있으면 시작",
+  ],
+  duration: "30초면 양쪽 다 보여드릴게요 — 손님 화면 먼저, 그다음 원장님 화면.",
+  cta: "시작하기",
+  qrHint: "폰으로 보려면 QR을 스캔하세요",
+};
+
 /** 압축 인테이크 — 양 언어 값(손님=EN, 디자이너=KO). */
 export const DEMO_INTAKE = {
   servicesEn: ["Haircut", "Color"],
@@ -172,10 +193,28 @@ export const DEMO_INSERVICE_KO = {
 export const DEMO_RECEIVED_NOTE =
   "Your designer received this and replies in their own language — you see it translated.";
 export const DEMO_HANDOFF = {
-  title: "이제 같은 방문을, 디자이너 화면으로",
+  title: "여기서부턴 원장님 화면이에요",
   subtitle:
-    "방금 손님이 본 상담을 한국인 디자이너는 한국어로 봅니다. 손님 영어는 자동 번역돼 도착해요.",
-  cta: "디자이너 화면 보기 ›",
+    "방금 그 상담이, 원장님껜 한국어로 도착해요. 손님이 쓴 영어는 자동 번역돼요.",
+  cta: "원장님 화면 보기 ›",
+};
+
+/**
+ * stage별 나레이터 — 원장에게 말 거는 한국어 한 줄(토스 톤).
+ * ScreenBody 상단에 얹어 "지금 뭘 보고 있는지" 안내. 데모 뷰어=원장이므로 항상 한국어.
+ * (report 스테이지는 별도 화면이라 제외 — intro/handoff 카피가 그 역할.)
+ */
+export const DEMO_NARRATION: Record<string, string> = {
+  lang: "손님은 앱 설치도 가입도 없이 — 자기 언어부터 골라요.",
+  intake:
+    "몇 번 탭이면 원하는 시술·고민이 정리돼요. (지금 자동으로 채워지는 중이에요 👀)",
+  summary: "이 내용이 상담 전에 미리 이렇게 도착해요.",
+  chat: "손님이 영어로 물어봐도 괜찮아요 —",
+  inservice: "시술 중엔 손님에게 이렇게 안내돼요.",
+  "d-inbox": "원장님껜 이렇게 도착해요 — 전부 한국어로.",
+  "d-summary": "AI가 핵심만 한국어로 요약해드려요.",
+  "d-chat": "원장님이 한국어로 답장하면, 손님껜 영어로 전달돼요.",
+  "d-record": "시술 기록·비포애프터까지 여기서 정리돼요.",
 };
 
 /* ── 상담 요약 카드 라벨 ─────────────────────────────────── */

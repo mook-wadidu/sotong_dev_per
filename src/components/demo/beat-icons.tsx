@@ -25,8 +25,8 @@ export const BeatReceiveIcon = React.forwardRef<SVGSVGElement, IconProps>(
     <IconBase ref={ref} {...props}>
       <path d="M12 3v7.5" />
       <path d="M8.5 8 12 11.5 15.5 8" />
-      <path d="M4 13.5v3.5A1.5 1.5 0 0 0 5.5 18.5h13a1.5 1.5 0 0 0 1.5-1.5v-3.5" />
-      <path d="M4 13.5h4l1.2 2h5.6l1.2-2H20" />
+      <path d="M4 12v3.5A1.5 1.5 0 0 0 5.5 17h13a1.5 1.5 0 0 0 1.5-1.5v-3.5" />
+      <path d="M4 12h4l1.2 2h5.6l1.2-2H20" />
     </IconBase>
   ),
 );
@@ -47,10 +47,10 @@ BeatTranslateIcon.displayName = "BeatTranslateIcon";
 export const BeatCutIcon = React.forwardRef<SVGSVGElement, IconProps>(
   (props, ref) => (
     <IconBase ref={ref} {...props}>
-      <circle cx="6" cy="6.5" r="2.5" />
-      <circle cx="6" cy="17.5" r="2.5" />
-      <path d="M8.3 7.8 19.5 17.5" />
-      <path d="M8.3 16.2 19.5 6.5" />
+      <circle cx="7" cy="6.5" r="2.5" />
+      <circle cx="7" cy="17.5" r="2.5" />
+      <path d="M9.3 7.8 20.5 17.5" />
+      <path d="M9.3 16.2 20.5 6.5" />
     </IconBase>
   ),
 );

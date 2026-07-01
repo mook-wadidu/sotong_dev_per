@@ -178,25 +178,9 @@ export const DEMO_CHAT: ChatEntry[] = [
   },
 ];
 
-/** 시술중 안내(양 언어). */
-export const DEMO_INSERVICE_EN = {
-  title: "Your service is underway",
-  subtitle: "Sit back and relax — let us know if you have any questions.",
-};
-export const DEMO_INSERVICE_KO = {
-  title: "시술 중입니다",
-  subtitle: "편하게 계세요 — 궁금한 점 있으면 알려주세요.",
-};
-
-/** 손님 수신 직후 안내 + 트랙 전환 카드. */
+/** 손님 요약 화면 상단 안내(손님 트랙, 영어). */
 export const DEMO_RECEIVED_NOTE =
   "Your designer received this and replies in their own language — you see it translated.";
-export const DEMO_HANDOFF = {
-  title: "여기서부턴 원장님 화면이에요",
-  subtitle:
-    "방금 그 상담이, 원장님껜 한국어로 도착해요. 손님이 쓴 영어는 자동 번역돼요.",
-  cta: "원장님 화면 보기 ›",
-};
 
 /**
  * 비트별 나레이터 — 원장에게 말 거는 한국어(토스 톤). 각 비트는 큰 그레이 화면으로
@@ -275,31 +259,6 @@ export const DEMO_SUMMARY_LABELS_KO: ConsultationSummaryLabels = {
 /* ── 리포트 ──────────────────────────────────────────────── */
 const GRADE: ThreeLevel = "high";
 
-export const DEMO_REPORT: HairReport = {
-  serviceSummary:
-    "Long layered cut to add movement, with a soft ash-brown full color and a moisture treatment for shine.",
-  products: ["Moroccan oil treatment", "Volume mist", "Heat protectant"],
-  hairStateGrade: GRADE,
-  hairStateScore: 86,
-  homeCare: [
-    "Use a sulfate-free shampoo to keep the color longer.",
-    "Apply a little treatment oil to the ends when damp.",
-    "Air-dry when you can; use heat protectant before styling.",
-  ],
-  nextVisitWeeks: 8,
-  styleRequest: "Long layered cut with soft waves",
-  concerns: "Wants natural volume and an easy-to-manage style.",
-  cautions: "Slightly dry ends — avoid high heat right after coloring.",
-  consultationId: "demo",
-  reportToken: "demo",
-  salonName: "소통 헤어 신사점",
-  designerName: "김민지",
-  date: "2026-06-25",
-  beforePhotoUrl: BEFORE,
-  afterPhotoUrl: AFTER,
-  locale: "en",
-};
-
 export const DEMO_REPORT_KO: HairReport = {
   serviceSummary:
     "롱 레이어드 컷으로 움직임을 주고, 부드러운 애쉬 브라운 풀 컬러 + 윤기를 위한 수분 트리트먼트를 진행했어요.",
@@ -325,47 +284,6 @@ export const DEMO_REPORT_KO: HairReport = {
   locale: "ko",
 };
 
-export const DEMO_REPORT_LABELS: ReportLabels = {
-  title: "Hair in-body report",
-  subtitle: "Today's service record",
-  salon: "Salon",
-  designer: "Designer",
-  date: "Service date",
-  service: "Service",
-  products: "Products used",
-  hairState: "Hair condition",
-  homeCare: "Home-care guide",
-  before: "Before",
-  after: "After",
-  styleRequest: "Style you requested",
-  concerns: "Concerns",
-  cautions: "Care notes",
-  dna: {
-    title: "Hair & Face DNA",
-    volume: "Volume",
-    density: "Density",
-    wave: "Wave",
-    faceShape: "Face shape",
-  },
-  satisfaction: {
-    title: "How was your service today?",
-    thanks: "Thanks for your feedback!",
-    error: "Couldn't save. Please try again.",
-    readOnly: "Rated by the guest",
-  },
-  back: "Back",
-  save: "Save as image",
-  saveToast: "Report saved.",
-  saveError: "Couldn't save the image. Please try again.",
-  share: "Share",
-  shareToast: "Share link copied.",
-  scoreLabel: "86 pts",
-  grade: "High",
-  nationality: "Nationality",
-  gender: "Gender",
-  age: "Age",
-  visitHistory: "Visit history",
-};
 export const DEMO_REPORT_LABELS_KO: ReportLabels = {
   title: "헤어 인바디 리포트",
   subtitle: "오늘 시술 기록이에요",
@@ -416,22 +334,12 @@ export const DEMO_REPORT_HAIR = {
   hairType: "wavy",
 } as const;
 
-export const DEMO_REPORT_DATE_LABEL = "Jun 25, 2026";
 export const DEMO_REPORT_DATE_LABEL_KO = "2026. 6. 25.";
 
-export const DEMO_REPORT_PROFILE = {
-  nationality: "English-speaking",
-  gender: "Female",
-  ageText: "29",
-};
 export const DEMO_REPORT_PROFILE_KO = {
   nationality: "영어권",
   gender: "여성",
   ageText: "29세",
-};
-export const DEMO_REPORT_VISIT = {
-  totalText: "4 visits",
-  lastText: "Last visit Jun 3, 2026",
 };
 export const DEMO_REPORT_VISIT_KO = {
   totalText: "총 4회",

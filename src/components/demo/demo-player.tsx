@@ -445,7 +445,11 @@ function NarrationScreen({
       </span>
 
       {/* 헤드라인 + 설명 */}
-      <div className="flex flex-col items-center gap-2.5">
+      <div
+        className="flex flex-col items-center gap-2.5"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         <h2 className="max-w-[20rem] text-balance break-keep text-2xl font-bold leading-snug tracking-tight text-foreground">
           {headline}
         </h2>
@@ -963,8 +967,12 @@ function DemoFooter({
 
   // 자동 진행 정적 구간 — 진행 중 안내(탭 불필요).
   return (
-    <p className="w-full text-center text-xs text-muted-foreground">
-      잠시 후 자동으로 이어져요…
+    <p className="flex w-full items-center justify-center gap-1.5 text-xs text-muted-foreground">
+      잠시 후 자동으로 이어져요
+      <span
+        aria-hidden="true"
+        className="inline-block size-1 animate-pulse rounded-full bg-muted-foreground motion-reduce:animate-none"
+      />
     </p>
   );
 }

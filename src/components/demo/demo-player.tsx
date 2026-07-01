@@ -39,6 +39,13 @@ import {
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
+  BeatInputIcon,
+  BeatReceiveIcon,
+  BeatTranslateIcon,
+  BeatCutIcon,
+  BeatReportIcon,
+} from "./beat-icons";
+import {
   DEMO_ABOUT_SELECTED,
   DEMO_AGE_BANDS,
   DEMO_CHAT,
@@ -110,6 +117,18 @@ const FACE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   long: FaceLongIcon,
   heart: FaceHeartIcon,
   diamond: FaceDiamondIcon,
+};
+
+// 나래이션 비트 순서(진행 도트) + 비트별 전용 아이콘.
+const BEAT_ORDER: Stage[] = ["lang", "d-inbox", "d-chat", "d-record", "d-report"];
+const BEAT_ICON: Partial<
+  Record<Stage, React.ComponentType<{ className?: string }>>
+> = {
+  lang: BeatInputIcon,
+  "d-inbox": BeatReceiveIcon,
+  "d-chat": BeatTranslateIcon,
+  "d-record": BeatCutIcon,
+  "d-report": BeatReportIcon,
 };
 
 /**
@@ -339,10 +358,14 @@ export function DemoPlayer() {
         trailing={<TrackBadge track={track} />}
       />
 
-      <ScreenBody className="space-y-4 pb-2">
+      <ScreenBody
+        className={cn("pb-2", phase === "narration" ? "flex flex-col" : "space-y-4")}
+      >
         <div ref={topRef} aria-hidden="true" />
         {phase === "narration" ? (
           <NarrationScreen
+            key={stage}
+            stage={stage}
             headline={DEMO_NARRATION[stage]?.headline ?? ""}
             detail={DEMO_NARRATION[stage]?.detail}
           />
@@ -384,28 +407,54 @@ export function DemoPlayer() {
 /* ── 나래이션(큰 그레이 화면) ────────────────────────────── */
 
 function NarrationScreen({
+  stage,
   headline,
   detail,
 }: {
+  stage: Stage;
   headline: string;
   detail?: string;
 }) {
+  const Icon = BEAT_ICON[stage] ?? BeatInputIcon;
+  const beatIndex = BEAT_ORDER.indexOf(stage);
   return (
     <div
       lang="ko"
-      className="flex min-h-[22rem] flex-col items-center justify-center gap-2.5 px-3 py-10 text-center"
+      className="animate-rise flex flex-1 flex-col items-center justify-center gap-6 px-4 py-10 text-center"
     >
-      <span className="mb-2 flex size-11 items-center justify-center rounded-full border border-foreground bg-foreground text-background">
-        <SparkleIcon className="size-5" />
+      {/* 진행 도트 — 몇 번째 비트인지 */}
+      <div className="flex items-center gap-1.5" aria-hidden="true">
+        {BEAT_ORDER.map((s, i) => (
+          <span
+            key={s}
+            className={cn(
+              "h-1.5 rounded-full transition-all",
+              i === beatIndex
+                ? "w-5 bg-brand"
+                : i < beatIndex
+                  ? "w-1.5 bg-brand"
+                  : "w-1.5 bg-brand/20",
+            )}
+          />
+        ))}
+      </div>
+
+      {/* 비트별 아이콘 배지 — 온브랜드 바이올렛 톤 */}
+      <span className="flex size-14 items-center justify-center rounded-full bg-accent-soft text-accent-text ring-1 ring-brand-border">
+        <Icon className="size-6" />
       </span>
-      <h2 className="max-w-[20rem] text-balance break-keep text-2xl font-bold leading-snug tracking-tight text-foreground">
-        {headline}
-      </h2>
-      {detail ? (
-        <p className="max-w-[20rem] text-balance break-keep text-[0.95rem] font-normal leading-relaxed text-muted-foreground">
-          {detail}
-        </p>
-      ) : null}
+
+      {/* 헤드라인 + 설명 */}
+      <div className="flex flex-col items-center gap-2.5">
+        <h2 className="max-w-[20rem] text-balance break-keep text-2xl font-bold leading-snug tracking-tight text-foreground">
+          {headline}
+        </h2>
+        {detail ? (
+          <p className="max-w-[20rem] text-balance break-keep text-base font-normal leading-relaxed text-muted-foreground">
+            {detail}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

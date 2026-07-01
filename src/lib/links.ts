@@ -62,7 +62,7 @@ export function salonConsolePath(ownerToken: string) {
  * 홈/공개 페이지에서는 adminPath(key) 대신 이 경로로만 링크해 키 노출을 막는다(P0).
  */
 export function adminGatePath(locale: Locale = "ko") {
-  // 어드민 UI 는 ko 고정이지만, 게이트 진입 자체는 현재 locale 유지.
+  // 어드민/콘솔은 다국어(헤더 LocaleSwitch 로 전환) — 게이트 진입도 현재 locale 유지.
   return `/${locale}/admin`;
 }
 

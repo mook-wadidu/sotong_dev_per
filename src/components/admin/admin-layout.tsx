@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   Sheet,
@@ -29,6 +30,12 @@ export function AdminLayout({
   const t = useTranslations("Admin");
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
+  // adminPath 는 ko 고정(/ko/admin?…) — 언어 전환 후에도 nav 가 현재 로케일을
+  // 유지하도록, 링크의 선두 /ko 세그먼트를 현재 URL 로케일로 치환한다.
+  const pathname = usePathname();
+  const locale = pathname.split("/")[1] || "ko";
+  const localized = (href: string) => href.replace(/^\/ko(?=\/|$|\?)/, `/${locale}`);
+
   const items: { key: AdminView; label: string }[] = [
     { key: "dashboard", label: t("nav.dashboard") },
     { key: "salons", label: t("nav.salons") },
@@ -45,7 +52,7 @@ export function AdminLayout({
         return (
           <Link
             key={item.key}
-            href={adminPath(adminKey, { view: item.key })}
+            href={localized(adminPath(adminKey, { view: item.key }))}
             aria-current={active ? "page" : undefined}
             onClick={onNavigate}
             className={

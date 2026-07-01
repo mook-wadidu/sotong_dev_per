@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { LocaleSwitch } from "./locale-switch";
 
 /**
  * 운영자(어드민) 셸 — 데스크톱 우선, 모바일은 세로 스택.
@@ -35,9 +36,10 @@ export function AdminShell({
               </p>
             ) : null}
           </div>
-          {actions ? (
-            <div className="flex flex-wrap items-center gap-2">{actions}</div>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <LocaleSwitch />
+            {actions}
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">

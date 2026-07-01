@@ -33,6 +33,11 @@ const VIEWS: AdminView[] = [
   "onboarding",
 ];
 
+/** adminPath/salonConsolePath 등은 /ko 고정 — 인앱 nav 가 현재 로케일을 유지하도록
+ *  선두 /ko 세그먼트만 현재 로케일로 치환(언어 전환 후 클릭 시 ko 로 되돌아가지 않게). */
+const localizeHref = (href: string, locale: string) =>
+  href.replace(/^\/ko(?=\/|$|\?)/, `/${locale}`);
+
 /**
  * 어드민 대시보드 (ko 데스크톱/태블릿) — 사이드바 기반.
  * - searchParams.key 없으면 키 입력 게이트.
@@ -40,10 +45,13 @@ const VIEWS: AdminView[] = [
  * - 통과 시 AdminLayout(사이드바) + view 분기.
  */
 export default async function AdminPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ key?: string; salon?: string; view?: string }>;
 }) {
+  const { locale } = await params;
   const { key, salon, view: viewParam } = await searchParams;
   const t = await getTranslations("Admin");
 
@@ -85,7 +93,7 @@ export default async function AdminPage({
           <p className="mt-1 text-sm text-muted-foreground">{t("gate.hint")}</p>
           {/* 같은(틀린) 키로 재이동하면 변화가 없으므로, 키 없는 게이트(입력 폼)로 보낸다. */}
           <Link
-            href={adminGatePath()}
+            href={localizeHref(adminGatePath(), locale)}
             className={
               buttonVariants({ variant: "outline", size: "lg" }) + " mt-6"
             }
@@ -175,7 +183,10 @@ export default async function AdminPage({
                       </div>
                       <div className="flex shrink-0 gap-2">
                         <Link
-                          href={adminPath(key, { view: "salons", salon: s.slug })}
+                          href={localizeHref(
+                            adminPath(key, { view: "salons", salon: s.slug }),
+                            locale,
+                          )}
                           className={buttonVariants({
                             variant: "default",
                             size: "sm",
@@ -184,7 +195,7 @@ export default async function AdminPage({
                           {t("dashboard.manage")}
                         </Link>
                         <a
-                          href={salonConsolePath(s.ownerToken)}
+                          href={localizeHref(salonConsolePath(s.ownerToken), locale)}
                           target="_blank"
                           rel="noreferrer"
                           className={buttonVariants({
@@ -209,6 +220,7 @@ export default async function AdminPage({
             origin={origin}
             salons={salons}
             selectedSlug={salon}
+            locale={locale}
           />
         ) : null}
 
@@ -216,6 +228,7 @@ export default async function AdminPage({
           <div className="space-y-4">
             <SalonFilter
               adminKey={key}
+              locale={locale}
               view="inquiries"
               salons={salons}
               selected={salon}
@@ -230,6 +243,7 @@ export default async function AdminPage({
           <div className="space-y-4">
             <SalonFilter
               adminKey={key}
+              locale={locale}
               view="errors"
               salons={salons}
               selected={salon}
@@ -251,6 +265,7 @@ export default async function AdminPage({
 /** 접수/오류 뷰 지점 필터(전역) — URL 로 유지. */
 function SalonFilter({
   adminKey,
+  locale,
   view,
   salons,
   selected,
@@ -258,6 +273,7 @@ function SalonFilter({
   allLabel,
 }: {
   adminKey: string;
+  locale: string;
   view: AdminView;
   salons: AdminViewData["salons"];
   selected?: string;
@@ -275,7 +291,7 @@ function SalonFilter({
         return (
           <Link
             key={f.slug ?? "__all"}
-            href={adminPath(adminKey, { view, salon: f.slug })}
+            href={localizeHref(adminPath(adminKey, { view, salon: f.slug }), locale)}
             aria-current={active ? "true" : undefined}
             className={
               active
@@ -297,11 +313,13 @@ async function SalonsView({
   origin,
   salons,
   selectedSlug,
+  locale,
 }: {
   adminKey: string;
   origin: string;
   salons: AdminViewData["salons"];
   selectedSlug?: string;
+  locale: string;
 }) {
   const t = await getTranslations("Admin");
   const selected = selectedSlug
@@ -329,7 +347,10 @@ async function SalonsView({
             {salons.map((s) => (
               <li key={s.slug}>
                 <Link
-                  href={adminPath(adminKey, { view: "salons", salon: s.slug })}
+                  href={localizeHref(
+                    adminPath(adminKey, { view: "salons", salon: s.slug }),
+                    locale,
+                  )}
                   className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
                 >
                   <div className="min-w-0">
@@ -368,7 +389,7 @@ async function SalonsView({
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <Link
-          href={adminPath(adminKey, { view: "salons" })}
+          href={localizeHref(adminPath(adminKey, { view: "salons" }), locale)}
           className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           ← {t("nav.salons")}

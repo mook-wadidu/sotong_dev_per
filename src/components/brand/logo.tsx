@@ -1,17 +1,17 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 /**
  * 소통(Sotong) 브랜드 로고.
- * 심볼 = '대화·통역'을 상징하는 말풍선 + 교환(주고받음) 글리프. currentColor 기반이라
- * text-brand / text-foreground 등 어떤 색에도 따라간다(기본은 브랜드 보라로 쓰길 권장).
+ * 심볼 = 두 개의 겹친 말풍선(파랑+보라) 컬러 로고(`/logo.png`).
  *
  * variant:
  *  - "symbol"   심볼만 (아이콘·파비콘·PWA)
  *  - "wordmark" 글자만 ("소통")
  *  - "full"     심볼 + 소통 + Sotong (헤더·진입·스플래시)
  *
- * 색 처리: 말풍선은 currentColor 채움, 내부 교환선은 면색(흰 배경 위 흰색)으로 파내
- * 단색 채움 위에서도 또렷하다. 모노/브랜드 양쪽에서 동작.
+ * 컬러 PNG라 currentColor 틴트는 적용되지 않는다(전달된 text-* 클래스는 무해).
+ * 크기는 size-* 등 className 으로 제어(정사각 박스, object-contain 으로 비율 유지).
  */
 export function LogoSymbol({
   className,
@@ -21,34 +21,16 @@ export function LogoSymbol({
   title?: string;
 }) {
   return (
-    <svg
-      viewBox="0 0 40 40"
-      className={cn("inline-block shrink-0", className)}
-      role={title ? "img" : undefined}
-      aria-label={title}
+    <Image
+      src="/logo.png"
+      alt={title ?? ""}
+      width={40}
+      height={40}
+      priority
+      unoptimized
       aria-hidden={title ? undefined : true}
-    >
-      {/* 말풍선 (브랜드 채움) — 둥근 모서리 + 좌하단 꼬리 */}
-      <path
-        d="M9 5h22a5 5 0 0 1 5 5v13a5 5 0 0 1-5 5H19l-7.5 6.2A1 1 0 0 1 10 33.4V28H9a5 5 0 0 1-5-5V10a5 5 0 0 1 5-5Z"
-        fill="currentColor"
-      />
-      {/* 내부 교환 글리프 — 주고받는 두 방향(번역·소통). 면색으로 파냄. */}
-      <g
-        stroke="var(--color-background, #fff)"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      >
-        {/* 위: 오른쪽으로 */}
-        <path d="M13.5 14.5h11" />
-        <path d="M21.5 11.5 24.5 14.5 21.5 17.5" />
-        {/* 아래: 왼쪽으로 */}
-        <path d="M26.5 21.5h-11" />
-        <path d="M18.5 18.5 15.5 21.5 18.5 24.5" />
-      </g>
-    </svg>
+      className={cn("inline-block shrink-0 object-contain", className)}
+    />
   );
 }
 

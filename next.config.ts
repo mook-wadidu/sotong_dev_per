@@ -10,13 +10,22 @@ const withNextIntl = createNextIntlPlugin();
  * - style 'unsafe-inline' 은 Next/Tailwind 인라인 스타일·next-intl 등 호환 위해 유지.
  * - frame-ancestors 'none' = clickjacking 차단(X-Frame-Options DENY 와 중복 방어).
  * - object-src 'none', base-uri 'self', form-action 'self'.
+ *
+ * 폰트: Pretendard(jsdelivr) + Noto Serif KR(Google Fonts) 를 style/font-src 에 허용
+ *   (globals.css @import 로 로드 — 원래 Pretendard 의도했던 CDN 포함).
+ * dev: webpack Fast Refresh 가 eval 을 쓰므로 개발 환경에서만 script-src 에 'unsafe-eval'.
+ *   프로덕션은 eval 이 없어 불필요 → 프로덕션 script-src 는 그대로 엄격 유지.
  */
+const IS_DEV = process.env.NODE_ENV !== "production";
+const FONT_STYLE_SRC = "https://cdn.jsdelivr.net https://fonts.googleapis.com";
+const FONT_SRC = "https://fonts.gstatic.com https://cdn.jsdelivr.net";
+
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${IS_DEV ? " 'unsafe-eval'" : ""}`,
+  `style-src 'self' 'unsafe-inline' ${FONT_STYLE_SRC}`,
   "img-src 'self' data: blob:",
-  "font-src 'self' data:",
+  `font-src 'self' data: ${FONT_SRC}`,
   "connect-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",

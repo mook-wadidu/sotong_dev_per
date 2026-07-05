@@ -324,6 +324,12 @@ export const DEMO_REPORT_LABELS_KO: ReportLabels = {
   gender: "성별",
   age: "나이",
   visitHistory: "방문 이력",
+  pastVisit: {
+    title: "지난 방문 기록",
+    lastService: "지난 시술",
+    preference: "선호",
+    memo: "메모",
+  },
 };
 
 // 데모 헤어/얼굴형 DNA — 삼각형이 또렷하게 보이도록 섞인 값.
@@ -344,4 +350,10 @@ export const DEMO_REPORT_PROFILE_KO = {
 export const DEMO_REPORT_VISIT_KO = {
   totalText: "총 4회",
   lastText: "최근 방문 2026. 6. 3.",
+};
+// 재방문 손님이면 지난 기록이 그대로 남아, 기억이 아니라 데이터로 이어집니다.
+export const DEMO_PAST_VISIT_KO = {
+  lastService: "롱 레이어드 컷 + 애쉬 브라운 (2026. 4. 10.)",
+  preference: "밝은 애쉬 톤·자연스러운 볼륨 선호 / 두피 예민",
+  memo: "지난 펌 유지력 좋았음. 앞머리 길이는 유지 희망.",
 };

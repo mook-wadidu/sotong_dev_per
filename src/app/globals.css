@@ -1,4 +1,6 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+/* intro-demo(/demo) 브랜드 워드마크 전용 세리프 */
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;500;700;900&display=swap");
 @import "tailwindcss";
 
 /*
@@ -110,6 +112,45 @@
   --shadow-md: 0 4px 14px -3px rgb(17 17 17 / 0.08), 0 2px 6px -3px rgb(17 17 17 / 0.05);
   --shadow-lg: 0 14px 34px -8px rgb(17 17 17 / 0.12), 0 4px 12px -5px rgb(17 17 17 / 0.07);
   --shadow-xl: 0 26px 56px -14px rgb(20 12 38 / 0.2);
+
+  /* ─────────────────────────────────────────────────────────────
+   * intro-demo(/demo 랜딩·데모) 전용 토큰. 전부 신규 이름(숫자 스케일)이라
+   * 기존 앱의 단일값 brand/accent/foreground 와 충돌하지 않는다.
+   * 이 토큰들은 오직 src/components/intro-demo/* 에서만 사용된다.
+   * ───────────────────────────────────────────────────────────── */
+  /* Brand — 신뢰감 인디고/바이올렛 */
+  --color-brand-50: #eef0ff;
+  --color-brand-100: #e0e3ff;
+  --color-brand-200: #c7ccff;
+  --color-brand-300: #a5aaff;
+  --color-brand-400: #8286f8;
+  --color-brand-500: #5b5bd6;
+  --color-brand-600: #4a45c4;
+  --color-brand-700: #3d379e;
+  --color-brand-800: #332f80;
+  --color-brand-900: #2b2968;
+  /* Accent — 따뜻한 코럴/핑크(미용실 감성) */
+  --color-accent-50: #fff1f2;
+  --color-accent-100: #ffe1e4;
+  --color-accent-200: #ffc8ce;
+  --color-accent-300: #ffa0ab;
+  --color-accent-400: #ff6b7d;
+  --color-accent-500: #f6435a;
+  --color-accent-600: #e21f42;
+  /* Neutral ink */
+  --color-ink-900: #14152b;
+  --color-ink-700: #33344d;
+  --color-ink-500: #64657d;
+  --color-ink-400: #8a8ba0;
+  /* 브랜드 워드마크 전용 세리프(Noto Serif KR, 상단 @import) */
+  --font-serif: "Noto Serif KR", serif;
+  /* intro-demo 전용 라운드/그림자 */
+  --radius-3xl: 1.75rem;
+  --shadow-soft: 0 2px 8px rgba(20, 21, 43, 0.04),
+    0 12px 32px rgba(20, 21, 43, 0.08);
+  --shadow-float: 0 8px 24px rgba(20, 21, 43, 0.08),
+    0 24px 60px rgba(20, 21, 43, 0.12);
+  --shadow-phone: 0 30px 70px -20px rgba(43, 41, 104, 0.45);
 }
 
 /*
@@ -259,4 +300,31 @@ body {
   .active\:scale-\[0\.97\]:active {
     transition-duration: 60ms !important;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * intro-demo(/demo) 전용 유틸/키프레임 — demo_intro globals.css 이관.
+ * ───────────────────────────────────────────────────────────── */
+.bg-mesh {
+  background-image:
+    radial-gradient(60rem 40rem at 80% -10%, rgba(91, 91, 214, 0.12), transparent 60%),
+    radial-gradient(50rem 40rem at 0% 20%, rgba(246, 67, 90, 0.08), transparent 55%);
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes intro-progress {
+  from { width: 0%; }
+  to { width: 100%; }
 }

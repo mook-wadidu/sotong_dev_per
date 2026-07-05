@@ -82,6 +82,13 @@ export interface ReportLabels {
   gender: string;
   age: string;
   visitHistory: string;
+  /** 지난 방문 기록(재방문 카드) 라벨 — 있을 때만 카드 노출 */
+  pastVisit?: {
+    title: string;
+    lastService: string;
+    preference: string;
+    memo: string;
+  };
 }
 
 /**
@@ -104,6 +111,7 @@ export function ReportView({
   dateLabel,
   profile,
   visit,
+  pastVisit,
   hair,
   demo = false,
   canRate = true,
@@ -117,6 +125,8 @@ export function ReportView({
   profile?: { nationality?: string; gender?: string; ageText?: string };
   /** 방문 이력(카르테 연결 시). */
   visit?: { totalText: string; lastText?: string };
+  /** 지난 방문 요약(재방문 카드) — 카르테 연결/데모 시. 값 있을 때만 노출. */
+  pastVisit?: { lastService?: string; preference?: string; memo?: string };
   /** 헤어/얼굴형 DNA 시각화 데이터 — 없으면 카드 미표시. */
   hair?: {
     faceShape?: FaceShape;
@@ -290,6 +300,37 @@ export function ReportView({
                   </div>
                 </>
               ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* 지난 방문 기록(재방문 카드) — 값 + 라벨 있을 때만. "관리는 기억력이 아니라 데이터"를 리포트에서 직접 보여줌. */}
+        {pastVisit &&
+        labels.pastVisit &&
+        (pastVisit.lastService || pastVisit.preference || pastVisit.memo) ? (
+          <Card>
+            <CardContent className="space-y-2.5 p-5">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                <CalendarIcon className="size-4" />
+                {labels.pastVisit.title}
+              </p>
+              <div className="space-y-2">
+                {pastVisit.lastService ? (
+                  <Meta
+                    label={labels.pastVisit.lastService}
+                    value={pastVisit.lastService}
+                  />
+                ) : null}
+                {pastVisit.preference ? (
+                  <Meta
+                    label={labels.pastVisit.preference}
+                    value={pastVisit.preference}
+                  />
+                ) : null}
+                {pastVisit.memo ? (
+                  <Meta label={labels.pastVisit.memo} value={pastVisit.memo} />
+                ) : null}
+              </div>
             </CardContent>
           </Card>
         ) : null}

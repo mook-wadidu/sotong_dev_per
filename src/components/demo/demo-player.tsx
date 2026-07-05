@@ -69,6 +69,7 @@ import {
   DEMO_REPORT_DATE_LABEL_KO,
   DEMO_REPORT_PROFILE_KO,
   DEMO_REPORT_VISIT_KO,
+  DEMO_PAST_VISIT_KO,
   DEMO_SUMMARY_KO,
   DEMO_SUMMARY_LABELS,
   DEMO_SUMMARY_LABELS_KO,
@@ -330,6 +331,7 @@ export function DemoPlayer() {
           dateLabel={DEMO_REPORT_DATE_LABEL_KO}
           profile={DEMO_REPORT_PROFILE_KO}
           visit={DEMO_REPORT_VISIT_KO}
+          pastVisit={DEMO_PAST_VISIT_KO}
           hair={DEMO_REPORT_HAIR}
           demo
         />

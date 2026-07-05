@@ -26,7 +26,8 @@ const CSP = [
   `style-src 'self' 'unsafe-inline' ${FONT_STYLE_SRC}`,
   "img-src 'self' data: blob:",
   `font-src 'self' data: ${FONT_SRC}`,
-  "connect-src 'self'",
+  // 폰트 CSS(jsdelivr)의 소스맵 fetch 허용 — devtools 열렸을 때 connect 로 요청됨.
+  "connect-src 'self' https://cdn.jsdelivr.net",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

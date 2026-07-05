@@ -60,16 +60,7 @@ export default async function Home({
   const t = COPY[locale as Locale] ?? COPY.ko!;
 
   return (
-    <MobileFrame className="relative">
-      {/* 우측 상단 — "소통이란?" → 데모(/demo) 이동 */}
-      <Link
-        href={`/${locale}/demo`}
-        className="animate-fade absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-brand-text shadow-sm transition-colors hover:border-brand-border hover:text-brand"
-      >
-        {t.demo}
-        <ArrowUpRight className="size-3.5" />
-      </Link>
-
+    <MobileFrame>
       <ScreenBody className="flex flex-col justify-center gap-8 py-10">
         <div className="space-y-5 text-center">
           <LogoSymbol
@@ -85,6 +76,16 @@ export default async function Home({
               {t.sub}
             </p>
           </div>
+
+          {/* 소통이란? → 데모(/demo) — 타이틀 아래 중앙 */}
+          <Link
+            href={`/${locale}/demo`}
+            className="animate-rise inline-flex items-center gap-1 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-brand-text shadow-sm transition-colors hover:border-brand-border hover:text-brand"
+            style={{ animationDelay: "180ms" }}
+          >
+            {t.demo}
+            <ArrowUpRight className="size-3.5" />
+          </Link>
         </div>
 
         <div

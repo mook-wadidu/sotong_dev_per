@@ -50,6 +50,8 @@ export function HairDna({
   };
   const guide = axes.map((a) => pt(a.deg, 1).join(",")).join(" ");
   const poly = axes.map((a) => pt(a.deg, a.v).join(",")).join(" ");
+  // 축 값(0.34/0.67/1.0) → 표준대비 % (InBody 부위별 리스트 느낌).
+  const tierPct = (v: number) => (v <= 0.4 ? 85 : v <= 0.7 ? 100 : 115);
 
   // lowercase + createElement: react-hooks/static-components(렌더 중 컴포넌트 생성) 회피.
   const faceIcon = hair.faceShape ? getFaceShapeIcon(hair.faceShape) : undefined;
@@ -60,7 +62,7 @@ export function HairDna({
       <p className="mb-3 text-sm font-semibold text-foreground">
         {labels.title}
       </p>
-      <div className="flex items-center justify-center gap-5">
+      <div className="flex items-center gap-4">
         <svg viewBox="0 0 180 185" className="h-40 w-40 shrink-0" aria-hidden="true">
           <polygon
             points={guide}
@@ -108,19 +110,44 @@ export function HairDna({
           })}
         </svg>
 
-        {hair.faceShape ? (
-          <div className="flex w-20 shrink-0 flex-col items-center gap-1 text-center">
-            {faceIcon
-              ? createElement(faceIcon, {
-                  className: "size-12 text-foreground",
-                })
-              : null}
-            <p className="text-xs text-muted-foreground">{labels.faceShape}</p>
-            {faceName ? (
-              <p className="text-sm font-semibold text-foreground">{faceName}</p>
-            ) : null}
-          </div>
-        ) : null}
+        <div className="min-w-0 flex-1 space-y-3">
+          {/* 축별 표준대비 % — InBody 부위별 리스트 */}
+          <ul className="space-y-1.5">
+            {axes.map((a) => (
+              <li
+                key={a.label}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <span className="text-muted-foreground">{a.label}</span>
+                <span className="font-semibold text-foreground">
+                  {tierPct(a.v)}
+                  <span className="ml-0.5 text-[0.65rem] font-medium text-muted-foreground">
+                    %
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {hair.faceShape ? (
+            <div className="flex items-center gap-2 border-t border-border pt-2.5">
+              {faceIcon
+                ? createElement(faceIcon, {
+                    className: "size-8 shrink-0 text-foreground",
+                  })
+                : null}
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">
+                  {labels.faceShape}
+                </p>
+                {faceName ? (
+                  <p className="text-sm font-semibold text-foreground">
+                    {faceName}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </section>
   );

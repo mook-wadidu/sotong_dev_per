@@ -19,15 +19,41 @@ const rise = {
   animate: { opacity: 1, y: 0, filter: "blur(0px)" },
 };
 
+const INTRO_SEEN_KEY = "sotong_intro_seen";
+
 export default function IntroSequence() {
   const [index, setIndex] = useState(0);
   const [done, setDone] = useState(false);
+  // localStorage 확인 전에는 렌더하지 않아, 재방문 시 인트로가 깜빡이지 않게 한다.
+  const [ready, setReady] = useState(false);
 
-  const finish = useCallback(() => setDone(true), []);
+  const finish = useCallback(() => {
+    setDone(true);
+    try {
+      localStorage.setItem(INTRO_SEEN_KEY, "1");
+    } catch {
+      // localStorage 불가(프라이빗 모드 등) — 무시
+    }
+  }, []);
+
+  // 처음 방문에만 인트로 재생 — 이미 봤으면 건너뛴다.
+  useEffect(() => {
+    let seen = false;
+    try {
+      seen = !!localStorage.getItem(INTRO_SEEN_KEY);
+    } catch {
+      // 무시
+    }
+    // 최초 마운트 1회 초기화(localStorage 확인 후 재방문 깜빡임 방지) — 의도된 setState.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (seen) setDone(true);
+    setReady(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
 
   // 자동 진행
   useEffect(() => {
-    if (done) return;
+    if (!ready || done) return;
     const t = setTimeout(() => {
       setIndex((i) => {
         if (i >= LAST) {
@@ -38,23 +64,23 @@ export default function IntroSequence() {
       });
     }, slides[index].durationMs);
     return () => clearTimeout(t);
-  }, [index, done, finish]);
+  }, [index, done, ready, finish]);
 
   // 인트로 동안 배경 스크롤 잠금
   useEffect(() => {
-    if (done) return;
+    if (!ready || done) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [done]);
+  }, [done, ready]);
 
   const isDark = slides[index].bg === "dark";
 
   return (
     <AnimatePresence>
-      {!done && (
+      {ready && !done && (
         <motion.div
           key="intro"
           className="fixed inset-0 z-[100] overflow-hidden"

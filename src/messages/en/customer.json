@@ -228,6 +228,22 @@
       "wave": "Wave",
       "faceShape": "Face shape"
     },
+    "analysis": {
+      "title": "Detailed analysis",
+      "standardLow": "Below",
+      "standard": "Normal",
+      "standardHigh": "Above",
+      "vsStandard": "vs. normal"
+    },
+    "hairType": {
+      "title": "Hair type",
+      "types": {
+        "H": { "name": "Healthy & Full", "desc": "Great condition with plenty of volume and density. Your current home care is enough to keep it up." },
+        "V": { "name": "Healthy, Volume Care", "desc": "Condition is great — adding a little volume and body will make your style last longer." },
+        "S": { "name": "Balanced", "desc": "Well-balanced hair overall. Keep up your basic home care routine." },
+        "C": { "name": "Focused Care", "desc": "Hair is a little tired. Focus on moisture and protein care to recover quickly." }
+      }
+    },
     "satisfaction": {
       "title": "How was your service today?",
       "thanks": "Thanks for your feedback!",

@@ -47,12 +47,16 @@ export function SectionHeading({
   title,
   subtitle,
   align = "center",
+  tone = "light",
 }: {
   eyebrow?: string;
   title: string;
   subtitle?: string;
   align?: "center" | "left";
+  /** dark = 어두운 배경 위(흰 텍스트) */
+  tone?: "light" | "dark";
 }) {
+  const dark = tone === "dark";
   return (
     <Reveal
       className={cn(
@@ -61,15 +65,32 @@ export function SectionHeading({
       )}
     >
       {eyebrow && (
-        <span className="inline-block rounded-full bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-600">
+        <span
+          className={cn(
+            "inline-block rounded-full px-3 py-1 text-sm font-semibold",
+            dark ? "bg-white/10 text-white" : "bg-brand-50 text-brand-600"
+          )}
+        >
           {eyebrow}
         </span>
       )}
-      <h2 className="mt-4 text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
+      <h2
+        className={cn(
+          "mt-4 text-3xl font-bold tracking-tight sm:text-4xl",
+          dark ? "text-white" : "text-ink-900"
+        )}
+      >
         {title}
       </h2>
       {subtitle && (
-        <p className="mt-4 text-lg leading-relaxed text-ink-500">{subtitle}</p>
+        <p
+          className={cn(
+            "mt-4 text-lg leading-relaxed",
+            dark ? "text-white/60" : "text-ink-500"
+          )}
+        >
+          {subtitle}
+        </p>
       )}
     </Reveal>
   );

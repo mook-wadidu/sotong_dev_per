@@ -5,13 +5,13 @@ import type { ConsultationSummaryLabels } from "@/components/shared/consultation
 /**
  * MVP 데모 스크립트(완전 하드코딩, 백엔드 0).
  * 같은 상담을 손님 트랙(영어, "Emma" · 미국) → 디자이너 트랙(한국어)으로 보여준다.
- * 사진은 public/demo/*.jpg 번들(무료·상업가능 Unsplash). 마음에 안 들면 그 파일만 교체.
+ * 사진은 public/demo/*.png 번들(무료·상업가능 Unsplash). 마음에 안 들면 그 파일만 교체.
  */
 
 /* 참고/비포/애프터 사진 — public/demo (CSP img-src 'self' 호환, plain <img>). */
-export const DEMO_PHOTOS = ["/demo/ref1.jpg", "/demo/ref2.jpg", "/demo/ref3.jpg"];
-const BEFORE = "/demo/before.jpg";
-const AFTER = "/demo/after.jpg";
+export const DEMO_PHOTOS = ["/demo/ref1.png", "/demo/ref2.png", "/demo/ref3.png"];
+const BEFORE = "/demo/before.png";
+const AFTER = "/demo/after.png";
 
 /** 언어 선택 — 4개 손님 언어(영어 강조). */
 export const DEMO_LANGS: {
@@ -31,8 +31,8 @@ export const DEMO_LANGS: {
  * 안내는 한국어. 핵심 장면(손님 영어 → 원장 한국어)을 맨 위에서 먼저 보여준다.
  */
 export const DEMO_INTRO = {
-  title: "외국인 손님 상담, 이제 파파고 없이 상담하세요!",
-  subtitle: "손님은 자기 언어로 탭하고, 디자이너께 한국어로 정리돼 옵니다.",
+  title: "외국인 손님 상담, \n이제 번역기 없이 상담하세요!",
+  subtitle: "손님은 자기 언어를 선택하고, 디자이너께 한국어로 정리돼 옵니다.",
   // 핵심 장면 미니 프리뷰 — "한 메시지"가 번역됨: 원문(영어) → 번역(한국어)을 한 말풍선에 스택.
   previewGuest: "How long will it take?",
   previewOwner: "얼마나 걸려요?",
@@ -218,6 +218,21 @@ export const DEMO_NARRATION: Partial<
     detail:
       "전·후 사진 리포트를 손님과 공유하고 별점을 받아요. 쌓인 기록은 샵 자산으로 남아요.",
   },
+};
+
+/**
+ * 자동 재생 화면 위에 뜨는 짧은 보조 설명 자막(한국어, 뷰어=원장).
+ * 데모를 처음 본 사람도 "지금 이 화면이 무슨 기능인지" 한 줄로 바로 이해하도록.
+ * 화면 진입 시 타이핑되며 나타난다. (나래이션 게이트가 없는 화면도 포함)
+ */
+export const DEMO_CAPTION: Partial<Record<string, string>> = {
+  lang: "손님이 자기 언어를 골라요 — 앱 설치도, 가입도 없어요.",
+  intake: "원하는 스타일·얼굴형·사진을 손님이 직접 입력해요.",
+  summary: "입력한 내용이 상담지 한 장으로 깔끔하게 정리돼요.",
+  "d-inbox": "디자이너 폰으로 새 손님 상담이 바로 도착해요.",
+  "d-summary": "손님이 쓴 상담지가 한국어로 번역돼 보여요.",
+  "d-chat": "손님은 영어로, 디자이너는 한국어로 — 실시간 번역돼요.",
+  "d-record": "시술 내용을 시술지로 정리해 손님과 공유해요.",
 };
 
 /* ── 상담 요약 카드 라벨 ─────────────────────────────────── */

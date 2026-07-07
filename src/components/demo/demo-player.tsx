@@ -76,6 +76,7 @@ import {
   DEMO_LANGS,
   DEMO_INTRO,
   DEMO_NARRATION,
+  DEMO_CAPTION,
   type ChatEntry,
 } from "./demo-script";
 
@@ -93,6 +94,8 @@ type Stage =
   | "d-report";
 
 const TYPE_MS = 38;
+// 자동 진행/화면 dwell 배속(클수록 느림). 타이핑 속도(TYPE_MS)는 제외.
+const PACE = 2;
 const INTAKE_STEPS = 6;
 const reduceMotion = () =>
   typeof window !== "undefined" &&
@@ -138,7 +141,21 @@ const BEAT_ICON: Partial<
  * 손님 화면(입력) → 디자이너 화면(받음·상담·시술지·리포트). 완전 하드코딩.
  * 정적 화면 dwell 은 콘텐츠 양 비례(READ_MS).
  */
-export function DemoPlayer() {
+export function DemoPlayer({
+  embedded = false,
+  autoPlay = false,
+  loop = false,
+  scrollHostRef,
+}: {
+  /** 폰 목업 안 임베드 — 전체 페이지 대신 폰 화면을 채우고, 스크롤은 폰 뷰포트에서. */
+  embedded?: boolean;
+  /** 인트로를 잠깐 보여준 뒤 자동으로 흐름을 시작한다(프리뷰용). */
+  autoPlay?: boolean;
+  /** 리포트까지 도달하면 잠시 후 처음부터 자동 반복(프리뷰용). */
+  loop?: boolean;
+  /** 임베드 시 화면 전환마다 최상단으로 되돌릴 폰 뷰포트 ref. */
+  scrollHostRef?: React.RefObject<HTMLDivElement | null>;
+} = {}) {
   const [stage, setStage] = React.useState<Stage>("intro");
   const [phase, setPhase] = React.useState<Phase>("content"); // intro = 랜딩(content)
   const [intakeStep, setIntakeStep] = React.useState(0);
@@ -147,8 +164,14 @@ export function DemoPlayer() {
   const [typing, setTyping] = React.useState<string | null>(null);
   const [incoming, setIncoming] = React.useState(false); // 상대 메시지 도착 중(···)
   const [chatCount, setChatCount] = React.useState(0);
+  // 나래이션(설명 화면) 타이핑 — 헤드라인이 타자기처럼 찍히고 detail은 뒤이어 나타남.
+  const [narrationText, setNarrationText] = React.useState("");
+  const [narrationDone, setNarrationDone] = React.useState(false);
+  // 자동 재생 화면 위 보조 설명 자막(타이핑).
+  const [caption, setCaption] = React.useState("");
   const countRef = React.useRef(0);
   const timer = React.useRef<number | null>(null);
+  const capTimer = React.useRef<number | null>(null); // 자막 타이핑 전용(콘텐츠 타이머와 분리)
   const topRef = React.useRef<HTMLDivElement>(null);
   const track = trackOf(stage);
 
@@ -157,12 +180,53 @@ export function DemoPlayer() {
     timer.current = null;
   }, []);
 
-  React.useEffect(() => () => clearTimer(), [clearTimer]);
+  const clearCaption = React.useCallback(() => {
+    if (capTimer.current) window.clearTimeout(capTimer.current);
+    capTimer.current = null;
+  }, []);
 
-  // stage/phase/인테이크 스텝 전환 시 스크롤 상단 복귀.
+  // 자막 타자기 — 콘텐츠 자동진행 타이머(timer)와 독립된 capTimer 사용.
+  const typeCaption = React.useCallback(
+    (text: string) => {
+      clearCaption();
+      if (reduceMotion()) {
+        setCaption(text);
+        return;
+      }
+      let i = 0;
+      setCaption("");
+      const tick = () => {
+        i += 1;
+        setCaption(text.slice(0, i));
+        if (i < text.length) capTimer.current = window.setTimeout(tick, TYPE_MS);
+      };
+      capTimer.current = window.setTimeout(tick, TYPE_MS);
+    },
+    [clearCaption],
+  );
+
+  React.useEffect(
+    () => () => {
+      clearTimer();
+      clearCaption();
+    },
+    [clearTimer, clearCaption],
+  );
+
+  // stage/phase/인테이크 스텝 전환 시 최상단으로 복귀.
+  // 전역 scroll-behavior:smooth 때문에 window.scrollTo 는 부드럽게 움직여
+  // 다음 전환이 끼어들면 최상단에 못 닿는다 → scrollTop 직접 대입(즉시).
   React.useEffect(() => {
-    topRef.current?.scrollIntoView({ block: "start" });
-  }, [stage, phase, intakeStep]);
+    if (embedded) {
+      const host = scrollHostRef?.current;
+      if (host) host.scrollTop = 0;
+      return;
+    }
+    // 임베드가 아니면 문서 전체 스크롤(MobileFrame min-h-dvh)을 즉시 맨 위로.
+    const el = document.scrollingElement || document.documentElement;
+    if (el) el.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+  }, [stage, phase, intakeStep, embedded, scrollHostRef]);
 
   const typeOut = React.useCallback(
     (text: string, onChar: (s: string) => void, onDone: () => void) => {
@@ -196,11 +260,15 @@ export function DemoPlayer() {
       setIntakeFilled(true);
       timer.current = window.setTimeout(
         () => (k < INTAKE_STEPS - 1 ? runIntakeStep(k + 1) : goTo("summary")),
-        reduceMotion() ? 550 : 1400,
+        (reduceMotion() ? 550 : 1400) * PACE,
       );
     };
     if (k === 1) typeOut(DEMO_INTAKE.styleNoteEn, setIntakeNote, afterFill);
-    else timer.current = window.setTimeout(afterFill, reduceMotion() ? 300 : 650);
+    else
+      timer.current = window.setTimeout(
+        afterFill,
+        (reduceMotion() ? 300 : 650) * PACE,
+      );
   };
 
   // 채팅 자동 타이핑 + 자동 전송(수동 Send 없음).
@@ -225,13 +293,13 @@ export function DemoPlayer() {
       if (isOwn(entry, t)) {
         // 내 메시지 — 입력바 자동 타이핑 후 잠깐 뒤 자동 전송.
         typeOut(t === "customer" ? entry.en : entry.ko, setTyping, () =>
-          commit(reduceMotion() ? 300 : 950),
+          commit((reduceMotion() ? 300 : 950) * PACE),
         );
       } else {
         // 상대 메시지 — "···" 인디케이터 후 도착(시스템 노트 제외).
         const showDots = entry.kind !== "system";
         if (showDots) setIncoming(true);
-        commit(showDots ? (reduceMotion() ? 400 : 1200) : 600);
+        commit((showDots ? (reduceMotion() ? 400 : 1200) : 600) * PACE);
       }
     };
     step();
@@ -249,8 +317,11 @@ export function DemoPlayer() {
   // stage 콘텐츠 진입 시 자동재생 시작(정적 화면은 READ_MS 딜레이 후 다음 비트로).
   const startContent = (s: Stage) => {
     clearTimer();
+    // 화면 위 보조 설명 자막 — 진입과 동시에 타이핑 시작(있는 화면만).
+    if (DEMO_CAPTION[s]) typeCaption(DEMO_CAPTION[s]!);
+    else setCaption("");
     const rest = (next: Stage) => {
-      const base = READ_MS[s] ?? 3000;
+      const base = (READ_MS[s] ?? 3000) * PACE;
       timer.current = window.setTimeout(
         () => goTo(next),
         reduceMotion() ? Math.round(base * 0.4) : base,
@@ -260,7 +331,7 @@ export function DemoPlayer() {
       case "lang":
         timer.current = window.setTimeout(
           () => goTo("intake"),
-          reduceMotion() ? 500 : 1100,
+          (reduceMotion() ? 500 : 1100) * PACE,
         );
         break;
       case "intake":
@@ -287,7 +358,32 @@ export function DemoPlayer() {
     }
   };
 
-  // 다음 stage 로 이동 — 나래이션 있으면 그레이 게이트, 없으면 바로 콘텐츠 자동재생.
+  // 설명(나래이션) 화면 — 헤드라인을 타자기처럼 찍고, detail을 뒤이어 띄운 뒤
+  // 클릭 없이 자동으로 콘텐츠 재생으로 넘어간다. (stage는 인자로 명시 → 스테일 클로저 방지)
+  const startNarration = (s: Stage) => {
+    clearTimer();
+    setCaption("");
+    setNarrationDone(false);
+    setNarrationText("");
+    const n = DEMO_NARRATION[s];
+    if (!n) {
+      setPhase("content");
+      startContent(s);
+      return;
+    }
+    typeOut(n.headline, setNarrationText, () => {
+      setNarrationDone(true); // detail 페이드 인
+      timer.current = window.setTimeout(
+        () => {
+          setPhase("content");
+          startContent(s);
+        },
+        (n.detail ? 2600 : 1500) * PACE,
+      );
+    });
+  };
+
+  // 다음 stage 로 이동 — 나래이션 있으면 타이핑 설명 화면(자동 진행), 없으면 바로 콘텐츠.
   const goTo = (s: Stage) => {
     clearTimer();
     setTyping(null);
@@ -297,12 +393,14 @@ export function DemoPlayer() {
     setStage(s);
     if (DEMO_NARRATION[s]) {
       setPhase("narration");
+      startNarration(s);
     } else {
       setPhase("content");
       startContent(s);
     }
   };
 
+  // 설명 화면에서 "건너뛰기" — 자동 진행을 기다리지 않고 바로 콘텐츠로.
   const continueFromNarration = () => {
     setPhase("content");
     startContent(stage);
@@ -310,8 +408,12 @@ export function DemoPlayer() {
 
   const reset = () => {
     clearTimer();
+    clearCaption();
     setTyping(null);
     setIncoming(false);
+    setCaption("");
+    setNarrationText("");
+    setNarrationDone(false);
     countRef.current = 0;
     setChatCount(0);
     setIntakeStep(0);
@@ -320,6 +422,22 @@ export function DemoPlayer() {
     setStage("intro");
     setPhase("content");
   };
+
+  // 프리뷰 자동 시작/반복 — 인트로에서 잠깐 뒤 흐름 시작, 리포트 도달 후 잠시 뒤 처음부터 반복.
+  React.useEffect(() => {
+    if (!autoPlay) return;
+    let t: number | undefined;
+    if (stage === "intro" && phase === "content") {
+      t = window.setTimeout(() => goTo("lang"), 1600);
+    } else if (loop && stage === "d-report" && phase === "content") {
+      t = window.setTimeout(() => reset(), 6500);
+    }
+    return () => {
+      if (t) window.clearTimeout(t);
+    };
+    // goTo/reset 는 런타임 호출용(렌더마다 재생성) — deps 에서 제외.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, loop, stage, phase]);
 
   // ── 최종 리포트(자체 MobileFrame) — d-report content phase 에서만 ──
   if (stage === "d-report" && phase === "content") {
@@ -334,31 +452,44 @@ export function DemoPlayer() {
           pastVisit={DEMO_PAST_VISIT_KO}
           hair={DEMO_REPORT_HAIR}
           demo
+          embedded={embedded}
         />
-        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-10 flex justify-center">
-          <Button
-            variant="default"
-            size="sm"
-            className="pointer-events-auto shadow-lg"
-            onClick={reset}
-          >
-            ↺ Replay demo
-          </Button>
-        </div>
+        {/* 임베드 프리뷰는 자동 반복하므로 Replay 버튼 숨김(전체화면에서만 노출). */}
+        {!embedded ? (
+          <div className="pointer-events-none fixed inset-x-0 bottom-4 z-10 flex justify-center">
+            <Button
+              variant="default"
+              size="sm"
+              className="pointer-events-auto shadow-lg"
+              onClick={reset}
+            >
+              ↺ Replay demo
+            </Button>
+          </div>
+        ) : null}
       </div>
     );
   }
+
+  // 인트로(시작하기 화면)는 어두운 스플래시로 — 홈의 "번역기 붙잡고~" 섹션과 같은 톤.
+  const introDark = stage === "intro";
 
   return (
     <MobileFrame
       tone="muted"
       lang={track === "designer" || stage === "intro" ? "ko" : "en"}
+      embedded={embedded}
+      className={introDark ? "bg-ink-900" : undefined}
     >
-      <ScreenHeader
-        title="소통 · Sotong"
-        subtitle={track === "designer" ? "디자이너 화면 (KO)" : "손님 화면 미리보기"}
-        trailing={<TrackBadge track={track} />}
-      />
+      {!introDark ? (
+        <ScreenHeader
+          title="소통 · Sotong"
+          subtitle={
+            track === "designer" ? "디자이너 화면 (KO)" : "손님 화면 미리보기"
+          }
+          trailing={<TrackBadge track={track} />}
+        />
+      ) : null}
 
       <ScreenBody
         className={cn("pb-2", phase === "narration" ? "flex flex-col" : "space-y-4")}
@@ -368,11 +499,16 @@ export function DemoPlayer() {
           <NarrationScreen
             key={stage}
             stage={stage}
-            headline={DEMO_NARRATION[stage]?.headline ?? ""}
+            typed={narrationText}
+            done={narrationDone}
             detail={DEMO_NARRATION[stage]?.detail}
           />
         ) : (
           <>
+            {/* 자동 재생 화면 위 보조 설명 자막(타이핑) — 처음 보는 사람용. */}
+            {stage !== "intro" && caption ? (
+              <CaptionBar text={caption} />
+            ) : null}
             {stage === "intro" ? <IntroScreen /> : null}
             {stage === "lang" ? <LangScreen /> : null}
             {stage === "intake" ? (
@@ -393,7 +529,9 @@ export function DemoPlayer() {
         )}
       </ScreenBody>
 
-      <ScreenFooter>
+      <ScreenFooter
+        className={introDark ? "border-white/10 bg-ink-900" : undefined}
+      >
         <DemoFooter
           stage={stage}
           phase={phase}
@@ -410,11 +548,13 @@ export function DemoPlayer() {
 
 function NarrationScreen({
   stage,
-  headline,
+  typed,
+  done,
   detail,
 }: {
   stage: Stage;
-  headline: string;
+  typed: string; // 타자기로 찍히는 중인 헤드라인
+  done: boolean; // 헤드라인 타이핑 완료 → detail 페이드 인
   detail?: string;
 }) {
   const Icon = BEAT_ICON[stage] ?? BeatInputIcon;
@@ -453,10 +593,16 @@ function NarrationScreen({
         aria-atomic="true"
       >
         <h2 className="max-w-[20rem] text-balance break-keep text-2xl font-bold leading-snug tracking-tight text-foreground">
-          {headline}
+          {typed}
+          {!done ? <Caret /> : null}
         </h2>
         {detail ? (
-          <p className="max-w-[20rem] text-balance break-keep text-base font-normal leading-relaxed text-muted-foreground">
+          <p
+            className={cn(
+              "max-w-[20rem] text-balance break-keep text-base font-normal leading-relaxed text-muted-foreground transition-opacity duration-500",
+              done ? "opacity-100" : "opacity-0",
+            )}
+          >
             {detail}
           </p>
         ) : null}
@@ -465,50 +611,106 @@ function NarrationScreen({
   );
 }
 
+/* ── 자동 재생 화면 위 보조 설명 자막 ────────────────────── */
+
+function CaptionBar({ text }: { text: string }) {
+  return (
+    <div
+      lang="ko"
+      className="animate-rise flex items-start gap-2 rounded-xl bg-accent-soft px-3 py-2 text-sm leading-snug text-accent-text ring-1 ring-brand-border"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <span aria-hidden="true" className="mt-px shrink-0">
+        💡
+      </span>
+      <p className="break-keep">
+        {text}
+        <Caret />
+      </p>
+    </div>
+  );
+}
+
+/* ── 타자기 커서 ─────────────────────────────────────────── */
+
+function Caret() {
+  return (
+    <span
+      aria-hidden="true"
+      className="ml-0.5 inline-block h-[1em] w-px translate-y-[0.12em] animate-pulse bg-current align-baseline motion-reduce:animate-none"
+    />
+  );
+}
+
 /* ── 손님 화면 ───────────────────────────────────────────── */
 
 function IntroScreen() {
+  // 어두운 스플래시 — MobileFrame 배경이 ink-900 이므로 텍스트/카드를 밝은 톤으로.
   return (
-    <div className="flex flex-col gap-5 py-4" lang="ko">
-      <div className="space-y-1.5 text-center">
-        <h1 className="text-2xl font-bold leading-snug tracking-tight">
+    <div
+      className="flex min-h-full flex-col justify-center gap-6 py-6"
+      lang="ko"
+    >
+      {/* 헤드라인 */}
+      <div className="space-y-2 text-center">
+        <h1 className="whitespace-pre-line text-[1.7rem] font-bold leading-[1.25] tracking-tight text-white">
           {DEMO_INTRO.title}
         </h1>
-        <p className="text-sm text-muted-foreground">{DEMO_INTRO.subtitle}</p>
+        <p className="mx-auto max-w-[18rem] text-sm leading-relaxed text-white/60">
+          {DEMO_INTRO.subtitle}
+        </p>
       </div>
 
-      {/* 핵심 장면 — "한 메시지"가 번역됨: 원문(영어) → 자동 번역 → 한국어. 한 말풍선에 스택. */}
-      <div className="rounded-2xl border border-border bg-card p-3">
-        <div className="rounded-2xl rounded-bl-sm bg-muted px-3.5 py-2.5">
-          <p className="text-sm text-muted-foreground" lang="en">
-            {DEMO_INTRO.previewGuest}
-          </p>
-          <div className="my-1.5 flex items-center gap-1 border-t border-border/60 pt-1.5 text-[0.7rem] font-medium text-muted-foreground">
-            <SparkleIcon className="size-3" />
-            {DEMO_INTRO.previewTag}
+      {/* 핵심 장면 — 손님(영어) → 자동 번역 → 디자이너(한국어) 대화 */}
+      <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-4">
+        <div className="flex justify-start">
+          <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-white/10 px-3.5 py-2.5">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-white/45">
+              손님 · EN
+            </p>
+            <p className="mt-0.5 text-sm text-white" lang="en">
+              {DEMO_INTRO.previewGuest}
+            </p>
           </div>
-          <p className="text-sm font-semibold text-foreground">
-            {DEMO_INTRO.previewOwner}
-          </p>
+        </div>
+
+        <div className="my-2.5 flex items-center justify-center gap-1.5 text-[0.7rem] font-semibold text-brand-300">
+          <SparkleIcon className="size-3" />
+          {DEMO_INTRO.previewTag}
+        </div>
+
+        <div className="flex justify-end">
+          <div className="max-w-[85%] rounded-2xl rounded-br-md bg-gradient-to-br from-brand-500 to-accent px-3.5 py-2.5 text-white shadow-lg shadow-accent/30">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-white/70">
+              디자이너 · KO
+            </p>
+            <p className="mt-0.5 text-sm font-semibold">
+              {DEMO_INTRO.previewOwner}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* 가치 3줄 — "볼 이유" */}
+      {/* 가치 3줄 — 카드형 */}
       <ul className="space-y-2">
         {DEMO_INTRO.values.map((v) => (
-          <li key={v} className="flex items-start gap-2 text-sm text-foreground">
-            <CheckIcon
-              className="mt-0.5 size-4 shrink-0 text-accent-strong"
-              strokeWidth={3}
-            />
-            <span className="leading-snug">{v}</span>
+          <li
+            key={v}
+            className="flex items-center gap-3 rounded-2xl bg-white/[0.06] px-3.5 py-2.5 ring-1 ring-white/10"
+          >
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-accent text-white">
+              <CheckIcon className="size-3.5" strokeWidth={3} />
+            </span>
+            <span className="text-sm font-medium leading-snug text-white/90">
+              {v}
+            </span>
           </li>
         ))}
       </ul>
 
-      <p className="text-center text-xs text-muted-foreground">
-        {DEMO_INTRO.duration}
-      </p>
+      <p className="text-center text-xs text-white/45">{DEMO_INTRO.duration}</p>
     </div>
   );
 }
@@ -532,11 +734,9 @@ function LangScreen() {
             key={l.locale}
             nativeLabel={l.native}
             subLabel={l.sub}
+            selected={l.highlight}
+            badge={l.highlight ? "추천" : undefined}
             onClick={() => {}}
-            className={cn(
-              l.highlight &&
-                "border-foreground ring-2 ring-foreground ring-offset-2 ring-offset-muted",
-            )}
           />
         ))}
       </div>
@@ -559,9 +759,14 @@ function IntakeFlow({
     // 자동채움 — 칩/입력은 비인터랙티브(진행은 자동).
     <div className="space-y-4 [&_button]:pointer-events-none">
       <ProgressSteps total={INTAKE_STEPS} current={step + 1} label="Intake" />
-      <p className="text-base font-semibold text-foreground">
-        {DEMO_INTAKE_TITLES[step]}
-      </p>
+      <div className="space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-accent-text">
+          Step {step + 1} / {INTAKE_STEPS}
+        </p>
+        <h2 className="text-lg font-bold leading-snug tracking-tight text-foreground">
+          {DEMO_INTAKE_TITLES[step]}
+        </h2>
+      </div>
 
       {step === 0 ? (
         <div className="space-y-2">
@@ -933,9 +1138,15 @@ function DemoFooter({
   onStart: () => void;
 }) {
   if (phase === "narration") {
+    // 설명은 타이핑 후 자동으로 이어짐 — 버튼은 기다리기 싫은 사람용 계속하기.
     return (
-      <Button variant="accent" size="lg" className="w-full" onClick={onContinue}>
-        이어서 보기 ›
+      <Button
+        variant="outline"
+        size="lg"
+        className="w-full"
+        onClick={() => onContinue()}
+      >
+        계속하기 ›
       </Button>
     );
   }

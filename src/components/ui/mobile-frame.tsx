@@ -10,6 +10,7 @@ export function MobileFrame({
   children,
   tone = "default",
   lang,
+  embedded = false,
 }: {
   className?: string;
   children: React.ReactNode;
@@ -19,12 +20,18 @@ export function MobileFrame({
    * (예: ja 리포트가 /ko URL 로 열릴 때 — 자형/스크린리더 정확도, AUDIT C4).
    */
   lang?: string;
+  /**
+   * 폰 목업 안에 임베드될 때 — 뷰포트 높이(min-h-dvh) 대신 부모(폰 화면) 높이를 채운다.
+   * sticky 헤더/푸터는 임베드 스크롤 컨테이너 기준으로 붙는다.
+   */
+  embedded?: boolean;
 }) {
   return (
     <div
       lang={lang}
       className={cn(
-        "mx-auto flex min-h-dvh w-full max-w-md flex-col",
+        "mx-auto flex w-full max-w-md flex-col",
+        embedded ? "min-h-full" : "min-h-dvh",
         tone === "muted" ? "bg-muted" : "bg-background",
         className,
       )}

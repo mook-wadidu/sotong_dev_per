@@ -81,6 +81,20 @@ export async function ReportScreen({
     gender: t("report.gender"),
     age: t("report.age"),
     visitHistory: t("report.visitHistory"),
+    analysis: {
+      title: t("report.analysis.title"),
+      standardLow: t("report.analysis.standardLow"),
+      standard: t("report.analysis.standard"),
+      standardHigh: t("report.analysis.standardHigh"),
+      vsStandard: t("report.analysis.vsStandard"),
+    },
+    hairType: {
+      title: t("report.hairType.title"),
+      types: t.raw("report.hairType.types") as Record<
+        string,
+        { name: string; desc: string }
+      >,
+    },
   };
 
   const profile = {

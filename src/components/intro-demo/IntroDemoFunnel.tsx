@@ -1,6 +1,15 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, Clock, Languages, QrCode } from "lucide-react";
+import {
+  ArrowRight,
+  Clock,
+  Languages,
+  QrCode,
+  PencilLine,
+  Smartphone,
+  MessagesSquare,
+  FileText,
+} from "lucide-react";
 import Container from "@/components/intro-demo/Container";
 import Section, {
   Reveal,
@@ -10,14 +19,22 @@ import Nav from "@/components/intro-demo/Nav";
 import Footer from "@/components/intro-demo/Footer";
 import IntroSequence from "@/components/intro-demo/intro/IntroSequence";
 import InteractiveHero from "@/components/intro-demo/hero/InteractiveHero";
-import DemoStage from "@/components/intro-demo/demo/DemoStage";
 import { benefits, demoPage, how } from "@/content/intro-demo";
 
 const benefitIcons: Record<string, ReactNode> = {
-  clock: <Clock size={22} />,
-  languages: <Languages size={22} />,
-  qr: <QrCode size={22} />,
+  clock: <Clock size={26} />,
+  languages: <Languages size={26} />,
+  qr: <QrCode size={26} />,
 };
+
+// 이용 방법 5단계 아이콘(순서대로)
+const stepIcons: ReactNode[] = [
+  <QrCode key="qr" size={22} />,
+  <PencilLine key="write" size={22} />,
+  <Smartphone key="phone" size={22} />,
+  <MessagesSquare key="chat" size={22} />,
+  <FileText key="report" size={22} />,
+];
 
 /**
  * demo_intro 랜딩+데모를 하나로 합친 자기완결형 퍼널.
@@ -31,20 +48,33 @@ export default function IntroDemoFunnel() {
       <IntroSequence />
       <InteractiveHero />
 
-      {/* ── 혜택 ── */}
-      <Section id="features">
-        <SectionHeading title={benefits.title} subtitle={benefits.subtitle} />
+      {/* ── 혜택 — 어두운 영역(구분감) ── */}
+      <Section id="features" className="bg-ink-900">
+        <SectionHeading
+          title={benefits.title}
+          subtitle={benefits.subtitle}
+          tone="dark"
+        />
         <div className="mt-14 grid gap-6 md:grid-cols-3">
           {benefits.items.map((b, i) => (
-            <Reveal key={b.title} delay={i * 0.1}>
-              <div className="h-full rounded-3xl bg-white p-7 shadow-[var(--shadow-soft)] ring-1 ring-ink-900/5 transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-float)]">
-                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-600">
-                  {benefitIcons[b.icon]}
-                </span>
-                <h3 className="mt-5 text-xl font-bold text-ink-900">
-                  {b.title}
-                </h3>
-                <p className="mt-2.5 leading-relaxed text-ink-500">{b.desc}</p>
+            <Reveal key={b.title} delay={i * 0.12}>
+              <div className="group relative h-full overflow-hidden rounded-[1.75rem] bg-white/[0.04] p-8 ring-1 ring-white/10 transition-all hover:-translate-y-1.5 hover:bg-white/[0.07] hover:ring-white/20">
+                {/* 코너 바이올렛 글로우 — 어두운 배경 위 은은한 강조 */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-brand-500/25 blur-3xl transition-transform duration-500 group-hover:scale-125"
+                />
+                <div className="relative flex items-center gap-4">
+                  <span className="grid size-16 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-accent text-white shadow-lg shadow-accent/30">
+                    {benefitIcons[b.icon]}
+                  </span>
+                  <h3 className="text-xl font-bold leading-snug text-white">
+                    {b.title}
+                  </h3>
+                </div>
+                <p className="relative mt-4 leading-relaxed text-white/60">
+                  {b.desc}
+                </p>
               </div>
             </Reveal>
           ))}
@@ -54,66 +84,51 @@ export default function IntroDemoFunnel() {
       {/* ── 이용 방법 ── */}
       <Section id="how" className="bg-brand-50/40">
         <SectionHeading title={how.title} />
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
-          {how.steps.map((s, i) => (
-            <Reveal key={s.n} delay={i * 0.1}>
-              <div className="relative h-full rounded-3xl bg-white p-7 shadow-[var(--shadow-soft)] ring-1 ring-ink-900/5">
-                <span className="text-3xl font-bold text-brand-200">{s.n}</span>
-                <h3 className="mt-3 text-xl font-bold text-ink-900">
-                  {s.title}
-                </h3>
-                <p className="mt-2.5 leading-relaxed text-ink-500">{s.desc}</p>
-                {i < how.steps.length - 1 && (
-                  <ArrowRight
-                    size={20}
-                    className="absolute -right-4 top-1/2 hidden -translate-y-1/2 text-brand-300 md:block"
-                  />
-                )}
-              </div>
-            </Reveal>
-          ))}
+        {/* 세로 타임라인 — 5단계가 순서대로 이어지는 흐름 */}
+        <div className="mx-auto mt-14 max-w-2xl">
+          {how.steps.map((s, i) => {
+            const last = i === how.steps.length - 1;
+            return (
+              <Reveal key={s.n} delay={i * 0.08}>
+                <div className="flex gap-5">
+                  {/* 노드 + 연결선 */}
+                  <div className="flex flex-col items-center">
+                    <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand-500 to-accent text-white shadow-lg shadow-accent/25">
+                      {stepIcons[i]}
+                    </span>
+                    {!last && (
+                      <span
+                        aria-hidden="true"
+                        className="mt-1.5 w-0.5 grow rounded-full bg-gradient-to-b from-brand-300 to-brand-100"
+                      />
+                    )}
+                  </div>
+                  {/* 내용 카드 */}
+                  <div className={last ? "flex-1" : "flex-1 pb-6"}>
+                    <div className="rounded-2xl bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-ink-900/5 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-float)]">
+                      <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-brand-400">
+                        STEP {s.n}
+                      </span>
+                      <h3 className="mt-1.5 text-lg font-bold leading-snug text-ink-900">
+                        {s.title}
+                      </h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-ink-500">
+                        {s.desc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Reveal>
+            );
+          })}
         </div>
       </Section>
 
       {/* ── 인터랙티브 데모(단계별 자동재생) ── */}
       <section id="demo" className="bg-mesh">
         <Container className="py-14 sm:py-20">
-          <Reveal className="mx-auto max-w-2xl text-center">
-            <span className="inline-block rounded-full bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-600">
-              {demoPage.eyebrow}
-            </span>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl lg:text-5xl">
-              {demoPage.title}
-            </h2>
-            <p className="mt-4 text-lg leading-relaxed text-ink-500">
-              {demoPage.subtitle}
-            </p>
-          </Reveal>
-
-          <Reveal delay={0.1} className="mx-auto mt-12 max-w-4xl">
-            <DemoStage variant="full" />
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <div className="mx-auto mt-12 grid max-w-3xl gap-3 sm:grid-cols-3">
-              {demoPage.points.map((p) => (
-                <div
-                  key={p}
-                  className="flex items-start gap-2 rounded-2xl bg-white/70 p-4 text-sm font-medium text-ink-700 ring-1 ring-ink-900/5"
-                >
-                  <Check
-                    size={16}
-                    strokeWidth={3}
-                    className="mt-0.5 shrink-0 text-brand-500"
-                  />
-                  <span>{p}</span>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <div className="mx-auto mt-16 max-w-3xl overflow-hidden rounded-[2rem] bg-ink-900 px-8 py-12 text-center sm:px-14">
+          <Reveal>
+            <div className="mx-auto max-w-3xl overflow-hidden rounded-[2rem] bg-ink-900 px-8 py-12 text-center sm:px-14">
               <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
                 {demoPage.finalCta.title}
               </h2>
@@ -122,6 +137,8 @@ export default function IntroDemoFunnel() {
               </p>
               <Link
                 href={demoPage.finalCta.href}
+                target="_blank"
+                rel="noreferrer noopener"
                 className="mt-7 inline-flex items-center gap-2 rounded-full bg-brand-500 px-7 py-3.5 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-400"
               >
                 {demoPage.finalCta.label}

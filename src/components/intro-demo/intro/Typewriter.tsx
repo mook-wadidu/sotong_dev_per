@@ -22,9 +22,14 @@ export default function Typewriter({
   const full = segments.map((s) => s.text).join("");
   const total = full.length;
   const [count, setCount] = useState(0);
+  // 텍스트가 바뀌면 렌더 중 카운트 리셋(이펙트 내 setState 회피 — React 권장 패턴).
+  const [prevFull, setPrevFull] = useState(full);
+  if (prevFull !== full) {
+    setPrevFull(full);
+    setCount(0);
+  }
 
   useEffect(() => {
-    setCount(0);
     let i = 0;
     let interval: ReturnType<typeof setInterval>;
     const start = setTimeout(() => {
@@ -40,15 +45,16 @@ export default function Typewriter({
     };
   }, [full, total, speedMs, startDelayMs]);
 
-  // 세그먼트별로 현재까지 노출된 글자 수를 배분
-  let remaining = count;
   const done = count >= total;
 
   return (
     <span className={className} aria-label={full}>
       {segments.map((seg, si) => {
-        const take = Math.max(0, Math.min(seg.text.length, remaining));
-        remaining -= seg.text.length;
+        // 앞 세그먼트 길이 합(순수 계산 — 렌더 중 변수 재할당 회피)
+        const before = segments
+          .slice(0, si)
+          .reduce((a, s) => a + s.text.length, 0);
+        const take = Math.max(0, Math.min(seg.text.length, count - before));
         const shown = seg.text.slice(0, take);
         return (
           <span

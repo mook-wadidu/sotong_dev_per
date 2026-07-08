@@ -1,3 +1,7 @@
+// 시크릿(entrySecret/adminToken/serviceKey/gemini/vapid/cron) 보유 파일 —
+// 클라이언트 번들 유입 원천 차단. 클라에서 import 시 빌드가 즉시 막는다(방어 심화).
+import "server-only";
+
 /**
  * 런타임 설정 — env로 드라이버를 전환한다.
  * 기본값은 "제로 셋업" (인메모리 DB + mock AI) 이라 `pnpm dev`만으로 핵심 루프가 돈다.

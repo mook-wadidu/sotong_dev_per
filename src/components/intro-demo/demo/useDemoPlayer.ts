@@ -83,15 +83,15 @@ export function useDemoPlayer(
     [steps, cursor, next]
   );
 
-  // 자동재생: playing일 때만 타이머로 다음 스텝 진행. 끝나면 정지.
+  // 자동재생: playing일 때만 타이머로 다음 스텝 진행. 끝에 도달하면 정지.
+  // 정지 setState는 이펙트 본문이 아니라 타이머 콜백에서 호출(set-state-in-effect 회피).
   useEffect(() => {
-    if (!playing) return;
-    if (cursor >= last) {
-      setPlaying(false);
-      return;
-    }
+    if (!playing || cursor >= last) return;
     const ms = steps[cursor].tapTarget ? TAP_MS : SYSTEM_MS;
-    const t = setTimeout(() => setCursor((c) => Math.min(c + 1, last)), ms);
+    const t = setTimeout(() => {
+      setCursor((c) => Math.min(c + 1, last));
+      if (cursor + 1 >= last) setPlaying(false); // 이번 진행으로 끝 도달 → 정지
+    }, ms);
     return () => clearTimeout(t);
   }, [playing, cursor, last, steps]);
 

@@ -235,6 +235,22 @@ body {
   animation: sotong-fade 0.3s ease both;
 }
 
+/* 문의 선택창(바텀시트) 등장 */
+@keyframes sotong-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-sheet-in {
+  animation: sotong-sheet-in 0.22s ease-out both;
+}
+
 /* 로고 리빌 — 심볼 fade+scale, 워드마크 살짝 늦게 따라옴(브랜드 인트로) */
 @keyframes sotong-logo-rise {
   from {

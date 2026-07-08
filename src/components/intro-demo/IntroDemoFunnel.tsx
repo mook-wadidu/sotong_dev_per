@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import {
-  ArrowRight,
   Clock,
   Languages,
   QrCode,
@@ -10,6 +8,7 @@ import {
   MessagesSquare,
   FileText,
 } from "lucide-react";
+import ContactPicker from "@/components/intro-demo/ContactPicker";
 import Container from "@/components/intro-demo/Container";
 import Section, {
   Reveal,
@@ -135,15 +134,10 @@ export default function IntroDemoFunnel() {
               <p className="mx-auto mt-3 max-w-lg text-ink-400">
                 {demoPage.finalCta.desc}
               </p>
-              <Link
-                href={demoPage.finalCta.href}
-                target="_blank"
-                rel="noreferrer noopener"
+              <ContactPicker
+                label={demoPage.finalCta.label}
                 className="mt-7 inline-flex items-center gap-2 rounded-full bg-brand-500 px-7 py-3.5 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-400"
-              >
-                {demoPage.finalCta.label}
-                <ArrowRight size={18} />
-              </Link>
+              />
             </div>
           </Reveal>
         </Container>

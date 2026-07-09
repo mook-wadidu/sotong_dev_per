@@ -125,6 +125,7 @@
     "pending": "전송 중…",
     "reportCta": "시술 기록",
     "translatedNote": "손님 언어로 자동 번역됩니다",
+    "translating": "번역 중…",
     "sendError": "메시지를 보내지 못했어요. 다시 시도해 주세요.",
     "quickReplies": {
       "title": "빠른 답장",

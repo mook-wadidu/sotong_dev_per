@@ -57,15 +57,6 @@ export function salonConsolePath(ownerToken: string) {
   return `/ko/s/${ownerToken}`;
 }
 
-/**
- * 어드민 키 입력 게이트 경로 (키 미포함 — 공개 링크용).
- * 홈/공개 페이지에서는 adminPath(key) 대신 이 경로로만 링크해 키 노출을 막는다(P0).
- */
-export function adminGatePath(locale: Locale = "ko") {
-  // 어드민/콘솔은 다국어(헤더 LocaleSwitch 로 전환) — 게이트 진입도 현재 locale 유지.
-  return `/${locale}/admin`;
-}
-
 /** 어드민 사이드바 뷰 키 — URL `view` 파라미터(새로고침/북마크 견딤). */
 export type AdminView =
   | "dashboard"
@@ -75,21 +66,14 @@ export type AdminView =
   | "onboarding";
 
 /**
- * 어드민 경로 (key 필수 — MVP 단일 공유 키). 게이트 통과 후 내부 네비게이션 전용.
- * - 2번째 인자: 기존 호환을 위해 문자열(`salonSlug`) 또는 `{ salon?, view? }` 옵션을 받는다.
- *   - 문자열 → 지점 필터(`?salon=`)로 해석(기존 호출부 보존).
- *   - 객체 → `view`(사이드바 섹션) + `salon`(선택 살롱) 동시 지정.
+ * 어드민 경로 (세션 쿠키 인증 — URL 에 키 없음). 사이드바 `view`(섹션) + `salon`(선택 살롱)만 쿼리로.
  */
-export function adminPath(
-  key: string,
-  opts?: string | { salon?: string; view?: AdminView },
-) {
-  const q = new URLSearchParams({ key });
-  const normalized =
-    typeof opts === "string" ? { salon: opts } : opts ?? {};
-  if (normalized.view) q.set("view", normalized.view);
-  if (normalized.salon) q.set("salon", normalized.salon);
-  return `/ko/admin?${q.toString()}`;
+export function adminPath(opts?: { salon?: string; view?: AdminView }) {
+  const q = new URLSearchParams();
+  if (opts?.view) q.set("view", opts.view);
+  if (opts?.salon) q.set("salon", opts.salon);
+  const qs = q.toString();
+  return qs ? `/ko/admin?${qs}` : `/ko/admin`;
 }
 
 /** origin 을 붙여 절대 URL 로 (QR 인코딩용; 클라이언트에서 window.location.origin 전달) */

@@ -12,7 +12,8 @@
     "salons": "지점 관리",
     "inquiries": "접수 내역",
     "errors": "오류",
-    "onboarding": "온보딩"
+    "onboarding": "온보딩",
+    "logout": "로그아웃"
   },
   "dashboard": {
     "title": "지점 개요",
@@ -55,17 +56,8 @@
     "salons": "지점 수",
     "inquiries": "접수 수"
   },
-  "gate": {
-    "title": "관리자 키 입력",
-    "hint": "지점·접수·오류 현황을 보려면 관리자 키가 필요합니다.",
-    "label": "관리자 키",
-    "placeholder": "관리자 키를 입력하세요",
-    "submit": "들어가기"
-  },
-  "authError": {
-    "title": "접근할 수 없어요",
-    "hint": "관리자 키가 올바르지 않습니다. 다시 확인해 주세요.",
-    "retry": "키 다시 입력"
+  "denied": {
+    "title": "잘못된 접근입니다"
   },
   "qr": {
     "title": "매장 QR",

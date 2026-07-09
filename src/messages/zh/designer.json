@@ -125,6 +125,7 @@
     "pending": "发送中…",
     "reportCta": "施术记录",
     "translatedNote": "将自动翻译为顾客的语言",
+    "translating": "翻译中…",
     "sendError": "消息发送失败，请重试。",
     "quickReplies": {
       "title": "快捷回复",

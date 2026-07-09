@@ -16,7 +16,7 @@ const LOCALE_LABELS: Record<string, string> = {
  * 운영자 화면(어드민·오너 콘솔) 언어 전환 토글.
  * 현재 경로의 [locale] 세그먼트만 바꿔 재이동한다(쿼리·나머지 경로 보존).
  * 링크 생성기는 ko 고정이므로, 진입 후 여기서 원하는 언어로 바꾼다.
- * 쿼리는 클릭 시 window.location.search 로 읽어 보존(어드민 ?key= 유지) —
+ * 쿼리는 클릭 시 window.location.search 로 읽어 보존(어드민 ?view=/?salon= 유지) —
  * useSearchParams 의 Suspense 경계 요구를 피한다.
  */
 export function LocaleSwitch() {

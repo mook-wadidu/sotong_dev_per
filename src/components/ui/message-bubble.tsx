@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
  * - `side`: "me" = 보는 사람 본인(오른쪽), "them" = 상대(왼쪽)
  * - `textLang`/`originalLang`: 각 문단 <p lang> 부여 (스크린리더·자형 정확도)
  * - `pending`: 낙관적 전송 중 → "전송 중" 표시
+ * - `translating`: cross-locale 원문 폴백 상태 → 본문을 muted/italic 처리하고 원문 병기 숨김
  */
 export function MessageBubble({
   text,
@@ -15,6 +16,7 @@ export function MessageBubble({
   side,
   meta,
   pending,
+  translating,
   textLang,
   originalLang,
   pendingLabel = "전송 중…",
@@ -25,6 +27,8 @@ export function MessageBubble({
   side: "me" | "them";
   meta?: React.ReactNode;
   pending?: boolean;
+  /** 번역 대기(원문 폴백) placeholder 상태 */
+  translating?: boolean;
   /** 번역 본문 언어 코드 (예: "ko") */
   textLang?: string;
   /** 원문 언어 코드 (예: "ja") */
@@ -51,10 +55,16 @@ export function MessageBubble({
           pending && "opacity-70",
         )}
       >
-        <p className="whitespace-pre-wrap break-words" lang={textLang}>
+        <p
+          className={cn(
+            "whitespace-pre-wrap break-words",
+            translating && "italic text-muted-foreground",
+          )}
+          lang={textLang}
+        >
           {text}
         </p>
-        {original ? (
+        {original && !translating ? (
           <p
             lang={originalLang}
             className={cn(

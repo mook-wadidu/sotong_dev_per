@@ -125,6 +125,7 @@
     "pending": "送信中…",
     "reportCta": "施術記録",
     "translatedNote": "お客様の言語へ自動翻訳されます",
+    "translating": "翻訳中…",
     "sendError": "メッセージを送信できませんでした。もう一度お試しください。",
     "quickReplies": {
       "title": "クイック返信",

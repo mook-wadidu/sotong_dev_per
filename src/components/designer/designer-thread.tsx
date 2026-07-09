@@ -23,6 +23,7 @@ import {
 } from "@/lib/catalog";
 import { sendMessage, pollMessages } from "@/lib/actions";
 import {
+  isAwaitingTranslation,
   messageMainText,
   messageOriginalText,
   messageSide,
@@ -32,7 +33,7 @@ import { cn } from "@/lib/utils";
 import type { Message, Locale, QuickReplyIntent } from "@/lib/domain/types";
 
 const VIEWER: Locale = "ko"; // 디자이너 뷰 고정
-const POLL_MS = 2000;
+const POLL_MS = 800;
 
 /** 자유 타이핑 금지(P0-11) — 흔한 가격 프리셋(KRW won). 손님에겐 formatPrice 로 통화 표기. */
 const PRICE_PRESETS = [30000, 50000, 80000, 100000, 120000, 150000];
@@ -63,6 +64,7 @@ export function DesignerThread({
     pricePrompt: string;
     timePrompt: string;
     pending: string;
+    translating: string;
     translatedNote: string;
     autoPrice: string;
     reportCta: string;
@@ -232,12 +234,16 @@ export function DesignerThread({
             );
           }
           const side = messageSide(m, "designer");
+          const translating = isAwaitingTranslation(m, VIEWER);
           return (
             <MessageBubble
               key={m.id}
               side={side}
-              text={messageMainText(m, VIEWER)}
-              original={messageOriginalText(m, VIEWER)}
+              text={translating ? labels.translating : messageMainText(m, VIEWER)}
+              original={
+                translating ? undefined : messageOriginalText(m, VIEWER)
+              }
+              translating={translating}
               textLang={VIEWER}
               originalLang={m.sourceLocale}
             />

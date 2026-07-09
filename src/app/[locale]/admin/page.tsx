@@ -6,24 +6,14 @@ import {
   getSalonConsole,
   type AdminViewData,
 } from "@/lib/service";
-import {
-  AdminShell,
-  Button,
-  buttonVariants,
-  FormField,
-  Input,
-} from "@/components/ui";
+import { AdminShell, buttonVariants } from "@/components/ui";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminInquiries, AdminErrors } from "@/components/admin/admin-sections";
 import { SalonManageSection } from "@/components/admin/salon-manage-section";
 import { Onboarding } from "@/components/admin/onboarding";
-import {
-  adminPath,
-  adminGatePath,
-  salonConsolePath,
-  type AdminView,
-} from "@/lib/links";
+import { adminPath, salonConsolePath, type AdminView } from "@/lib/links";
 import { shareOrigin } from "@/lib/origin";
+import { readAdminSession } from "@/lib/admin-session";
 
 const VIEWS: AdminView[] = [
   "dashboard",
@@ -40,71 +30,28 @@ const localizeHref = (href: string, locale: string) =>
 
 /**
  * 어드민 대시보드 (ko 데스크톱/태블릿) — 사이드바 기반.
- * - searchParams.key 없으면 키 입력 게이트.
- * - key 있으면 getAdminData(key, salon) → 실패 시 인증 오류 화면.
- * - 통과 시 AdminLayout(사이드바) + view 분기.
+ * - 세션 쿠키 무효 → 중립 "잘못된 접근" 화면(폼 없음).
+ * - 유효 → getAdminData(salon)(서버 재검증) → AdminLayout(사이드바) + view 분기.
+ * - 진입은 /api/admin/enter?key=... 가 쿠키를 발급(페이지엔 키 게이트 없음).
  */
 export default async function AdminPage({
   params,
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ key?: string; salon?: string; view?: string }>;
+  searchParams: Promise<{ salon?: string; view?: string }>;
 }) {
   const { locale } = await params;
-  const { key, salon, view: viewParam } = await searchParams;
+  const { salon, view: viewParam } = await searchParams;
   const t = await getTranslations("Admin");
 
-  // ── 게이트: 키 없음 ──────────────────────────────────
-  if (!key) {
-    return (
-      <AdminShell title={t("title")} subtitle={t("subtitle")}>
-        <div className="mx-auto mt-12 max-w-md rounded-2xl border border-border bg-card p-8">
-          <h2 className="text-lg font-semibold">{t("gate.title")}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t("gate.hint")}</p>
-          <form method="get" className="mt-6 space-y-4">
-            <FormField label={t("gate.label")}>
-              <Input
-                name="key"
-                type="password"
-                autoComplete="off"
-                placeholder={t("gate.placeholder")}
-                required
-              />
-            </FormField>
-            <Button type="submit" className="w-full" size="lg">
-              {t("gate.submit")}
-            </Button>
-          </form>
-        </div>
-      </AdminShell>
-    );
+  // ── 게이트: 세션 쿠키 무효 → 중립 "잘못된 접근" ────────
+  if (!(await readAdminSession())) {
+    return <DeniedScreen title={t("denied.title")} />;
   }
 
-  // ── 인증 + 데이터 로드 ───────────────────────────────
-  let data: AdminViewData;
-  try {
-    data = await getAdminData(key, salon);
-  } catch {
-    return (
-      <AdminShell title={t("title")} subtitle={t("subtitle")}>
-        <div className="mx-auto mt-12 max-w-md rounded-2xl border-2 border-foreground bg-card p-8 text-center">
-          <h2 className="text-lg font-semibold">{t("gate.title")}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t("gate.hint")}</p>
-          {/* 같은(틀린) 키로 재이동하면 변화가 없으므로, 키 없는 게이트(입력 폼)로 보낸다. */}
-          <Link
-            href={localizeHref(adminGatePath(), locale)}
-            className={
-              buttonVariants({ variant: "outline", size: "lg" }) + " mt-6"
-            }
-          >
-            {t("gate.retry")}
-          </Link>
-        </div>
-      </AdminShell>
-    );
-  }
-
+  // 세션 통과 → 데이터 로드(서버에서 재검증).
+  const data: AdminViewData = await getAdminData(salon);
   const { salons, consultations, errors } = data;
   const view: AdminView = VIEWS.includes(viewParam as AdminView)
     ? (viewParam as AdminView)
@@ -122,8 +69,23 @@ export default async function AdminPage({
   ];
 
   return (
-    <AdminShell title={t("title")} subtitle={t("subtitle")}>
-      <AdminLayout adminKey={key} view={view}>
+    <AdminShell
+      title={t("title")}
+      subtitle={t("subtitle")}
+      actions={
+        // 라우트핸들러(쿠키 만료 + 리다이렉트)로의 "전체 페이지 이동"이 필요 —
+        // next/link 의 클라 네비게이션은 Set-Cookie 리다이렉트를 제대로 타지 않는다.
+        // (api 경로는 페이지가 아니므로 아래 룰은 오탐.)
+        // eslint-disable-next-line @next/next/no-html-link-for-pages
+        <a
+          href="/api/admin/exit"
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {t("nav.logout")}
+        </a>
+      }
+    >
+      <AdminLayout view={view}>
         {view === "dashboard" ? (
           <div className="space-y-6">
             {/* 통계 타일 */}
@@ -184,7 +146,7 @@ export default async function AdminPage({
                       <div className="flex shrink-0 gap-2">
                         <Link
                           href={localizeHref(
-                            adminPath(key, { view: "salons", salon: s.slug }),
+                            adminPath({ view: "salons", salon: s.slug }),
                             locale,
                           )}
                           className={buttonVariants({
@@ -216,7 +178,6 @@ export default async function AdminPage({
 
         {view === "salons" ? (
           <SalonsView
-            adminKey={key}
             origin={origin}
             salons={salons}
             selectedSlug={salon}
@@ -227,7 +188,6 @@ export default async function AdminPage({
         {view === "inquiries" ? (
           <div className="space-y-4">
             <SalonFilter
-              adminKey={key}
               locale={locale}
               view="inquiries"
               salons={salons}
@@ -242,7 +202,6 @@ export default async function AdminPage({
         {view === "errors" ? (
           <div className="space-y-4">
             <SalonFilter
-              adminKey={key}
               locale={locale}
               view="errors"
               salons={salons}
@@ -255,16 +214,29 @@ export default async function AdminPage({
         ) : null}
 
         {view === "onboarding" ? (
-          <Onboarding adminKey={key} salons={salons} origin={origin} />
+          <Onboarding salons={salons} origin={origin} />
         ) : null}
       </AdminLayout>
     </AdminShell>
   );
 }
 
+/**
+ * 미인증 진입 화면 — 중립 "잘못된 접근입니다"(관리자 브랜딩·폼·재시도 링크 없음).
+ * no-key·wrong-key 를 동일하게 처리(오라클 제거). 진입은 /api/admin/enter?key= 로만.
+ */
+function DeniedScreen({ title }: { title: string }) {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 text-center">
+        <p className="text-base font-semibold text-foreground">{title}</p>
+      </div>
+    </div>
+  );
+}
+
 /** 접수/오류 뷰 지점 필터(전역) — URL 로 유지. */
 function SalonFilter({
-  adminKey,
   locale,
   view,
   salons,
@@ -272,7 +244,6 @@ function SalonFilter({
   label,
   allLabel,
 }: {
-  adminKey: string;
   locale: string;
   view: AdminView;
   salons: AdminViewData["salons"];
@@ -291,7 +262,7 @@ function SalonFilter({
         return (
           <Link
             key={f.slug ?? "__all"}
-            href={localizeHref(adminPath(adminKey, { view, salon: f.slug }), locale)}
+            href={localizeHref(adminPath({ view, salon: f.slug }), locale)}
             aria-current={active ? "true" : undefined}
             className={
               active
@@ -309,13 +280,11 @@ function SalonFilter({
 
 /** 지점 관리 뷰 — 살롱 선택 시 접속 정보 + 전체 편집, 없으면 선택 리스트. */
 async function SalonsView({
-  adminKey,
   origin,
   salons,
   selectedSlug,
   locale,
 }: {
-  adminKey: string;
   origin: string;
   salons: AdminViewData["salons"];
   selectedSlug?: string;
@@ -348,7 +317,7 @@ async function SalonsView({
               <li key={s.slug}>
                 <Link
                   href={localizeHref(
-                    adminPath(adminKey, { view: "salons", salon: s.slug }),
+                    adminPath({ view: "salons", salon: s.slug }),
                     locale,
                   )}
                   className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
@@ -389,7 +358,7 @@ async function SalonsView({
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <Link
-          href={localizeHref(adminPath(adminKey, { view: "salons" }), locale)}
+          href={localizeHref(adminPath({ view: "salons" }), locale)}
           className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           ← {t("nav.salons")}

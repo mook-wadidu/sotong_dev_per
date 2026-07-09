@@ -12,7 +12,8 @@
     "salons": "Salon management",
     "inquiries": "Intakes",
     "errors": "Errors",
-    "onboarding": "Onboarding"
+    "onboarding": "Onboarding",
+    "logout": "Log out"
   },
   "dashboard": {
     "title": "Salons overview",
@@ -55,17 +56,8 @@
     "salons": "Salons",
     "inquiries": "Intakes"
   },
-  "gate": {
-    "title": "Enter admin key",
-    "hint": "An admin key is required to view salons, intakes & errors.",
-    "label": "Admin key",
-    "placeholder": "Enter your admin key",
-    "submit": "Enter"
-  },
-  "authError": {
-    "title": "Can't access",
-    "hint": "The admin key is invalid. Please check and try again.",
-    "retry": "Re-enter key"
+  "denied": {
+    "title": "Invalid access"
   },
   "qr": {
     "title": "Salon QR",

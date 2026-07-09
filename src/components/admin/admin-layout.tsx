@@ -19,11 +19,9 @@ import { adminPath, type AdminView } from "@/lib/links";
  * children = 섹션 콘텐츠(서버에서 view 분기로 주입).
  */
 export function AdminLayout({
-  adminKey,
   view,
   children,
 }: {
-  adminKey: string;
   view: AdminView;
   children: React.ReactNode;
 }) {
@@ -52,7 +50,7 @@ export function AdminLayout({
         return (
           <Link
             key={item.key}
-            href={localized(adminPath(adminKey, { view: item.key }))}
+            href={localized(adminPath({ view: item.key }))}
             aria-current={active ? "page" : undefined}
             onClick={onNavigate}
             className={

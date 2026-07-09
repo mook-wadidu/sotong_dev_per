@@ -75,6 +75,7 @@ export default async function DesignerThreadPage({
           pricePrompt: t("thread.quickReplies.pricePrompt"),
           timePrompt: t("thread.quickReplies.timePrompt"),
           pending: t("thread.pending"),
+          translating: t("thread.translating"),
           translatedNote: t("thread.translatedNote"),
           autoPrice: t("thread.quickReplies.autoPrice"),
           reportCta: t("thread.reportCta"),

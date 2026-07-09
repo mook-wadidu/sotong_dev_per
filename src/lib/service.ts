@@ -1,4 +1,5 @@
 import "server-only";
+import { after } from "next/server";
 import { createHash, randomBytes } from "node:crypto";
 import { getRepo } from "@/lib/db";
 import { config } from "@/lib/config";
@@ -35,9 +36,9 @@ import {
 import {
   makeDesignerEntryToken,
   makeSalonEntryToken,
-  verifyAdminKey,
   verifyEntryToken,
 } from "@/lib/entry";
+import { readAdminSession } from "@/lib/admin-session";
 import {
   customerEntryPath,
   designerInboxPath,
@@ -827,7 +828,7 @@ export async function getCustomerView(
     consultation: stripPhone(c),
     // 초기 메시지도 viewer(손님 언어) 번역을 채워 반환 — 번역이 send 경로에서 빠졌으므로
     // SSR 초기 렌더에서 미번역 노출 방지(폴은 초기셋 이후만 가져오므로 여기서 채워야 함).
-    messages: await fillViewerTranslations(
+    messages: fillViewerTranslations(
       c.id,
       await repo.listMessages(c.id),
       c.customerLocale,
@@ -933,7 +934,7 @@ export async function getDesignerView(
     salon: salon ? toPublicSalon(salon) : null,
     consultation: c,
     // 디자이너 뷰(ko)도 초기 메시지 번역을 채워 반환(SSR 미번역 방지, 위와 동일 이유).
-    messages: await fillViewerTranslations(
+    messages: fillViewerTranslations(
       c.id,
       await repo.listMessages(c.id),
       "ko",
@@ -950,27 +951,46 @@ export async function getDesignerView(
  * 번역은 send 경로에서 동기로 기다리지 않는다(보낸 사람은 자기 원문만 보면 됨).
  * 수신자가 폴(getMessagesSince)할 때, viewer 로케일이 비어있는 메시지만 그때 번역해
  * 캐시(updateMessageTranslations)한다 → "sending" 지연 제거(라이브 latency 버그). */
-async function fillViewerTranslations(
+// 같은 (메시지,대상로케일) 번역이 여러 폴에서 중복 발사되지 않게(인스턴스 내 best-effort).
+const inFlightTranslate = new Set<string>();
+
+/** 백그라운드 번역+캐시 — after() 로 응답 뒤에 실행. 실패는 삼키고 다음 폴에서 재시도. */
+async function translateAndCache(
+  consultationId: string,
+  m: Message,
+  to: Locale,
+): Promise<void> {
+  if (m.sourceLocale === to || m.translations[to] != null) return;
+  const key = `${m.id}:${to}`;
+  if (inFlightTranslate.has(key)) return;
+  inFlightTranslate.add(key);
+  try {
+    const translated = await getAi().translate({
+      text: m.sourceText,
+      from: m.sourceLocale,
+      to,
+      domain: "salon",
+    });
+    await getRepo().updateMessageTranslations(consultationId, m.id, {
+      ...m.translations,
+      [to]: translated,
+    });
+  } catch {
+    // 다음 폴에서 재시도
+  } finally {
+    inFlightTranslate.delete(key);
+  }
+}
+
+function fillViewerTranslations(
   consultationId: string,
   messages: Message[],
   viewer: Locale,
-): Promise<Message[]> {
-  const repo = getRepo();
-  const ai = getAi();
+): Message[] {
   for (const m of messages) {
     if (m.sourceLocale === viewer || m.translations[viewer] != null) continue;
-    try {
-      const translated = await ai.translate({
-        text: m.sourceText,
-        from: m.sourceLocale,
-        to: viewer,
-        domain: "salon",
-      });
-      m.translations = { ...m.translations, [viewer]: translated };
-      await repo.updateMessageTranslations(consultationId, m.id, m.translations);
-    } catch {
-      // 번역 실패 → 원문 폴백(메시지는 전달), 다음 폴에서 재시도.
-    }
+    // 번역은 응답 뒤(after) 백그라운드로 — 폴은 즉시 반환, 다음 폴이 캐시를 픽업.
+    after(() => translateAndCache(consultationId, m, viewer));
   }
   return messages;
 }
@@ -989,7 +1009,9 @@ export async function postMessage(input: {
     input.role === "customer"
       ? await repo.getByConsultationToken(input.token)
       : await repo.getByDesignerToken(input.token);
-  if (!c) return null;
+  if (!c) {
+    return null;
+  }
 
   // 레이트리밋 — 토큰+역할당 분당 메시지 상한(P0-10)
   await enforceRate(`msg:${input.role}:${input.token}`, 30, 60_000, {
@@ -1054,7 +1076,9 @@ export async function postMessage(input: {
     }
 
     const text = (input.text ?? "").trim();
-    if (!text) return null;
+    if (!text) {
+      return null;
+    }
     const sourceLocale: Locale = input.role === "customer" ? c.customerLocale : "ko";
     // 원문만 저장하고 즉시 반환 — 번역은 수신자 폴 시점(fillViewerTranslations)에 채운다.
     const msg = await repo.addMessage({
@@ -1065,6 +1089,11 @@ export async function postMessage(input: {
       intent: input.intent,
       translations: { [sourceLocale]: text },
     });
+    // 상대 로케일 선번역(폴 갭 동안 캐시 완료 유도) — 손님 msg→ko, 디자이너 msg→customerLocale.
+    const otherLocale: Locale = input.role === "customer" ? "ko" : c.customerLocale;
+    if (msg && msg.sourceLocale !== otherLocale) {
+      after(() => translateAndCache(c.id, msg, otherLocale));
+    }
     return msg;
   } catch (e) {
     await logIssue({
@@ -1097,7 +1126,9 @@ export async function getMessagesSince(input: {
   const msgs = await repo.listMessages(c.id, input.sinceIso);
   // viewer 로케일이 빈 메시지만 그때 번역·캐시(send 경로에서 뺀 번역을 읽는 쪽에서 채움).
   const viewer: Locale = input.role === "customer" ? c.customerLocale : "ko";
-  return fillViewerTranslations(c.id, msgs, viewer);
+  // 번역은 after() 로 백그라운드 예약만 — 폴 응답은 현재 캐시 상태 그대로 즉시 반환.
+  const result = fillViewerTranslations(c.id, msgs, viewer);
+  return result;
 }
 
 /* ── 시술 전 사진 저장 (요약 단계 촬영) ─────────────────────────
@@ -1833,23 +1864,14 @@ export interface AdminViewData {
 
 /**
  * 어드민 데이터(인증 필수, P0).
- * - verifyAdminKey 실패 → throw (무인증 전 지점 PII 노출 차단)
+ * - 세션 쿠키 검증 실패 → throw (무인증 전 지점 PII 노출 차단)
  * - salons → AdminSalon[] (entryToken/entryPath 서버 계산)
  * - consultations → ConsultationListItem[] (헤드라인/마스킹 폰/사진·PII 제외)
  */
 export async function getAdminData(
-  adminKey: string | undefined | null,
   salonSlug?: string,
 ): Promise<AdminViewData> {
-  if (!verifyAdminKey(adminKey)) {
-    await logIssue({
-      salonSlug,
-      severity: "warning",
-      source: "admin",
-      message: "어드민 인증 실패",
-    });
-    throw new Error("어드민 인증에 실패했습니다.");
-  }
+  await ensureAdminSession(salonSlug);
   const repo = getRepo();
   const [salons, consultations, errors] = await Promise.all([
     repo.listSalons(),
@@ -2475,12 +2497,18 @@ export async function rotateDesignerStaffToken(input: {
 }
 
 /* ──────────────────────────────────────────────────────────────
- * 플랫폼 어드민 온보딩 (adminKey 권한) — 살롱/디자이너 생성.
+ * 플랫폼 어드민 온보딩 (세션 쿠키 권한) — 살롱/디자이너 생성.
  * ──────────────────────────────────────────────────────────────── */
 
-/** 어드민 인증 게이트 — 실패 시 logIssue(warning) + throw. */
-function ensureAdmin(adminKey: string | undefined | null): void {
-  if (!verifyAdminKey(adminKey)) {
+/** 어드민 세션 게이트 — 쿠키 무효 시 logIssue(warning) + throw. */
+async function ensureAdminSession(salonSlug?: string): Promise<void> {
+  if (!(await readAdminSession())) {
+    await logIssue({
+      salonSlug,
+      severity: "warning",
+      source: "admin",
+      message: "어드민 인증 실패",
+    });
     throw new Error("어드민 인증에 실패했습니다.");
   }
 }
@@ -2494,14 +2522,13 @@ export interface CreatedSalonResult {
 
 /** 살롱 생성(어드민). ownerToken·콘솔 링크·공용 QR 토큰을 함께 반환. */
 export async function adminCreateSalon(
-  adminKey: string | undefined | null,
   input: {
     slug: string;
     name: string;
     address?: string;
   },
 ): Promise<CreatedSalonResult> {
-  ensureAdmin(adminKey);
+  await ensureAdminSession();
   const repo = getRepo();
 
   const slug = input.slug?.trim();
@@ -2549,14 +2576,13 @@ export interface CreatedDesignerResult {
 
 /** 디자이너 생성(어드민). staffToken/QR/인박스 경로 반환(전달용). */
 export async function adminCreateDesigner(
-  adminKey: string | undefined | null,
   input: {
     salonSlug: string;
     name: string;
     rankId?: string;
   },
 ): Promise<CreatedDesignerResult> {
-  ensureAdmin(adminKey);
+  await ensureAdminSession();
   const repo = getRepo();
 
   const salon = await repo.getSalon(input.salonSlug);

@@ -20,6 +20,7 @@ import { getConsultationStatus, pollMessages, sendMessage } from "@/lib/actions"
 import { reportPath } from "@/lib/links";
 import { ConsultationSummary } from "@/components/shared/consultation-summary";
 import {
+  isAwaitingTranslation,
   messageMainText,
   messageOriginalText,
   messageSide,
@@ -30,7 +31,7 @@ import type {
   Message,
 } from "@/lib/domain/types";
 
-const POLL_MS = 2000;
+const POLL_MS = 800;
 
 /** 낙관적(전송 중) 메시지 — 서버 Message 와 구분하기 위한 로컬 표현 */
 interface Pending {
@@ -283,16 +284,26 @@ export function CustomerThread({
           ) : null}
 
           {/* 초기 로드 메시지 — 정적 영역(aria-live 밖) */}
-          {initialMessages.map((m) => (
-            <MessageBubble
-              key={m.id}
-              side={messageSide(m, "customer")}
-              text={messageMainText(m, locale)}
-              original={messageOriginalText(m, locale)}
-              textLang={locale}
-              originalLang={m.sourceLocale}
-            />
-          ))}
+          {initialMessages.map((m) => {
+            const translating = isAwaitingTranslation(m, locale);
+            return (
+              <MessageBubble
+                key={m.id}
+                side={messageSide(m, "customer")}
+                text={
+                  translating
+                    ? t("thread.translating")
+                    : messageMainText(m, locale)
+                }
+                original={
+                  translating ? undefined : messageOriginalText(m, locale)
+                }
+                translating={translating}
+                textLang={locale}
+                originalLang={m.sourceLocale}
+              />
+            );
+          })}
 
           {/* 신규 도착/전송 메시지 — aria-live(polite) 로 announce */}
           <div
@@ -300,16 +311,26 @@ export function CustomerThread({
             aria-live="polite"
             aria-relevant="additions"
           >
-            {liveMessages.map((m) => (
-              <MessageBubble
-                key={m.id}
-                side={messageSide(m, "customer")}
-                text={messageMainText(m, locale)}
-                original={messageOriginalText(m, locale)}
-                textLang={locale}
-                originalLang={m.sourceLocale}
-              />
-            ))}
+            {liveMessages.map((m) => {
+              const translating = isAwaitingTranslation(m, locale);
+              return (
+                <MessageBubble
+                  key={m.id}
+                  side={messageSide(m, "customer")}
+                  text={
+                    translating
+                      ? t("thread.translating")
+                      : messageMainText(m, locale)
+                  }
+                  original={
+                    translating ? undefined : messageOriginalText(m, locale)
+                  }
+                  translating={translating}
+                  textLang={locale}
+                  originalLang={m.sourceLocale}
+                />
+              );
+            })}
 
             {pending.map((p) => (
               <MessageBubble

@@ -184,6 +184,7 @@
     "you": "我",
     "designer": "设计师",
     "translatedNote": "将自动翻译后转达",
+    "translating": "翻译中…",
     "empty": "咨询已开始。请写下您想了解的内容。",
     "sending": "发送中…",
     "sendError": "消息发送失败",

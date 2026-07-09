@@ -18,6 +18,12 @@ export function messageOriginalText(
   return main !== msg.sourceText ? msg.sourceText : undefined;
 }
 
+/** cross-locale 메시지가 아직 viewer 언어로 번역 안 됨(원문 폴백 상태) → placeholder 대상 */
+export function isAwaitingTranslation(msg: Message, viewer: Locale): boolean {
+  if (msg.sender === "system") return false;
+  return msg.sourceLocale !== viewer && msg.translations[viewer] == null;
+}
+
 /** viewer 기준으로 이 메시지가 내 것(오른쪽)인지 */
 export function messageSide(
   msg: Message,

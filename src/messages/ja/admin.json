@@ -12,7 +12,8 @@
     "salons": "店舗管理",
     "inquiries": "受付履歴",
     "errors": "エラー",
-    "onboarding": "オンボーディング"
+    "onboarding": "オンボーディング",
+    "logout": "ログアウト"
   },
   "dashboard": {
     "title": "店舗一覧",
@@ -55,17 +56,8 @@
     "salons": "店舗数",
     "inquiries": "受付数"
   },
-  "gate": {
-    "title": "管理者キーを入力",
-    "hint": "店舗・受付・エラーの状況を見るには管理者キーが必要です。",
-    "label": "管理者キー",
-    "placeholder": "管理者キーを入力してください",
-    "submit": "入る"
-  },
-  "authError": {
-    "title": "アクセスできません",
-    "hint": "管理者キーが正しくありません。もう一度ご確認ください。",
-    "retry": "キーを再入力"
+  "denied": {
+    "title": "無効なアクセスです"
   },
   "qr": {
     "title": "店舗QR",

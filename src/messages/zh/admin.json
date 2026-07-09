@@ -12,7 +12,8 @@
     "salons": "门店管理",
     "inquiries": "登记记录",
     "errors": "错误",
-    "onboarding": "入驻"
+    "onboarding": "入驻",
+    "logout": "退出登录"
   },
   "dashboard": {
     "title": "门店概览",
@@ -55,17 +56,8 @@
     "salons": "门店数",
     "inquiries": "登记数"
   },
-  "gate": {
-    "title": "输入管理员密钥",
-    "hint": "查看门店·登记·错误概况需要管理员密钥。",
-    "label": "管理员密钥",
-    "placeholder": "请输入管理员密钥",
-    "submit": "进入"
-  },
-  "authError": {
-    "title": "无法访问",
-    "hint": "管理员密钥不正确。请重新确认。",
-    "retry": "重新输入密钥"
+  "denied": {
+    "title": "无效的访问"
   },
   "qr": {
     "title": "门店二维码",

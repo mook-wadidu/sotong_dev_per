@@ -42,6 +42,8 @@ import type {
  */
 /** Gemini fetch 타임아웃(ms) — 초과 시 abort → catch → mock 폴백(무한 hang 방지, P0). */
 const GEMINI_TIMEOUT_MS = 9000;
+/** 채팅 번역 전용 타임아웃(ms) — 백그라운드 after() 실행이라 짧게 잡아 재시도 회전을 빠르게. */
+const CHAT_TRANSLATE_TIMEOUT_MS = 2500;
 
 export class GeminiProvider implements AiProvider {
   readonly name = "gemini";
@@ -61,25 +63,29 @@ export class GeminiProvider implements AiProvider {
       return this.mapSummary(parsed, input);
     } catch (err) {
       console.warn("[gemini] summarizeIntake fallback → mock:", asMsg(err));
-      return this.fallback.summarizeIntake(input);
+      return await this.fallback.summarizeIntake(input);
     }
   }
 
   async translate(input: TranslateInput): Promise<string> {
-    if (input.from === input.to) return input.text;
+    if (input.from === input.to) {
+      return input.text;
+    }
     try {
       const text = await this.generate({
         prompt: buildTranslatePrompt(input),
         json: false,
         // 번역은 직역 작업 — 추론(thinking) 불필요. 토큰/지연 낭비 차단.
         thinkingBudget: 0,
+        // 채팅 번역은 백그라운드(after) 실행 — 짧은 타임아웃으로 빠르게 폴백/재시도.
+        timeoutMs: CHAT_TRANSLATE_TIMEOUT_MS,
       });
       const cleaned = cleanText(text);
       if (!cleaned) throw new Error("translate: empty output");
       return cleaned;
     } catch (err) {
       console.warn("[gemini] translate fallback → mock:", asMsg(err));
-      return this.fallback.translate(input);
+      return await this.fallback.translate(input);
     }
   }
 
@@ -98,7 +104,7 @@ export class GeminiProvider implements AiProvider {
       return this.mapReport(parsed, mockDraft);
     } catch (err) {
       console.warn("[gemini] draftReport fallback → mock:", asMsg(err));
-      return this.fallback.draftReport(input);
+      return await this.fallback.draftReport(input);
     }
   }
 
@@ -110,8 +116,12 @@ export class GeminiProvider implements AiProvider {
     schema?: GeminiSchema;
     /** gemini-2.5-flash thinking 예산(토큰). 0=비활성(번역/요약 낭비 절감). */
     thinkingBudget?: number;
+    /** 이 호출의 abort 타임아웃(ms). 미지정 시 GEMINI_TIMEOUT_MS(9000). */
+    timeoutMs?: number;
   }): Promise<string> {
-    if (!config.geminiApiKey) throw new Error("GEMINI_API_KEY missing");
+    if (!config.geminiApiKey) {
+      throw new Error("GEMINI_API_KEY missing");
+    }
 
     const url =
       `https://generativelanguage.googleapis.com/v1beta/models/` +
@@ -142,7 +152,8 @@ export class GeminiProvider implements AiProvider {
     // 타임아웃 가드(P0): Gemini 지연 시 무한 await 를 막고 catch→mock 폴백으로 흘린다.
     // (운영 AI 지연 순간 손님/디자이너가 무한 스피너에 갇히지 않도록.)
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+    const timeoutMs = opts.timeoutMs ?? GEMINI_TIMEOUT_MS;
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     let res: Response;
     try {
       res = await fetch(url, {
@@ -155,7 +166,7 @@ export class GeminiProvider implements AiProvider {
       });
     } catch (e) {
       if (controller.signal.aborted) {
-        throw new Error(`Gemini timeout after ${GEMINI_TIMEOUT_MS}ms`);
+        throw new Error(`Gemini timeout after ${timeoutMs}ms`);
       }
       throw e;
     } finally {
@@ -169,7 +180,9 @@ export class GeminiProvider implements AiProvider {
 
     const data = (await res.json()) as GeminiResponse;
     const out = extractText(data);
-    if (!out) throw new Error("Gemini: no text in response");
+    if (!out) {
+      throw new Error("Gemini: no text in response");
+    }
     return out;
   }
 

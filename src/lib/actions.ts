@@ -225,10 +225,9 @@ export async function assignConsultation(
 export type AdminData = AdminViewData;
 
 export async function getAdminData(
-  adminKey: string | undefined | null,
   salonSlug?: string,
 ): Promise<AdminData> {
-  return getAdminDataSvc(adminKey, salonSlug);
+  return getAdminDataSvc(salonSlug);
 }
 
 /* ── 클라이언트 에러 리포트 (에러 바운더리에서 호출) ───── */
@@ -332,13 +331,12 @@ export async function rotateOwnerToken(
   return rotateOwnerTokenSvc(ownerToken);
 }
 
-/* ── 플랫폼 어드민: 살롱/디자이너 생성 (adminKey 검증) ──── */
+/* ── 플랫폼 어드민: 살롱/디자이너 생성 (세션 쿠키 검증) ──── */
 export async function adminCreateSalon(
-  adminKey: string | undefined | null,
   input: { slug: string; name: string; address?: string },
 ): Promise<{ ok: true; result: CreatedSalonResult } | { ok: false; error: string }> {
   try {
-    const result = await adminCreateSalonSvc(adminKey, input);
+    const result = await adminCreateSalonSvc(input);
     return { ok: true, result };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "생성 실패" };
@@ -346,13 +344,12 @@ export async function adminCreateSalon(
 }
 
 export async function adminCreateDesigner(
-  adminKey: string | undefined | null,
   input: { salonSlug: string; name: string; rankId?: string },
 ): Promise<
   { ok: true; result: CreatedDesignerResult } | { ok: false; error: string }
 > {
   try {
-    const result = await adminCreateDesignerSvc(adminKey, input);
+    const result = await adminCreateDesignerSvc(input);
     return { ok: true, result };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "생성 실패" };

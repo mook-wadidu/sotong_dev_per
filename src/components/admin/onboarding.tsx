@@ -21,14 +21,12 @@ import type {
 /**
  * 플랫폼 어드민 온보딩 — 살롱 생성 + 디자이너 생성.
  * 생성 후 ownerToken·콘솔 링크·staffToken/QR 경로를 전달용으로 표시한다.
- * 모든 액션은 서버에서 adminKey 를 재검증한다.
+ * 모든 액션은 서버에서 세션 쿠키를 재검증한다.
  */
 export function Onboarding({
-  adminKey,
   salons,
   origin,
 }: {
-  adminKey: string;
   salons: AdminSalon[];
   origin: string;
 }) {
@@ -36,13 +34,8 @@ export function Onboarding({
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <SalonForm
-        adminKey={adminKey}
-        origin={origin}
-        onCreated={() => router.refresh()}
-      />
+      <SalonForm origin={origin} onCreated={() => router.refresh()} />
       <DesignerForm
-        adminKey={adminKey}
         salons={salons}
         origin={origin}
         onCreated={() => router.refresh()}
@@ -89,11 +82,9 @@ function CredRow({
 
 /* ── 살롱 생성 ─────────────────────────────────────────── */
 function SalonForm({
-  adminKey,
   origin,
   onCreated,
 }: {
-  adminKey: string;
   origin: string;
   onCreated: () => void;
 }) {
@@ -109,7 +100,7 @@ function SalonForm({
     e.preventDefault();
     setError(undefined);
     setPending(true);
-    const res = await adminCreateSalon(adminKey, {
+    const res = await adminCreateSalon({
       slug: slug.trim(),
       name: name.trim(),
       address: address.trim() || undefined,
@@ -193,12 +184,10 @@ function SalonForm({
 
 /* ── 디자이너 생성 ─────────────────────────────────────── */
 function DesignerForm({
-  adminKey,
   salons,
   origin,
   onCreated,
 }: {
-  adminKey: string;
   salons: AdminSalon[];
   origin: string;
   onCreated: () => void;
@@ -238,7 +227,7 @@ function DesignerForm({
       return;
     }
     setPending(true);
-    const res = await adminCreateDesigner(adminKey, {
+    const res = await adminCreateDesigner({
       salonSlug,
       name: name.trim(),
       rankId: rankId || undefined,

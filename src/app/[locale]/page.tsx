@@ -3,7 +3,6 @@ import { ArrowUpRight } from "lucide-react";
 import { hasLocale } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
-import { adminGatePath } from "@/lib/links";
 import { buttonVariants } from "@/components/ui/button";
 import { MobileFrame, ScreenBody } from "@/components/ui/mobile-frame";
 import { LogoSymbol } from "@/components/brand/logo";
@@ -18,7 +17,6 @@ const COPY: Partial<
       hi: string;
       sub: string;
       customer: string;
-      admin: string;
       note: string;
       demo: string;
     }
@@ -28,7 +26,6 @@ const COPY: Partial<
     hi: "소통",
     sub: "외국인 손님을 위한 다국어 AI 상담·접수 데스크",
     customer: "손님으로 시작하기",
-    admin: "직원용 · 어드민 대시보드",
     note: "손님이 접수하면 담당 디자이너 휴대폰으로 바로 알림이 갑니다.",
     demo: "소통이란?",
   },
@@ -36,7 +33,6 @@ const COPY: Partial<
     hi: "Sotong",
     sub: "外国人のお客様のための多言語AI受付・カウンセリング",
     customer: "お客様としてはじめる",
-    admin: "スタッフ用 · 管理ダッシュボード",
     note: "受付が完了すると、デザイナーに要約リンクが届きます。",
     demo: "Sotongとは？",
   },
@@ -44,7 +40,6 @@ const COPY: Partial<
     hi: "Sotong",
     sub: "A multilingual AI reception desk for foreign salon guests",
     customer: "Start as a guest",
-    admin: "Staff · Admin dashboard",
     note: "After intake, the designer receives a summary link.",
     demo: "What is Sotong?",
   },
@@ -106,19 +101,6 @@ export default async function Home({
           <p className="text-center text-xs leading-relaxed text-muted-foreground">
             {t.note}
           </p>
-        </div>
-
-        {/* 직원/운영자 진입 (부차적, 손님 혼란 방지 위해 약하게) */}
-        <div className="animate-fade text-center">
-          <Link
-            href={adminGatePath(locale as Locale)}
-            className={cn(
-              buttonVariants({ variant: "link", size: "sm" }),
-              "text-muted-foreground hover:text-accent-text",
-            )}
-          >
-            {t.admin}
-          </Link>
         </div>
       </ScreenBody>
     </MobileFrame>

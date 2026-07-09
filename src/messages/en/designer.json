@@ -125,6 +125,7 @@
     "pending": "Sending…",
     "reportCta": "Record service",
     "translatedNote": "Automatically translated into the guest's language",
+    "translating": "Translating…",
     "sendError": "Couldn't send the message. Please try again.",
     "quickReplies": {
       "title": "Quick replies",

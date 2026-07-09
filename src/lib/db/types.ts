@@ -338,6 +338,30 @@ export type NewErrorLog = Omit<ErrorLog, "id" | "createdAt"> & {
   createdAt?: string;
 };
 
+/**
+ * 유입(홍보) 방문 이벤트 — 리플렛 QR 직접진입 추적(어드민 확인용).
+ * source: 'qr' — Sec-Fetch-Dest=document 로 /demo 를 직접 연 진입(홈 SPA 클릭·프리페치 제외).
+ */
+export interface VisitEvent {
+  id: string;
+  source: string; // 'qr'
+  path: string; // 진입 경로 (예: /ko/demo)
+  referrer?: string; // Referer 헤더(있으면)
+  createdAt: string;
+}
+
+export type NewVisitEvent = Omit<VisitEvent, "id" | "createdAt"> & {
+  createdAt?: string;
+};
+
+/** 유입 방문 조회 옵션 */
+export interface ListVisitsOptions {
+  source?: string;
+  /** 최근 N일 이내만 */
+  sinceDays?: number;
+  limit?: number;
+}
+
 export interface ListConsultationsOptions {
   salonSlug?: string;
   limit?: number;
@@ -486,6 +510,10 @@ export interface Repo {
   /** 에러/이슈 로깅 (어드민 모니터링) */
   logError(entry: NewErrorLog): Promise<ErrorLog>;
   listErrors(opts?: ListConsultationsOptions): Promise<ErrorLog[]>;
+
+  /** 유입(QR/직접진입) 방문 로깅 + 조회 (어드민 홍보 유입 확인) */
+  logVisit(entry: NewVisitEvent): Promise<void>;
+  listVisits(opts?: ListVisitsOptions): Promise<VisitEvent[]>;
 
   /**
    * 고정 윈도우 레이트리밋 증분(서버리스 멀티인스턴스 공유 카운터, P0).

@@ -22,14 +22,17 @@ import type {
   DesignerRank,
   ErrorLog,
   ListConsultationsOptions,
+  ListVisitsOptions,
   NewErrorLog,
   NewMessage,
   NewPushSub,
+  NewVisitEvent,
   PushSub,
   Repo,
   Salon,
   SalonService,
   SalonServiceCategory,
+  VisitEvent,
 } from "./types";
 import { DEFAULT_DESIGNER_RANKS } from "./types";
 
@@ -51,6 +54,7 @@ interface Store {
   reports: Map<string, HairReport>; // reportToken -> report
   pushSubs: Map<string, PushSub>; // endpoint -> subscription
   errors: ErrorLog[];
+  visits: VisitEvent[]; // 유입(QR/직접진입) 방문 이벤트, append-only(최신 앞)
   rateBuckets: Map<string, number>; // `${bucket}|${windowStart}` -> count
   customers: Map<string, Customer>; // customerId -> Customer
   hairProfiles: Map<string, CustomerHairProfile>; // customerId -> 최신 프로필
@@ -274,6 +278,7 @@ function freshStore(): Store {
     reports: new Map(),
     pushSubs: new Map(),
     errors: [],
+    visits: [],
     rateBuckets: new Map(),
     customers: new Map(),
     hairProfiles: new Map(),
@@ -757,6 +762,26 @@ export class MemoryRepo implements Repo {
     let list = store.errors;
     if (opts?.salonSlug)
       list = list.filter((e) => e.salonSlug === opts.salonSlug);
+    return opts?.limit ? list.slice(0, opts.limit) : [...list];
+  }
+
+  async logVisit(entry: NewVisitEvent): Promise<void> {
+    const event: VisitEvent = {
+      ...entry,
+      id: randomUUID(),
+      createdAt: entry.createdAt ?? now(),
+    };
+    store.visits.unshift(event);
+    if (store.visits.length > 10_000) store.visits.length = 10_000;
+  }
+
+  async listVisits(opts?: ListVisitsOptions): Promise<VisitEvent[]> {
+    let list = store.visits;
+    if (opts?.source) list = list.filter((v) => v.source === opts.source);
+    if (opts?.sinceDays) {
+      const since = Date.now() - opts.sinceDays * 86_400_000;
+      list = list.filter((v) => new Date(v.createdAt).getTime() >= since);
+    }
     return opts?.limit ? list.slice(0, opts.limit) : [...list];
   }
 

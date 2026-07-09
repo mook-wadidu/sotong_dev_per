@@ -12,6 +12,7 @@
     "salons": "店舗管理",
     "inquiries": "受付履歴",
     "errors": "エラー",
+    "traffic": "販促流入",
     "onboarding": "オンボーディング"
   },
   "dashboard": {
@@ -116,6 +117,14 @@
     "inquiries": "まだ受付された相談はありません",
     "errors": "記録されたエラーはありません",
     "salons": "登録された店舗はありません"
+  },
+  "traffic": {
+    "title": "販促QR流入",
+    "hint": "リーフレットのQRからデモページに直接アクセスした訪問です（直近{days}日）。ホームから遷移した訪問は除外されます。",
+    "total": "QR流入の総訪問",
+    "totalHint": "QRを読み取ってデモページを開いた回数（同一人物の複数回も含む）",
+    "daily": "日別（韓国時間）",
+    "empty": "まだQRからの訪問はありません"
   },
   "onboarding": {
     "salonTitle": "サロン作成",

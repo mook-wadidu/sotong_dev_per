@@ -72,6 +72,7 @@ export type AdminView =
   | "salons"
   | "inquiries"
   | "errors"
+  | "traffic"
   | "onboarding";
 
 /**

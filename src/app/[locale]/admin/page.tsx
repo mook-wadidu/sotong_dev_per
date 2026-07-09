@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import {
   getAdminData,
+  getQrTraffic,
   getSalonConsole,
   type AdminViewData,
 } from "@/lib/service";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminInquiries, AdminErrors } from "@/components/admin/admin-sections";
+import { AdminTraffic } from "@/components/admin/admin-traffic";
 import { SalonManageSection } from "@/components/admin/salon-manage-section";
 import { Onboarding } from "@/components/admin/onboarding";
 import {
@@ -30,6 +32,7 @@ const VIEWS: AdminView[] = [
   "salons",
   "inquiries",
   "errors",
+  "traffic",
   "onboarding",
 ];
 
@@ -252,6 +255,10 @@ export default async function AdminPage({
             />
             <AdminErrors errors={errors} />
           </div>
+        ) : null}
+
+        {view === "traffic" ? (
+          <AdminTraffic data={await getQrTraffic(key)} />
         ) : null}
 
         {view === "onboarding" ? (

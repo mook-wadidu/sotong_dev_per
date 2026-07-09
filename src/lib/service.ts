@@ -192,6 +192,24 @@ export async function logIssue(entry: {
   }
 }
 
+/* ── 유입(홍보) 방문 로깅 (어드민 확인용) ─────────────────
+ * 리플렛 QR(순수 /demo, 표식 없음)로 들어온 방문을 서버가 기록한다.
+ * QR 스캔 = 브라우저의 최상위 문서 로드(Sec-Fetch-Dest: document)이고,
+ * 홈에서의 "데모 보기" 클릭은 Next SPA 전환(sec-fetch-dest: empty)이라
+ * 호출부(데모 페이지)에서 document 진입만 골라 이 함수를 부른다.
+ * 메인 렌더를 절대 막지 않는다 — 실패해도 삼킨다(throw 금지). */
+export async function logVisit(entry: {
+  source: string;
+  path: string;
+  referrer?: string;
+}): Promise<void> {
+  try {
+    await getRepo().logVisit(entry);
+  } catch (e) {
+    console.error("[sotong] logVisit failed", e);
+  }
+}
+
 /* ── 디자이너 웹푸시 ─────────────────────────────────────────
  * 구독 저장(saveDesignerPush) + 알림 발송(notifyDesigner).
  * 발송은 메인 플로우(인테이크/상담)를 절대 막지 않는다 — throw 금지. */
@@ -1889,6 +1907,53 @@ export async function getAdminData(
     consultations: consultations.map(toListItem),
     errors,
   };
+}
+
+/** QR/홍보 유입 집계(어드민 확인용) — 총합 + 일자별. */
+export interface QrTrafficData {
+  total: number;
+  /** 과거→최근 순 일자별 카운트(KST 기준 YYYY-MM-DD) */
+  daily: { date: string; count: number }[];
+  /** 집계 대상 기간(일) */
+  sinceDays: number;
+}
+
+/**
+ * QR/홍보 유입 집계(인증 필수 — 어드민 키). 개발자·팀원만 열람.
+ * source='qr' 방문(리플렛 QR 직접진입)만 최근 sinceDays 일 집계.
+ * 일자 버킷은 한국시간(Asia/Seoul) 기준 — 저녁 방문이 UTC 로 다음날 쪼개지지 않게.
+ */
+export async function getQrTraffic(
+  adminKey: string | undefined | null,
+  sinceDays = 60,
+): Promise<QrTrafficData> {
+  if (!verifyAdminKey(adminKey)) {
+    await logIssue({
+      severity: "warning",
+      source: "admin",
+      message: "어드민 인증 실패(유입)",
+    });
+    throw new Error("어드민 인증에 실패했습니다.");
+  }
+  const visits = await getRepo().listVisits({
+    source: "qr",
+    sinceDays,
+    limit: 10_000,
+  });
+
+  // KST 일자(YYYY-MM-DD)로 그룹핑 — 'en-CA' 로 ISO 형식 날짜를 뽑는다.
+  const kstDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
+  const counts = new Map<string, number>();
+  for (const v of visits) {
+    const d = kstDate(v.createdAt);
+    counts.set(d, (counts.get(d) ?? 0) + 1);
+  }
+  const daily = [...counts.entries()]
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  return { total: visits.length, daily, sinceDays };
 }
 
 /**

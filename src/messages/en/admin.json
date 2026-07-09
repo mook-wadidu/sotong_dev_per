@@ -12,6 +12,7 @@
     "salons": "Salon management",
     "inquiries": "Intakes",
     "errors": "Errors",
+    "traffic": "Promo traffic",
     "onboarding": "Onboarding"
   },
   "dashboard": {
@@ -116,6 +117,14 @@
     "inquiries": "No intakes yet",
     "errors": "No errors recorded",
     "salons": "No salons registered"
+  },
+  "traffic": {
+    "title": "Promo QR traffic",
+    "hint": "Visits that opened the demo page directly via the leaflet QR (last {days} days). Visits from clicking through the home page are excluded.",
+    "total": "Total QR visits",
+    "totalHint": "Times the demo page was opened by scanning the QR (repeats by the same person are included)",
+    "daily": "By day (KST)",
+    "empty": "No QR visits yet"
   },
   "onboarding": {
     "salonTitle": "Create salon",

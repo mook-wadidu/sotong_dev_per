@@ -12,6 +12,7 @@
     "salons": "门店管理",
     "inquiries": "登记记录",
     "errors": "错误",
+    "traffic": "推广流量",
     "onboarding": "入驻"
   },
   "dashboard": {
@@ -116,6 +117,14 @@
     "inquiries": "暂无登记的咨询",
     "errors": "暂无记录的错误",
     "salons": "暂无已注册的门店"
+  },
+  "traffic": {
+    "title": "推广二维码流量",
+    "hint": "通过宣传单二维码直接打开演示页面的访问（最近 {days} 天）。从首页点击进入的访问不计入。",
+    "total": "二维码访问总数",
+    "totalHint": "扫描二维码后打开演示页面的次数（含同一人的多次访问）",
+    "daily": "按日期（韩国时间）",
+    "empty": "暂无来自二维码的访问"
   },
   "onboarding": {
     "salonTitle": "创建沙龙",

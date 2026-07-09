@@ -41,6 +41,7 @@ export function AdminLayout({
     { key: "salons", label: t("nav.salons") },
     { key: "inquiries", label: t("nav.inquiries") },
     { key: "errors", label: t("nav.errors") },
+    { key: "traffic", label: t("nav.traffic") },
     { key: "onboarding", label: t("nav.onboarding") },
   ];
 

@@ -12,6 +12,7 @@
     "salons": "지점 관리",
     "inquiries": "접수 내역",
     "errors": "오류",
+    "traffic": "홍보 유입",
     "onboarding": "온보딩"
   },
   "dashboard": {
@@ -116,6 +117,14 @@
     "inquiries": "아직 접수된 상담이 없어요",
     "errors": "기록된 오류가 없어요",
     "salons": "등록된 지점이 없어요"
+  },
+  "traffic": {
+    "title": "홍보 QR 유입",
+    "hint": "리플렛 QR로 데모 페이지에 직접 들어온 방문입니다 (최근 {days}일). 홈에서 눌러 들어온 방문은 제외됩니다.",
+    "total": "QR 유입 총 방문",
+    "totalHint": "QR을 찍고 데모 페이지를 연 횟수 (같은 사람이 여러 번이면 중복 포함)",
+    "daily": "일자별 (한국 시간)",
+    "empty": "아직 QR로 들어온 방문이 없어요"
   },
   "onboarding": {
     "salonTitle": "살롱 생성",

@@ -35,14 +35,17 @@ import type {
   ErrorLog,
   ErrorSeverity,
   ListConsultationsOptions,
+  ListVisitsOptions,
   NewErrorLog,
   NewMessage,
   NewPushSub,
+  NewVisitEvent,
   PushSub,
   Repo,
   Salon,
   SalonService,
   SalonServiceCategory,
+  VisitEvent,
 } from "./types";
 import { DEFAULT_DESIGNER_RANKS } from "./types";
 
@@ -231,6 +234,14 @@ interface PushSubRow {
   created_at: string;
 }
 
+interface VisitEventRow {
+  id: string;
+  source: string;
+  path: string;
+  referrer: string | null;
+  created_at: string;
+}
+
 const SALON_COLS =
   "slug,name,name_translations,locales,address,tel,business_hours,placement_label,entry_key_version,designer_ranks,owner_token";
 const STAFF_COLS = "id,salon_slug,name,staff_token,entry_key_version,rank_id";
@@ -254,6 +265,7 @@ const ERROR_COLS =
   "id,salon_slug,severity,source,message,detail,consultation_id,created_at";
 const PUSH_SUB_COLS =
   "id,designer_id,staff_token,endpoint,p256dh,auth,created_at";
+const VISIT_EVENT_COLS = "id,source,path,referrer,created_at";
 
 /* ── row → 도메인 매핑 ───────────────────────────────────── */
 /** label_ko + label_translations(jsonb) → LocalizedText (ko 항상 채움). */
@@ -477,6 +489,16 @@ function toErrorLog(r: ErrorLogRow): ErrorLog {
     message: r.message,
     detail: r.detail ?? undefined,
     consultationId: r.consultation_id ?? undefined,
+    createdAt: r.created_at,
+  };
+}
+
+function toVisitEvent(r: VisitEventRow): VisitEvent {
+  return {
+    id: r.id,
+    source: r.source,
+    path: r.path,
+    referrer: r.referrer ?? undefined,
     createdAt: r.created_at,
   };
 }
@@ -1284,6 +1306,36 @@ export class SupabaseRepo implements Repo {
     const { data, error } = await q;
     if (error) fail("listErrors", error);
     return ((data ?? []) as ErrorLogRow[]).map(toErrorLog);
+  }
+
+  /* ── 유입(홍보) 방문 이벤트 ────────────────────────────── */
+  async logVisit(entry: NewVisitEvent): Promise<void> {
+    const row = {
+      source: entry.source,
+      path: entry.path,
+      referrer: entry.referrer ?? null,
+      ...(entry.createdAt ? { created_at: entry.createdAt } : {}),
+    };
+    const { error } = await this.client.from("visit_events").insert(row);
+    if (error) fail("logVisit", error);
+  }
+
+  async listVisits(opts?: ListVisitsOptions): Promise<VisitEvent[]> {
+    let q = this.client
+      .from("visit_events")
+      .select(VISIT_EVENT_COLS)
+      .order("created_at", { ascending: false });
+    if (opts?.source) q = q.eq("source", opts.source);
+    if (opts?.sinceDays) {
+      const since = new Date(
+        Date.now() - opts.sinceDays * 86_400_000,
+      ).toISOString();
+      q = q.gte("created_at", since);
+    }
+    q = q.limit(opts?.limit ?? 10_000);
+    const { data, error } = await q;
+    if (error) fail("listVisits", error);
+    return ((data ?? []) as VisitEventRow[]).map(toVisitEvent);
   }
 
   /**

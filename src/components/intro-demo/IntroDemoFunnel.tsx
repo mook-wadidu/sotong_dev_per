@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import ContactPicker from "@/components/intro-demo/ContactPicker";
 import FloatingContactButton from "@/components/intro-demo/FloatingContactButton";
+import PromoPopup from "@/components/intro-demo/PromoPopup";
 import Container from "@/components/intro-demo/Container";
 import Section, {
   Reveal,
@@ -148,6 +149,9 @@ export default function IntroDemoFunnel() {
 
       {/* 스크롤 위치와 무관하게 항상 떠 있는 문의 버블 */}
       <FloatingContactButton />
+
+      {/* 진입 시 1회 뜨는 7월 한정 "1년 무료" 이벤트 팝업 */}
+      <PromoPopup />
     </div>
   );
 }

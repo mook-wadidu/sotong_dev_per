@@ -1962,6 +1962,17 @@ export async function getDesignerInbox(staffToken: string): Promise<{
   };
 }
 
+/* ── 캡슐 토큰 last_seen — 진입점(오너 콘솔·디자이너 인박스 "페이지")에서만 호출 ──────
+ * 유출 감지 soft 신호. 공유 서비스(getSalonConsole/getDesignerInbox)에 두면 어드민 뷰·액션 래퍼에도
+ * 물려 신호가 오염되므로, "본인이 자기 링크를 연" 실제 진입점 페이지에서만 기록한다.
+ * after() 응답 후 백그라운드 · 스로틀(repo) · best-effort(실패 삼킴). ip 는 위조 불가 소스만(없으면 null). */
+export function recordOwnerTokenSeen(salonSlug: string, ip: string | null): void {
+  after(() => getRepo().touchOwnerTokenSeen(salonSlug, ip).catch(() => {}));
+}
+export function recordStaffTokenSeen(designerId: string, ip: string | null): void {
+  after(() => getRepo().touchStaffTokenSeen(designerId, ip).catch(() => {}));
+}
+
 /**
  * 미배정 상담을 디자이너에게 배정('내 손님으로 가져오기').
  * staffToken 으로 디자이너 검증 후, consultationToken(=designerToken) 으로 상담을 찾아 배정.

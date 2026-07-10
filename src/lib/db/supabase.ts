@@ -237,6 +237,8 @@ const SALON_COLS =
   "slug,name,name_translations,locales,address,tel,business_hours,placement_label,entry_key_version,designer_ranks,owner_token,owner_token_revoked";
 const STAFF_COLS =
   "id,salon_slug,name,staff_token,entry_key_version,rank_id,staff_token_revoked";
+/** last_seen write-on-read 스로틀(10분) — 이 간격보다 최근 기록이 있으면 write 안 함. */
+const TOKEN_SEEN_THROTTLE_MS = 10 * 60 * 1000;
 const SALON_SERVICE_CATEGORY_COLS =
   "id,salon_slug,label_ko,label_translations,sort_order";
 const SALON_SERVICE_COLS =
@@ -605,6 +607,29 @@ export class SupabaseRepo implements Repo {
     if (error) fail("setOwnerTokenRevoked", error);
   }
 
+  async touchOwnerTokenSeen(
+    salonSlug: string,
+    ip: string | null,
+  ): Promise<void> {
+    // 조건부 UPDATE — WHERE 에서 스로틀(null 이거나 10분 이상 지난 경우만 write). 사전 read 없이 1쿼리,
+    // 동시요청이면 첫 write 가 WHERE 를 닫아 나머지 no-op(race-safe). now 하나로 SET·threshold 파생.
+    const now = new Date();
+    const thresholdIso = new Date(
+      now.getTime() - TOKEN_SEEN_THROTTLE_MS,
+    ).toISOString();
+    const { error } = await this.client
+      .from("salons")
+      .update({
+        owner_token_last_seen_at: now.toISOString(),
+        owner_token_last_seen_ip: ip,
+      })
+      .eq("slug", salonSlug)
+      .or(
+        `owner_token_last_seen_at.is.null,owner_token_last_seen_at.lt.${thresholdIso}`,
+      );
+    if (error) fail("touchOwnerTokenSeen", error);
+  }
+
   /* ── 디자이너(스태프) ──────────────────────────────────── */
   async getDesignerByStaffToken(t: string): Promise<Designer | null> {
     if (!t) return null;
@@ -630,6 +655,28 @@ export class SupabaseRepo implements Repo {
       .update({ staff_token_revoked: revoked })
       .eq("id", designerId);
     if (error) fail("setStaffTokenRevoked", error);
+  }
+
+  async touchStaffTokenSeen(
+    designerId: string,
+    ip: string | null,
+  ): Promise<void> {
+    // 조건부 UPDATE — WHERE 에서 스로틀(null 이거나 10분 이상 지난 경우만). now 하나로 SET·threshold 파생.
+    const now = new Date();
+    const thresholdIso = new Date(
+      now.getTime() - TOKEN_SEEN_THROTTLE_MS,
+    ).toISOString();
+    const { error } = await this.client
+      .from("staff")
+      .update({
+        staff_token_last_seen_at: now.toISOString(),
+        staff_token_last_seen_ip: ip,
+      })
+      .eq("id", designerId)
+      .or(
+        `staff_token_last_seen_at.is.null,staff_token_last_seen_at.lt.${thresholdIso}`,
+      );
+    if (error) fail("touchStaffTokenSeen", error);
   }
 
   async updateDesignerStaffToken(

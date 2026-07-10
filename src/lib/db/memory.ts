@@ -58,7 +58,12 @@ interface Store {
   trainingSamples: TrainingSample[]; // 비식별 학습 샘플(append-only)
   revokedOwnerTokens: Set<string>; // owner_token 무효화(재발급 없이 kill) — salonSlug 집합
   revokedStaffTokens: Set<string>; // staff_token 무효화 — designerId 집합
+  ownerTokenSeen: Map<string, { at: number; ip: string | null }>; // slug -> last_seen(스로틀)
+  staffTokenSeen: Map<string, { at: number; ip: string | null }>; // designerId -> last_seen
 }
+
+/** last_seen write-on-read 스로틀(10분) — supabase 드라이버와 동일. */
+const TOKEN_SEEN_THROTTLE_MS = 10 * 60 * 1000;
 
 // 직급(rank) — 양 살롱 동일(데모). 신규 살롱 기본값과 동일 진실원천.
 const DEMO_RANKS: DesignerRank[] = DEFAULT_DESIGNER_RANKS;
@@ -283,6 +288,8 @@ function freshStore(): Store {
     trainingSamples: [],
     revokedOwnerTokens: new Set(),
     revokedStaffTokens: new Set(),
+    ownerTokenSeen: new Map(),
+    staffTokenSeen: new Map(),
   };
 }
 
@@ -327,6 +334,18 @@ export class MemoryRepo implements Repo {
   ): Promise<void> {
     if (revoked) store.revokedOwnerTokens.add(salonSlug);
     else store.revokedOwnerTokens.delete(salonSlug);
+  }
+
+  async touchOwnerTokenSeen(
+    salonSlug: string,
+    ip: string | null,
+  ): Promise<void> {
+    const prev = store.ownerTokenSeen.get(salonSlug);
+    const now = Date.now();
+    // 스로틀: 최근 10분 내 기록 있으면 write 안 함(supabase 조건부 UPDATE 와 동일 동작).
+    if (!prev || now - prev.at >= TOKEN_SEEN_THROTTLE_MS) {
+      store.ownerTokenSeen.set(salonSlug, { at: now, ip });
+    }
   }
 
   async createSalon(input: CreateSalonInput): Promise<Salon> {
@@ -397,6 +416,17 @@ export class MemoryRepo implements Repo {
   ): Promise<void> {
     if (revoked) store.revokedStaffTokens.add(designerId);
     else store.revokedStaffTokens.delete(designerId);
+  }
+
+  async touchStaffTokenSeen(
+    designerId: string,
+    ip: string | null,
+  ): Promise<void> {
+    const prev = store.staffTokenSeen.get(designerId);
+    const now = Date.now();
+    if (!prev || now - prev.at >= TOKEN_SEEN_THROTTLE_MS) {
+      store.staffTokenSeen.set(designerId, { at: now, ip });
+    }
   }
 
   async updateDesignerStaffToken(

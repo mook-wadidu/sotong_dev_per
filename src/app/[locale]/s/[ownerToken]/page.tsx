@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { headers } from "next/headers";
-import { getSalonConsole } from "@/lib/service";
+import { getSalonConsole, recordOwnerTokenSeen } from "@/lib/service";
 import { shareOrigin } from "@/lib/origin";
 import { AdminShell } from "@/components/ui";
 import { SalonConsole } from "@/components/salon-console/salon-console";
@@ -19,7 +19,7 @@ export default async function SalonConsolePage({
 }) {
   const { ownerToken } = await params;
   const t = await getTranslations("Admin");
-
+  const h = await headers();
   const data = await getSalonConsole(ownerToken);
 
   if (!data) {
@@ -37,8 +37,10 @@ export default async function SalonConsolePage({
     );
   }
 
+  // 오너가 자기 콘솔을 연 실제 진입점 — last_seen 기록(유출 감지). x-real-ip = 위조 불가 플랫폼 헤더만(없으면 null).
+  recordOwnerTokenSeen(data.salon.slug, h.get("x-real-ip"));
+
   // QR 절대 URL — 운영 정식 도메인 우선(보호된 프리뷰 호스트 인코딩 방지), 없으면 요청 Host.
-  const h = await headers();
   const origin = shareOrigin(h.get("host"), h.get("x-forwarded-proto") ?? "http");
 
   return (

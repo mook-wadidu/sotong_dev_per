@@ -368,6 +368,11 @@ export interface Repo {
   updateSalonOwnerToken(salonSlug: string, ownerToken: string): Promise<void>;
   /** owner_token 개별 무효화(재발급 없이 kill) — 무효 시 getSalonByOwnerToken 이 null. 유출 대응. */
   setOwnerTokenRevoked(salonSlug: string, revoked: boolean): Promise<void>;
+  /**
+   * owner_token 사용 흔적 기록(유출 감지 soft 신호). 스로틀(10분)로 write 증폭 차단.
+   * 실 신호는 last_seen_at(휴면 급사용·이상 시각). ip 는 위조 불가 소스만(x-real-ip; 없으면 null).
+   */
+  touchOwnerTokenSeen(salonSlug: string, ip: string | null): Promise<void>;
 
   /** 디자이너 조회 (살롱 1 : 디자이너 N) */
   getDesignerByStaffToken(token: string): Promise<Designer | null>;
@@ -381,6 +386,8 @@ export interface Repo {
   updateDesignerStaffToken(designerId: string, staffToken: string): Promise<void>;
   /** staff_token 개별 무효화(재발급 없이 kill) — 무효 시 getDesignerByStaffToken 이 null. 유출 대응. */
   setStaffTokenRevoked(designerId: string, revoked: boolean): Promise<void>;
+  /** staff_token 사용 흔적 기록(스로틀·유출 감지 soft 신호). ip 는 위조 불가 소스만(없으면 null). */
+  touchStaffTokenSeen(designerId: string, ip: string | null): Promise<void>;
 
   /** 살롱별 시술 카탈로그 (콘솔 편집 대상) */
   listServiceCategories(salonSlug: string): Promise<SalonServiceCategory[]>;

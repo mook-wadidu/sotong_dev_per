@@ -87,7 +87,10 @@ export function hasPii(c: Consultation): boolean {
  *
  * 비PII(시술 종류·요약 등)는 운영 통계를 위해 남긴다. 요약(summary.raw) 에는
  * 가공된 정보가 들어갈 수 있으나 전화·사진 원본은 아니므로 여기서는 유지한다.
- * (요약/리포트 사진까지 파기하려면 옵션을 추가할 것 — 법무 검토.)
+ *
+ * 리포트(hair_reports)의 고객 PII(before/after 사진·style_request·concerns)는 이 도메인
+ * 함수 밖 — repo.scrubConsultationPii 가 consultation_id 로 파기한다(리포트는 consultationId
+ * 로만 매칭 가능해 도메인 Consultation 만으론 못 건드림). 선정은 reportsWithPii 가 담당.
  */
 export function redactConsultationPii(c: Consultation): Consultation {
   return {
@@ -177,6 +180,12 @@ export async function cleanupExpiredPII(
       c.status as (typeof TERMINAL_STATUSES)[number],
     ),
   );
+  const expired = terminal.filter((c) => isPiiExpired(c, now, retentionDays));
+
+  // 리포트(hair_reports)에 고객 PII 가 남은 상담 — consultation 이 이미 마스킹돼도
+  // 리포트 사진/자유텍스트가 남으면 파기 대상(hasPii 는 consultation 필드만 봐서 놓친다).
+  // 배치 1쿼리로 조회 → 선정에 반영.
+  const reportPii = await repo.reportsWithPii(expired.map((c) => c.id));
 
   const result: CleanupResult = {
     scanned: terminal.length,
@@ -185,9 +194,10 @@ export async function cleanupExpiredPII(
     failures: [],
   };
 
-  for (const c of terminal) {
-    if (!isPiiExpired(c, now, retentionDays)) continue;
-    if (!hasPii(c)) continue; // 이미 파기됨 — skip
+  for (const c of expired) {
+    // consultation PII 또는 리포트 PII 중 하나라도 남으면 파기(scrub 이 둘 다 처리).
+    // 둘 다 비면 skip(이미 전부 파기됨) — 부분실패 시엔 남은 쪽이 잡혀 다음 런에 재시도된다.
+    if (!hasPii(c) && !reportPii.has(c.id)) continue;
     result.expired += 1;
     if (!scrub) continue; // dry-run
     try {

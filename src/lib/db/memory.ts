@@ -583,6 +583,35 @@ export class MemoryRepo implements Repo {
     if (store.consultations.has(redacted.id)) {
       store.consultations.set(redacted.id, redacted);
     }
+    // 리포트(hair_reports)의 고객 유래 PII 도 파기(consultationId 매칭 — 리포트 여러 개 가능).
+    for (const [tok, rep] of store.reports) {
+      if (rep.consultationId === redacted.id) {
+        store.reports.set(tok, {
+          ...rep,
+          beforePhotoUrl: undefined,
+          afterPhotoUrl: undefined,
+          styleRequest: undefined,
+          concerns: undefined,
+        });
+      }
+    }
+  }
+
+  async reportsWithPii(consultationIds: string[]): Promise<Set<string>> {
+    const ids = new Set(consultationIds);
+    const out = new Set<string>();
+    for (const rep of store.reports.values()) {
+      if (
+        ids.has(rep.consultationId) &&
+        (rep.beforePhotoUrl ||
+          rep.afterPhotoUrl ||
+          rep.styleRequest ||
+          rep.concerns)
+      ) {
+        out.add(rep.consultationId);
+      }
+    }
+    return out;
   }
 
   /* ── 데이터 엔진: 손님 식별 / 카르테 ──────────────────────── */

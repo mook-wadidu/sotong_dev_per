@@ -943,6 +943,36 @@ export class SupabaseRepo implements Repo {
       })
       .eq("id", redacted.id);
     if (error) fail("scrubConsultationPii", error);
+    // 리포트(hair_reports)의 고객 유래 PII 도 파기 — 리테인션이 못 건드리던 갭 수리.
+    // consultation 을 삭제 아닌 마스킹하므로 on-delete-cascade 가 안 터진다 → 명시적 UPDATE.
+    // (consultationId 당 리포트 여러 개 가능: report_token + designer_report_token → WHERE 로 전부.)
+    const { error: e3 } = await this.client
+      .from("hair_reports")
+      .update({
+        before_photo_url: null,
+        after_photo_url: null,
+        style_request: null,
+        concerns: null,
+      })
+      .eq("consultation_id", redacted.id);
+    if (e3) fail("scrubConsultationPii(report)", e3);
+  }
+
+  async reportsWithPii(consultationIds: string[]): Promise<Set<string>> {
+    if (consultationIds.length === 0) return new Set();
+    const { data, error } = await this.client
+      .from("hair_reports")
+      .select("consultation_id")
+      .in("consultation_id", consultationIds)
+      .or(
+        "before_photo_url.not.is.null,after_photo_url.not.is.null,style_request.not.is.null,concerns.not.is.null",
+      );
+    if (error) fail("reportsWithPii", error);
+    return new Set(
+      ((data ?? []) as { consultation_id: string }[]).map(
+        (r) => r.consultation_id,
+      ),
+    );
   }
 
   /* ── 데이터 엔진: 손님 식별 / 카르테 ──────────────────────── */

@@ -471,6 +471,12 @@ export interface Repo {
    * 만든 마스킹된 상담(비PII 필드는 그대로 유지). cleanupExpiredPII 가 호출.
    */
   scrubConsultationPii(redacted: Consultation): Promise<void>;
+  /**
+   * 주어진 상담들 중 hair_reports 에 고객 유래 PII(사진·style_request·concerns)가
+   * **아직 남은** 상담 id 집합. cleanupExpiredPII 선정용 — consultation 이 이미 마스킹돼도
+   * 리포트가 남으면 파기 대상으로 잡기 위함(hasPii 는 consultation 필드만 봐서 놓친다).
+   */
+  reportsWithPii(consultationIds: string[]): Promise<Set<string>>;
 
   addMessage(msg: NewMessage): Promise<Message>;
   listMessages(consultationId: string, sinceIso?: string): Promise<Message[]>;

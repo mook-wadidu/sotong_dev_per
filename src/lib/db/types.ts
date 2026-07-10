@@ -364,8 +364,10 @@ export interface Repo {
   updateSalonEntryKeyVersion(slug: string, version: number): Promise<void>;
   /** 살롱 디자이너 직급 정의 교체(콘솔 직급 편집) — designer_ranks 통째 갱신 */
   updateSalonRanks(salonSlug: string, ranks: DesignerRank[]): Promise<void>;
-  /** 오너 콘솔 접근 토큰 회전 — 유출 시 새 랜덤으로 교체(기존 콘솔 링크 무효화) */
+  /** 오너 콘솔 토큰 회전 — 새 토큰 세팅 + revoked 클리어를 원자적으로(회전=복구, 락아웃 방지). */
   updateSalonOwnerToken(salonSlug: string, ownerToken: string): Promise<void>;
+  /** owner_token 개별 무효화(재발급 없이 kill) — 무효 시 getSalonByOwnerToken 이 null. 유출 대응. */
+  setOwnerTokenRevoked(salonSlug: string, revoked: boolean): Promise<void>;
 
   /** 디자이너 조회 (살롱 1 : 디자이너 N) */
   getDesignerByStaffToken(token: string): Promise<Designer | null>;
@@ -373,8 +375,12 @@ export interface Repo {
   listDesigners(salonSlug: string): Promise<Designer[]>;
   /** 디자이너 생성 (콘솔/시드) — staffToken/entryKeyVersion 발급 */
   createDesigner(input: CreateDesignerInput): Promise<Designer>;
-  /** 디자이너 수정 (이름/직급 등) */
+  /** 디자이너 수정 (이름/직급 등) — 토큰-write 아님(회전은 updateDesignerStaffToken). */
   updateDesigner(designer: Designer): Promise<void>;
+  /** staff_token 회전 — 새 토큰 세팅 + revoked 클리어를 원자적으로(락아웃 방지). */
+  updateDesignerStaffToken(designerId: string, staffToken: string): Promise<void>;
+  /** staff_token 개별 무효화(재발급 없이 kill) — 무효 시 getDesignerByStaffToken 이 null. 유출 대응. */
+  setStaffTokenRevoked(designerId: string, revoked: boolean): Promise<void>;
 
   /** 살롱별 시술 카탈로그 (콘솔 편집 대상) */
   listServiceCategories(salonSlug: string): Promise<SalonServiceCategory[]>;

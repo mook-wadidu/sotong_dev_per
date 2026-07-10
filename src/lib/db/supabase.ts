@@ -74,6 +74,7 @@ interface SalonRow {
   // jsonb 원본 — label 은 구버전 string 또는 신버전 LocalizedText. toSalon 이 normalizeRank 로 정규화.
   designer_ranks: { id: string; label: unknown }[] | null;
   owner_token: string;
+  owner_token_revoked: boolean;
 }
 
 interface StaffRow {
@@ -83,6 +84,7 @@ interface StaffRow {
   staff_token: string;
   entry_key_version: number;
   rank_id: string | null;
+  staff_token_revoked: boolean;
 }
 
 interface SalonServiceCategoryRow {
@@ -232,8 +234,9 @@ interface PushSubRow {
 }
 
 const SALON_COLS =
-  "slug,name,name_translations,locales,address,tel,business_hours,placement_label,entry_key_version,designer_ranks,owner_token";
-const STAFF_COLS = "id,salon_slug,name,staff_token,entry_key_version,rank_id";
+  "slug,name,name_translations,locales,address,tel,business_hours,placement_label,entry_key_version,designer_ranks,owner_token,owner_token_revoked";
+const STAFF_COLS =
+  "id,salon_slug,name,staff_token,entry_key_version,rank_id,staff_token_revoked";
 const SALON_SERVICE_CATEGORY_COLS =
   "id,salon_slug,label_ko,label_translations,sort_order";
 const SALON_SERVICE_COLS =
@@ -526,7 +529,11 @@ export class SupabaseRepo implements Repo {
       .eq("owner_token", t)
       .maybeSingle();
     if (error) fail("getSalonByOwnerToken", error);
-    return data ? toSalon(data as SalonRow) : null;
+    if (!data) return null;
+    const row = data as SalonRow;
+    // 무효화된 토큰 = 없는 것과 동일 취급(유출 대응, 재발급 없이 kill).
+    if (row.owner_token_revoked) return null;
+    return toSalon(row);
   }
 
   async createSalon(input: CreateSalonInput): Promise<Salon> {
@@ -579,11 +586,23 @@ export class SupabaseRepo implements Repo {
     salonSlug: string,
     ownerToken: string,
   ): Promise<void> {
+    // 토큰-write = revoked 클리어를 동일 UPDATE로(원자적, 회전=복구).
     const { error } = await this.client
       .from("salons")
-      .update({ owner_token: ownerToken })
+      .update({ owner_token: ownerToken, owner_token_revoked: false })
       .eq("slug", salonSlug);
     if (error) fail("updateSalonOwnerToken", error);
+  }
+
+  async setOwnerTokenRevoked(
+    salonSlug: string,
+    revoked: boolean,
+  ): Promise<void> {
+    const { error } = await this.client
+      .from("salons")
+      .update({ owner_token_revoked: revoked })
+      .eq("slug", salonSlug);
+    if (error) fail("setOwnerTokenRevoked", error);
   }
 
   /* ── 디자이너(스태프) ──────────────────────────────────── */
@@ -595,7 +614,34 @@ export class SupabaseRepo implements Repo {
       .eq("staff_token", t)
       .maybeSingle();
     if (error) fail("getDesignerByStaffToken", error);
-    return data ? toDesigner(data as StaffRow) : null;
+    if (!data) return null;
+    const row = data as StaffRow;
+    // 무효화된 토큰 = 없는 것과 동일 취급(유출 대응, 재발급 없이 kill).
+    if (row.staff_token_revoked) return null;
+    return toDesigner(row);
+  }
+
+  async setStaffTokenRevoked(
+    designerId: string,
+    revoked: boolean,
+  ): Promise<void> {
+    const { error } = await this.client
+      .from("staff")
+      .update({ staff_token_revoked: revoked })
+      .eq("id", designerId);
+    if (error) fail("setStaffTokenRevoked", error);
+  }
+
+  async updateDesignerStaffToken(
+    designerId: string,
+    staffToken: string,
+  ): Promise<void> {
+    // 토큰-write = revoked 클리어를 동일 UPDATE로(원자적, 회전=복구).
+    const { error } = await this.client
+      .from("staff")
+      .update({ staff_token: staffToken, staff_token_revoked: false })
+      .eq("id", designerId);
+    if (error) fail("updateDesignerStaffToken", error);
   }
 
   async getDesignerById(id: string): Promise<Designer | null> {

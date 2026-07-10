@@ -56,6 +56,8 @@ interface Store {
   hairProfiles: Map<string, CustomerHairProfile>; // customerId -> 최신 프로필
   treatmentRecords: Map<string, TreatmentRecord>; // recordId -> TreatmentRecord
   trainingSamples: TrainingSample[]; // 비식별 학습 샘플(append-only)
+  revokedOwnerTokens: Set<string>; // owner_token 무효화(재발급 없이 kill) — salonSlug 집합
+  revokedStaffTokens: Set<string>; // staff_token 무효화 — designerId 집합
 }
 
 // 직급(rank) — 양 살롱 동일(데모). 신규 살롱 기본값과 동일 진실원천.
@@ -279,6 +281,8 @@ function freshStore(): Store {
     hairProfiles: new Map(),
     treatmentRecords: new Map(),
     trainingSamples: [],
+    revokedOwnerTokens: new Set(),
+    revokedStaffTokens: new Set(),
   };
 }
 
@@ -309,9 +313,20 @@ export class MemoryRepo implements Repo {
   async getSalonByOwnerToken(t: string): Promise<Salon | null> {
     if (!t) return null;
     for (const s of store.salons.values()) {
-      if (s.ownerToken === t) return s;
+      if (s.ownerToken === t) {
+        // 무효화된 토큰 = 없는 것과 동일 취급(유출 대응).
+        return store.revokedOwnerTokens.has(s.slug) ? null : s;
+      }
     }
     return null;
+  }
+
+  async setOwnerTokenRevoked(
+    salonSlug: string,
+    revoked: boolean,
+  ): Promise<void> {
+    if (revoked) store.revokedOwnerTokens.add(salonSlug);
+    else store.revokedOwnerTokens.delete(salonSlug);
   }
 
   async createSalon(input: CreateSalonInput): Promise<Salon> {
@@ -361,14 +376,37 @@ export class MemoryRepo implements Repo {
     // 살롱은 slug 로 보관되고 ownerToken 은 필드 — getSalonByOwnerToken 은 스캔이라
     // 필드만 바꾸면 새 토큰으로 조회되고 옛 토큰은 자동 무효화된다.
     if (salon) store.salons.set(salonSlug, { ...salon, ownerToken });
+    // 토큰-write = revoked 클리어(원자적, 회전=복구). side-Set 은 slug 키라 supabase 와 파리티.
+    store.revokedOwnerTokens.delete(salonSlug);
   }
 
   async getDesignerByStaffToken(t: string): Promise<Designer | null> {
     if (!t) return null;
     for (const d of store.designers.values()) {
-      if (d.staffToken === t) return d;
+      if (d.staffToken === t) {
+        // 무효화된 토큰 = 없는 것과 동일 취급(유출 대응).
+        return store.revokedStaffTokens.has(d.id) ? null : d;
+      }
     }
     return null;
+  }
+
+  async setStaffTokenRevoked(
+    designerId: string,
+    revoked: boolean,
+  ): Promise<void> {
+    if (revoked) store.revokedStaffTokens.add(designerId);
+    else store.revokedStaffTokens.delete(designerId);
+  }
+
+  async updateDesignerStaffToken(
+    designerId: string,
+    staffToken: string,
+  ): Promise<void> {
+    const d = store.designers.get(designerId);
+    if (d) store.designers.set(designerId, { ...d, staffToken });
+    // 토큰-write = revoked 클리어(원자적, 회전=복구). side-Set 은 designerId 키라 supabase 와 파리티.
+    store.revokedStaffTokens.delete(designerId);
   }
 
   async getDesignerById(id: string): Promise<Designer | null> {

@@ -2434,6 +2434,8 @@ export async function rotateOwnerToken(
   if (!salon) return { ok: false };
   const repo = getRepo();
   const next = `owner_${randomBytes(24).toString("base64url")}`;
+  // rotate=복구 → 새 토큰 세팅 + revoke 클리어를 한 UPDATE로 원자적으로
+  // (2단계면 사이 실패 시 새 토큰+revoked=true=영구 락아웃).
   await repo.updateSalonOwnerToken(salon.slug, next);
   return { ok: true, ownerToken: next, consolePath: salonConsolePath(next) };
 }
@@ -2492,7 +2494,9 @@ export async function rotateDesignerStaffToken(input: {
     return { ok: false };
   }
   const staffToken = `staff_${cryptoToken()}`;
-  await repo.updateDesigner({ ...existing, staffToken });
+  // 토큰 발급 = 새 토큰 세팅 + revoke 클리어를 한 UPDATE로 원자적으로(락아웃 방지).
+  // (updateDesigner 는 제네릭 편집이라 토큰-write 경로가 아님 — 전용 메서드로.)
+  await repo.updateDesignerStaffToken(input.designerId, staffToken);
   return { ok: true, staffToken, inboxPath: designerInboxPath(staffToken) };
 }
 

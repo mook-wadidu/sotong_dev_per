@@ -279,6 +279,15 @@ export type NewMessage = Omit<Message, "id" | "createdAt"> & {
   createdAt?: string;
 };
 
+/** 사진 학습 적재 입력 — dataURL 을 Storage 로 올리고 메타(경로)만 DB 에 남긴다. */
+export interface TrainingPhotosInput {
+  customerPseudonym: string;
+  salonSlug: string;
+  visitedAt: string;
+  /** 셀카/얼굴 제외 — before/after/style 만. */
+  photos: { kind: "before" | "after" | "style"; dataUrl: string }[];
+}
+
 /** 살롱 생성 입력 (콘솔/시드) — 토큰류는 repo 가 발급 */
 export interface CreateSalonInput {
   slug: string;
@@ -452,6 +461,8 @@ export interface Repo {
   ): Promise<void>;
   /** 비식별 ML 학습 샘플 적재(학습 옵트인 동의 건만). retention 파기와 독립. */
   saveTrainingSample(sample: TrainingSample): Promise<void>;
+  /** 사진 학습 적재(사진 옵트인 동의 건만) — Storage 비공개 버킷 + 메타. 가명 키. */
+  saveTrainingPhotos(input: TrainingPhotosInput): Promise<void>;
   /** 학습 샘플 만족도 갱신 — 완결 후 도착한 손님 별점을 consultationId 로 찾아 반영. */
   updateTrainingSampleSatisfaction(
     consultationId: string,

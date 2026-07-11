@@ -18,6 +18,7 @@ import type {
   CreateSalonInput,
   CreateTreatmentRecordInput,
   CustomerHairProfileInput,
+  TrainingPhotosInput,
   Designer,
   DesignerRank,
   ErrorLog,
@@ -744,6 +745,11 @@ export class MemoryRepo implements Repo {
 
   async saveTrainingSample(sample: TrainingSample): Promise<void> {
     store.trainingSamples.push(sample);
+  }
+
+  async saveTrainingPhotos(_input: TrainingPhotosInput): Promise<void> {
+    // memory 드라이버엔 Storage 가 없어 no-op(dev). 운영은 supabase 드라이버.
+    void _input;
   }
 
   async updateTrainingSampleSatisfaction(

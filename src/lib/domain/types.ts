@@ -124,6 +124,12 @@ export interface IntakeDraft {
    * 사진·전화·이름·자유텍스트·얼굴은 학습셋에서 제외(가명·통계 목적).
    */
   trainingConsentedAt?: string;
+  /**
+   * (선택) 사진(비포/애프터·스타일 참고)을 AI 학습에 활용하는 별도 동의 시각 (ISO).
+   * 이 값이 있을 때만 완료 시 사진을 Storage 비공개 버킷에 가명 키로 적재(training_photos).
+   * 셀카/얼굴은 제외(생체정보). EXIF 는 리사이즈 재인코딩으로 이미 제거됨.
+   */
+  photoTrainingConsentedAt?: string;
 }
 
 /**

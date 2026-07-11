@@ -1497,14 +1497,16 @@ export async function completeConsultation(input: {
     // ── 비식별 ML 학습 샘플 적재(학습 옵트인 동의 건만) ──────────
     // 원본 상담은 retention 으로 90일 후 파기되지만, 이 가명·통계 샘플은 자산으로 남는다.
     // 사진·전화·이름·자유텍스트·얼굴은 제외. best-effort(실패해도 리포트 무손상).
-    if (c.intake.trainingConsentedAt) {
+    if (c.intake.trainingConsentedAt || c.intake.photoTrainingConsentedAt) {
+      // 가명 — 샘플·사진이 같은 방문으로 연결되도록 한 번만 계산.
+      const pseudonym = c.customerId
+        ? pseudonymize(c.customerId)
+        : `anon-${cryptoToken()}`;
       try {
         const sample: TrainingSample = {
           id: cryptoToken(),
           salonSlug: c.salonSlug,
-          customerPseudonym: c.customerId
-            ? pseudonymize(c.customerId)
-            : `anon-${cryptoToken()}`,
+          customerPseudonym: pseudonym,
           visitedAt: report.date,
           nationality: c.customerLocale,
           gender,
@@ -1542,6 +1544,40 @@ export async function completeConsultation(input: {
           detail: e instanceof Error ? e.message : String(e),
           consultationId: c.id,
         });
+      }
+
+      // 사진 학습(별도 옵트인) — 비포/애프터/스타일만. 셀카/얼굴 제외(생체정보).
+      // dataURL 을 Storage 비공개 버킷에 가명 경로로 적재(training_photos).
+      if (c.intake.photoTrainingConsentedAt) {
+        try {
+          const photos: {
+            kind: "before" | "after" | "style";
+            dataUrl: string;
+          }[] = [];
+          for (const url of c.intake.stylePhotoUrls ?? [])
+            photos.push({ kind: "style", dataUrl: url });
+          if (c.beforePhotoUrl)
+            photos.push({ kind: "before", dataUrl: c.beforePhotoUrl });
+          if (report.afterPhotoUrl)
+            photos.push({ kind: "after", dataUrl: report.afterPhotoUrl });
+          if (photos.length > 0) {
+            await repo.saveTrainingPhotos({
+              customerPseudonym: pseudonym,
+              salonSlug: c.salonSlug,
+              visitedAt: report.date,
+              photos,
+            });
+          }
+        } catch (e) {
+          await logIssue({
+            salonSlug: c.salonSlug,
+            severity: "warning",
+            source: "report",
+            message: "학습 사진 적재 실패",
+            detail: e instanceof Error ? e.message : String(e),
+            consultationId: c.id,
+          });
+        }
       }
     }
 

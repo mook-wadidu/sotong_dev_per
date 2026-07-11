@@ -29,6 +29,7 @@ import type {
   CreateDesignerInput,
   CreateSalonInput,
   CreateTreatmentRecordInput,
+  TrainingPhotosInput,
   CustomerHairProfileInput,
   Designer,
   DesignerRank,
@@ -55,6 +56,17 @@ import { DEFAULT_DESIGNER_RANKS } from "./types";
 
 /** 무인증 접근 토큰 — 절단 없이 192bit 랜덤(base64url). memory 드라이버와 동일 정책(P0/36). */
 const token = () => randomBytes(24).toString("base64url");
+
+/** dataURL(image) → {mime, bytes}. Storage 업로드용. 형식 안 맞으면 null. */
+function parseImageDataUrl(
+  dataUrl: string,
+): { mime: string; ext: string; bytes: Buffer } | null {
+  const m = /^data:(image\/(jpeg|png|webp));base64,(.+)$/.exec(dataUrl);
+  if (!m) return null;
+  const mime = m[1];
+  const ext = m[2] === "jpeg" ? "jpg" : m[2];
+  return { mime, ext, bytes: Buffer.from(m[3], "base64") };
+}
 
 function fail(scope: string, error: { message: string } | null): never {
   throw new Error(`[supabase] ${scope}: ${error?.message ?? "unknown error"}`);
@@ -1197,6 +1209,43 @@ export class SupabaseRepo implements Repo {
       consultation_id: s.consultationId ?? null,
     });
     if (error) fail("saveTrainingSample", error);
+  }
+
+  async saveTrainingPhotos(input: TrainingPhotosInput): Promise<void> {
+    // dataURL 사진을 Storage 비공개 버킷에 가명 경로로 업로드하고 메타만 DB 에.
+    // EXIF 는 인테이크 리사이즈 재인코딩으로 이미 제거됨. 업로드 실패 사진은 skip(best-effort).
+    const day = input.visitedAt.slice(0, 10);
+    const rows: {
+      customer_pseudonym: string;
+      salon_slug: string;
+      kind: string;
+      storage_path: string;
+      visited_at: string;
+    }[] = [];
+    for (let i = 0; i < input.photos.length; i++) {
+      const p = input.photos[i];
+      const parsed = parseImageDataUrl(p.dataUrl);
+      if (!parsed) continue;
+      const path = `${input.salonSlug}/${input.customerPseudonym}/${day}/${p.kind}-${i}.${parsed.ext}`;
+      const { error: upErr } = await this.client.storage
+        .from("training-photos")
+        .upload(path, parsed.bytes, {
+          contentType: parsed.mime,
+          upsert: true,
+        });
+      if (upErr) continue; // 개별 사진 실패는 건너뜀
+      rows.push({
+        customer_pseudonym: input.customerPseudonym,
+        salon_slug: input.salonSlug,
+        kind: p.kind,
+        storage_path: path,
+        visited_at: input.visitedAt,
+      });
+    }
+    if (rows.length > 0) {
+      const { error } = await this.client.from("training_photos").insert(rows);
+      if (error) fail("saveTrainingPhotos", error);
+    }
   }
 
   async updateTrainingSampleSatisfaction(

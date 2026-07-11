@@ -153,6 +153,8 @@ export function IntakeStepper({
   const [consentError, setConsentError] = React.useState(false);
   // (선택) AI 학습 활용 옵트인 — 필수 아님. 동의 시 비식별 학습셋에 적재.
   const [trainingConsent, setTrainingConsent] = React.useState(false);
+  // (선택) 사진(비포/애프터·스타일) 학습 활용 옵트인 — 별도. 셀카/얼굴 제외.
+  const [photoTrainingConsent, setPhotoTrainingConsent] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const titleRef = React.useRef<HTMLHeadingElement>(null);
 
@@ -203,12 +205,14 @@ export function IntakeStepper({
           step?: number;
           consent?: boolean;
           trainingConsent?: boolean;
+          photoTrainingConsent?: boolean;
           draft?: Partial<IntakeDraft>;
         };
         if (saved.draft) setDraft((d) => ({ ...d, ...saved.draft }));
         if (typeof saved.step === "number") setStep(saved.step);
         if (saved.consent) setConsent(true);
         if (saved.trainingConsent) setTrainingConsent(true);
+        if (saved.photoTrainingConsent) setPhotoTrainingConsent(true);
         setPhase("form"); // 진행 중이던 폼으로 복귀(재방문 intro 건너뜀)
         setPrefilled(false);
       } catch {
@@ -234,6 +238,7 @@ export function IntakeStepper({
             step,
             consent,
             trainingConsent,
+            photoTrainingConsent,
             draft: { ...rest, stylePhotoUrls: [], selfiePhotoUrl: undefined },
           }),
         );
@@ -242,7 +247,15 @@ export function IntakeStepper({
       }
     }, 400);
     return () => clearTimeout(id);
-  }, [storageKey, phase, step, draft, consent, trainingConsent]);
+  }, [
+    storageKey,
+    phase,
+    step,
+    draft,
+    consent,
+    trainingConsent,
+    photoTrainingConsent,
+  ]);
 
   // 단계 이동(또는 intro→form 전환) 시 본문 스크롤 위 + 제목으로 포커스 이동 (a11y).
   // phase 도 의존성에 넣어, 이미 step 1 인 상태로 폼에 진입해도 새 제목으로 포커스가 간다.
@@ -288,6 +301,9 @@ export function IntakeStepper({
           ...draft,
           consentedAt: new Date().toISOString(),
           trainingConsentedAt: trainingConsent
+            ? new Date().toISOString()
+            : undefined,
+          photoTrainingConsentedAt: photoTrainingConsent
             ? new Date().toISOString()
             : undefined,
         },
@@ -434,6 +450,8 @@ export function IntakeStepper({
             }}
             trainingConsent={trainingConsent}
             onTrainingChange={setTrainingConsent}
+            photoTrainingConsent={photoTrainingConsent}
+            onPhotoTrainingChange={setPhotoTrainingConsent}
           />
         )}
       </ScreenBody>
@@ -829,6 +847,8 @@ function ConsentStep({
   onChange,
   trainingConsent,
   onTrainingChange,
+  photoTrainingConsent,
+  onPhotoTrainingChange,
 }: {
   t: T;
   consent: boolean;
@@ -836,6 +856,8 @@ function ConsentStep({
   onChange: (v: boolean) => void;
   trainingConsent: boolean;
   onTrainingChange: (v: boolean) => void;
+  photoTrainingConsent: boolean;
+  onPhotoTrainingChange: (v: boolean) => void;
 }) {
   const tCommon = useTranslations("Common");
   const [open, setOpen] = React.useState(false);
@@ -854,6 +876,14 @@ function ConsentStep({
         onChange={(e) => onTrainingChange(e.target.checked)}
         label={t("intake.consent.trainingLabel")}
         description={t("intake.consent.trainingHint")}
+      />
+
+      {/* (선택) 사진 학습 활용 — 비포/애프터·스타일만(셀카/얼굴 제외). */}
+      <Checkbox
+        checked={photoTrainingConsent}
+        onChange={(e) => onPhotoTrainingChange(e.target.checked)}
+        label={t("intake.consent.photoTrainingLabel")}
+        description={t("intake.consent.photoTrainingHint")}
       />
 
       <button

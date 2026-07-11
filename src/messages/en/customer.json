@@ -163,7 +163,9 @@
       "policyLink": "See our Privacy Policy for details.",
       "required": "Consent is required to continue",
       "trainingLabel": "(Optional) I agree to let my info and results be pseudonymized and used to improve the AI service and train models.",
-      "trainingHint": "Photos, contact, and name are excluded. Declining won’t affect your service, and you can withdraw anytime."
+      "trainingHint": "Photos, contact, and name are excluded. Declining won’t affect your service, and you can withdraw anytime.",
+      "photoTrainingLabel": "(Optional) I agree to let my photos (before/after & style references) be used for AI training.",
+      "photoTrainingHint": "Selfies/face photos are excluded. Stored separately from your identity (pseudonymized); withdraw anytime."
     },
     "back": "Back",
     "next": "Next",
@@ -239,10 +241,22 @@
     "hairType": {
       "title": "Hair type",
       "types": {
-        "H": { "name": "Healthy & Full", "desc": "Great condition with plenty of volume and density. Your current home care is enough to keep it up." },
-        "V": { "name": "Healthy, Volume Care", "desc": "Condition is great — adding a little volume and body will make your style last longer." },
-        "S": { "name": "Balanced", "desc": "Well-balanced hair overall. Keep up your basic home care routine." },
-        "C": { "name": "Focused Care", "desc": "Hair is a little tired. Focus on moisture and protein care to recover quickly." }
+        "H": {
+          "name": "Healthy & Full",
+          "desc": "Great condition with plenty of volume and density. Your current home care is enough to keep it up."
+        },
+        "V": {
+          "name": "Healthy, Volume Care",
+          "desc": "Condition is great — adding a little volume and body will make your style last longer."
+        },
+        "S": {
+          "name": "Balanced",
+          "desc": "Well-balanced hair overall. Keep up your basic home care routine."
+        },
+        "C": {
+          "name": "Focused Care",
+          "desc": "Hair is a little tired. Focus on moisture and protein care to recover quickly."
+        }
       }
     },
     "satisfaction": {

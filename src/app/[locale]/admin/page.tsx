@@ -14,6 +14,8 @@ import { Onboarding } from "@/components/admin/onboarding";
 import { adminPath, salonConsolePath, type AdminView } from "@/lib/links";
 import { shareOrigin } from "@/lib/origin";
 import { readAdminSession } from "@/lib/admin-session";
+import { getAdminUser } from "@/lib/admin-auth";
+import { AdminLogin } from "@/components/admin/admin-login";
 
 const VIEWS: AdminView[] = [
   "dashboard",
@@ -45,9 +47,11 @@ export default async function AdminPage({
   const { salon, view: viewParam } = await searchParams;
   const t = await getTranslations("Admin");
 
-  // ── 게이트: 세션 쿠키 무효 → 중립 "잘못된 접근" ────────
-  if (!(await readAdminSession())) {
-    return <DeniedScreen title={t("denied.title")} />;
+  // ── 게이트: Google 어드민 세션 OR 공유키 세션(브레이크글래스) ────────
+  // 프로바이더 미설정 시 getAdminUser()는 null → 기존 공유키 경로가 그대로 유지된다(비파괴).
+  const authed = (await getAdminUser()) || (await readAdminSession());
+  if (!authed) {
+    return <AdminLoginScreen title={t("denied.title")} />;
   }
 
   // 세션 통과 → 데이터 로드(서버에서 재검증).
@@ -222,14 +226,16 @@ export default async function AdminPage({
 }
 
 /**
- * 미인증 진입 화면 — 중립 "잘못된 접근입니다"(관리자 브랜딩·폼·재시도 링크 없음).
- * no-key·wrong-key 를 동일하게 처리(오라클 제거). 진입은 /api/admin/enter?key= 로만.
+ * 미인증 진입 화면 — 중립 카드 + Google 로그인 버튼.
+ * 기존 중립 "잘못된 접근" 카드를 유지하되 어드민 Google SSO 버튼을 얹는다.
+ * 공유키(break-glass) 진입은 여전히 /api/admin/enter?key= 로 (URL 노출 없음).
  */
-function DeniedScreen({ title }: { title: string }) {
+function AdminLoginScreen({ title }: { title: string }) {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 text-center">
+      <div className="w-full max-w-sm space-y-5 rounded-2xl border border-border bg-card p-8 text-center">
         <p className="text-base font-semibold text-foreground">{title}</p>
+        <AdminLogin />
       </div>
     </div>
   );

@@ -39,6 +39,7 @@ import {
   verifyEntryToken,
 } from "@/lib/entry";
 import { readAdminSession } from "@/lib/admin-session";
+import { getAdminUser } from "@/lib/admin-auth";
 import {
   customerEntryPath,
   designerInboxPath,
@@ -2515,9 +2516,12 @@ export async function rotateDesignerStaffToken(input: {
  * 플랫폼 어드민 온보딩 (세션 쿠키 권한) — 살롱/디자이너 생성.
  * ──────────────────────────────────────────────────────────────── */
 
-/** 어드민 세션 게이트 — 쿠키 무효 시 logIssue(warning) + throw. */
+/**
+ * 어드민 세션 게이트 — Google 어드민 세션 OR 공유키 세션(브레이크글래스) 중 하나면 통과.
+ * 프로바이더 미설정 시 getAdminUser()는 null → 공유키가 오늘과 동일하게 필수(비파괴).
+ */
 async function ensureAdminSession(salonSlug?: string): Promise<void> {
-  if (!(await readAdminSession())) {
+  if (!(await getAdminUser()) && !(await readAdminSession())) {
     await logIssue({
       salonSlug,
       severity: "warning",

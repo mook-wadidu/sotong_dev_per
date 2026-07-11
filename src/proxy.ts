@@ -82,8 +82,9 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // 정적 파일·API·내부 경로를 제외한 모든 경로에 로케일 라우팅 적용
-    "/((?!api|_next|_vercel|.*\\..*).*)",
+    // 정적 파일·API·auth 콜백·내부 경로를 제외한 모든 경로에 로케일 라우팅 적용
+    // (auth/* 는 OAuth 콜백 라우트핸들러 — 로케일 프리픽스가 붙으면 안 됨)
+    "/((?!api|auth|_next|_vercel|.*\\..*).*)",
     // 손님 진입(QR) 로케일리스 경로 — 입장 토큰이 "payload.signature" 라 점(.)을 포함해
     // 위 dot 제외 규칙에 걸린다. 명시 매처로 미들웨어가 반드시 타 로케일 감지/리다이렉트.
     "/c/e/:path*",

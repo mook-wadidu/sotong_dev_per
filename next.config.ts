@@ -26,8 +26,9 @@ const CSP = [
   `style-src 'self' 'unsafe-inline' ${FONT_STYLE_SRC}`,
   "img-src 'self' data: blob:",
   `font-src 'self' data: ${FONT_SRC}`,
-  // 폰트 CSS(jsdelivr)의 소스맵 fetch 허용 — devtools 열렸을 때 connect 로 요청됨.
-  "connect-src 'self' https://cdn.jsdelivr.net",
+  // connect: 폰트 CSS(jsdelivr) 소스맵 + Supabase(어드민 브라우저 Auth signInWithPassword →
+  // {ref}.supabase.co/auth). 브라우저→외부 연결은 이 둘뿐(손님/디자이너는 서버액션).
+  "connect-src 'self' https://cdn.jsdelivr.net https://*.supabase.co",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

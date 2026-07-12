@@ -308,7 +308,11 @@
       "menu": "メニュー",
       "designers": "デザイナー",
       "qr": "QR",
-      "inquiries": "問い合わせ/レポート"
+      "inquiries": "問い合わせ/レポート",
+      "analytics": "分析",
+      "performance": "成績",
+      "reports": "レポート",
+      "members": "会員"
     },
     "edit": "編集",
     "delete": "削除",
@@ -451,5 +455,11 @@
     "password": "パスワード (8文字以上)",
     "submit": "登録して参加",
     "pending": "処理中…"
+  },
+  "members": {
+    "count": "会員 {count}名",
+    "search": "連絡先・内容検索",
+    "empty": "識別された会員がまだいません。",
+    "visits": "{count}回来店"
   }
 }

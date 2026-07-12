@@ -6,6 +6,9 @@ import {
   salonCreateInvite as salonCreateInviteSvc,
   salonListInvites as salonListInvitesSvc,
   salonRevokeInvite as salonRevokeInviteSvc,
+  salonOwnerAnalytics as salonOwnerAnalyticsSvc,
+  salonOwnerDesigners as salonOwnerDesignersSvc,
+  salonOwnerReports as salonOwnerReportsSvc,
   type SalonInviteView,
   signUpDesigner as signUpDesignerSvc,
   salonSearchDesigner as salonSearchDesignerSvc,
@@ -54,6 +57,9 @@ import {
   type IntakeMenu,
   type SalonConsoleData,
 } from "@/lib/service";
+import type { AdminAnalytics } from "@/lib/admin-analytics";
+import type { AdminDesignerStats } from "@/lib/admin-designers";
+import type { AdminReportRow } from "@/lib/admin-reports";
 import type {
   ConsultationStatus,
   Customer,
@@ -448,6 +454,24 @@ export async function salonRevokeInvite(
   token: string,
 ): Promise<{ ok: boolean }> {
   return salonRevokeInviteSvc(ownerToken, token);
+}
+
+/* ── 오너 콘솔 인사이트 (분석·성과·리포트) ─────────────────── */
+export async function salonOwnerAnalytics(
+  ownerToken: string,
+  range: 7 | 30 | 90,
+): Promise<AdminAnalytics | null> {
+  return salonOwnerAnalyticsSvc(ownerToken, range);
+}
+export async function salonOwnerDesigners(
+  ownerToken: string,
+): Promise<AdminDesignerStats[]> {
+  return salonOwnerDesignersSvc(ownerToken);
+}
+export async function salonOwnerReports(
+  ownerToken: string,
+): Promise<AdminReportRow[]> {
+  return salonOwnerReportsSvc(ownerToken);
 }
 
 /** 초대 수락(공개) — 디자이너 가입 + 소속 확정. */

@@ -59,6 +59,16 @@ import {
 import { sendWebPush } from "@/lib/push";
 import { ensureDeviceToken, readDeviceToken } from "@/lib/device";
 import {
+  getAdminAnalytics,
+  type AdminAnalytics,
+  type AnalyticsRange,
+} from "@/lib/admin-analytics";
+import {
+  getAdminDesigners,
+  type AdminDesignerStats,
+} from "@/lib/admin-designers";
+import { getAdminReports, type AdminReportRow } from "@/lib/admin-reports";
+import {
   ageBand,
   NATIONALITY_BY_LOCALE,
   type Consultation,
@@ -2979,6 +2989,38 @@ export async function salonRevokeInvite(
     detail: token.slice(-8),
   });
   return { ok: true };
+}
+
+/* ── 오너 콘솔 인사이트 (ownerToken 게이트, 살롱 스코프로 어드민 함수 재사용) ── */
+
+/** 오너: 내 살롱 분석(어드민 분석을 salonSlug 스코프로). */
+export async function salonOwnerAnalytics(
+  ownerToken: string,
+  range: AnalyticsRange,
+): Promise<AdminAnalytics | null> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return null;
+  return getAdminAnalytics({ range, salonSlug: salon.slug });
+}
+
+/** 오너: 내 소속 디자이너 성과. */
+export async function salonOwnerDesigners(
+  ownerToken: string,
+): Promise<AdminDesignerStats[]> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return [];
+  const all = await getAdminDesigners();
+  return all.filter((d) => d.salonSlug === salon.slug);
+}
+
+/** 오너: 내 살롱 발급 리포트(살롱명 매칭). */
+export async function salonOwnerReports(
+  ownerToken: string,
+): Promise<AdminReportRow[]> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return [];
+  const { rows } = await getAdminReports({ limit: 2000 });
+  return rows.filter((r) => r.salonName === salon.name);
 }
 
 /** 초대 유효성 + 대상 살롱명(가입 화면 표시용). 무효면 null. */

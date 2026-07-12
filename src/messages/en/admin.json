@@ -308,7 +308,11 @@
       "menu": "Menu",
       "designers": "Designers",
       "qr": "QR",
-      "inquiries": "Intakes / Reports"
+      "inquiries": "Intakes / Reports",
+      "analytics": "Analytics",
+      "performance": "Performance",
+      "reports": "Reports",
+      "members": "Members"
     },
     "edit": "Edit",
     "delete": "Delete",
@@ -451,5 +455,11 @@
     "password": "Password (8+ chars)",
     "submit": "Sign up & join",
     "pending": "Working…"
+  },
+  "members": {
+    "count": "{count} members",
+    "search": "Search contact / note",
+    "empty": "No identified members yet.",
+    "visits": "{count} visits"
   }
 }

@@ -308,7 +308,11 @@
       "menu": "메뉴",
       "designers": "디자이너",
       "qr": "QR",
-      "inquiries": "문의/리포트"
+      "inquiries": "문의/리포트",
+      "analytics": "분석",
+      "performance": "성과",
+      "reports": "리포트",
+      "members": "회원"
     },
     "edit": "수정",
     "delete": "삭제",
@@ -451,5 +455,11 @@
     "password": "비밀번호 (8자 이상)",
     "submit": "가입하고 합류",
     "pending": "처리 중…"
+  },
+  "members": {
+    "count": "회원 {count}명",
+    "search": "연락처·내용 검색",
+    "empty": "아직 식별된 회원이 없어요.",
+    "visits": "{count}회 방문"
   }
 }

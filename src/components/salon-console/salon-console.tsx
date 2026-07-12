@@ -9,6 +9,10 @@ import { MenuTab } from "./menu-tab";
 import { DesignersTab } from "./designers-tab";
 import { ConsoleQrTab } from "./qr-tab";
 import { ConsoleInquiriesTab } from "./inquiries-tab";
+import { OwnerAnalyticsTab } from "./owner-analytics-tab";
+import { OwnerDesignersTab } from "./owner-designers-tab";
+import { OwnerReportsTab } from "./owner-reports-tab";
+import { OwnerMembersTab } from "./owner-members-tab";
 
 /**
  * 살롱 오너 콘솔 셸 — 탭(문의·리포트/디자이너/메뉴/QR).
@@ -34,12 +38,39 @@ export function SalonConsole({
         <TabsTrigger value="inquiries">
           {t("console.tabs.inquiries")}
         </TabsTrigger>
+        <TabsTrigger value="analytics">
+          {t("console.tabs.analytics")}
+        </TabsTrigger>
+        <TabsTrigger value="performance">
+          {t("console.tabs.performance")}
+        </TabsTrigger>
+        <TabsTrigger value="reports">{t("console.tabs.reports")}</TabsTrigger>
+        <TabsTrigger value="members">{t("console.tabs.members")}</TabsTrigger>
         <TabsTrigger value="designers">
           {t("console.tabs.designers")}
         </TabsTrigger>
         <TabsTrigger value="menu">{t("console.tabs.menu")}</TabsTrigger>
         <TabsTrigger value="qr">{t("console.tabs.qr")}</TabsTrigger>
       </TabsList>
+
+      <TabsContent value="analytics">
+        <OwnerAnalyticsTab ownerToken={ownerToken} />
+      </TabsContent>
+
+      <TabsContent value="performance">
+        <OwnerDesignersTab ownerToken={ownerToken} />
+      </TabsContent>
+
+      <TabsContent value="reports">
+        <OwnerReportsTab ownerToken={ownerToken} />
+      </TabsContent>
+
+      <TabsContent value="members">
+        <OwnerMembersTab
+          ownerToken={ownerToken}
+          consultations={data.consultations}
+        />
+      </TabsContent>
 
       <TabsContent value="menu">
         <MenuTab

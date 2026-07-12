@@ -308,7 +308,11 @@
       "menu": "菜单",
       "designers": "设计师",
       "qr": "二维码",
-      "inquiries": "咨询/报告"
+      "inquiries": "咨询/报告",
+      "analytics": "分析",
+      "performance": "业绩",
+      "reports": "报告",
+      "members": "会员"
     },
     "edit": "编辑",
     "delete": "删除",
@@ -451,5 +455,11 @@
     "password": "密码 (8位以上)",
     "submit": "注册并加入",
     "pending": "处理中…"
+  },
+  "members": {
+    "count": "会员 {count} 名",
+    "search": "搜索联系方式 / 内容",
+    "empty": "尚无已识别的会员。",
+    "visits": "到店 {count} 次"
   }
 }

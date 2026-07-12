@@ -1,10 +1,13 @@
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { getSessionAccount } from "@/lib/session-auth";
+import { listMyMembershipRequests } from "@/lib/actions";
 import { salonConsolePath, designerInboxPath } from "@/lib/links";
-import { AdminLogin } from "@/components/admin/admin-login";
+import { AccountEntry } from "@/components/account/account-entry";
+import { MembershipRequests } from "@/components/account/membership-requests";
 import { MobileFrame, ScreenBody } from "@/components/ui";
 import { LogoSymbol } from "@/components/brand/logo";
+import type { MembershipRequest } from "@/lib/db/types";
 
 /**
  * 통합 계정 로그인(오너·디자이너·어드민) — 이메일+비밀번호(Supabase Auth).
@@ -29,12 +32,21 @@ export default async function LoginPage({
     if (acc.role === "designer") {
       redirect(loc(designerInboxPath(acc.designer.staffToken)));
     }
-    // designer-unaffiliated → 소속 대기 화면(아래)
+    // designer-unaffiliated → 소속 대기 + 받은 요청 수락/거절
+    const reqs = await listMyMembershipRequests();
     return (
       <WaitingScreen
         title={t("account.waitingTitle")}
         hint={t("account.waitingHint")}
         logout={t("nav.logout")}
+        requests={reqs}
+        reqLabels={{
+          title: t("account.requestsTitle"),
+          empty: t("account.requestsEmpty"),
+          accept: t("account.accept"),
+          decline: t("account.decline"),
+          joinLabel: t("account.joinLabel"),
+        }}
       />
     );
   }
@@ -51,13 +63,19 @@ export default async function LoginPage({
             {t("account.loginHint")}
           </p>
         </div>
-        <AdminLogin
+        <AccountEntry
+          locale={locale}
           labels={{
             email: t("login.email"),
             password: t("login.password"),
-            submit: t("login.submit"),
+            name: t("invite.name"),
+            login: t("login.submit"),
+            signup: t("account.signupSubmit"),
+            toSignup: t("account.toSignup"),
+            toLogin: t("account.toLogin"),
             pending: t("login.pending"),
             error: t("login.error"),
+            signupHint: t("account.signupPrompt"),
           }}
         />
       </ScreenBody>
@@ -69,19 +87,30 @@ function WaitingScreen({
   title,
   hint,
   logout,
+  requests,
+  reqLabels,
 }: {
   title: string;
   hint: string;
   logout: string;
+  requests: MembershipRequest[];
+  reqLabels: {
+    title: string;
+    empty: string;
+    accept: string;
+    decline: string;
+    joinLabel: string;
+  };
 }) {
   return (
     <MobileFrame tone="muted">
-      <ScreenBody className="flex min-h-dvh flex-col items-center justify-center gap-4 py-10 text-center">
+      <ScreenBody className="flex min-h-dvh flex-col items-center justify-center gap-5 py-10 text-center">
         <LogoSymbol className="size-11 text-brand" />
         <h1 className="text-lg font-semibold text-foreground">{title}</h1>
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
           {hint}
         </p>
+        <MembershipRequests initial={requests} labels={reqLabels} />
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a
           href="/api/session/logout"

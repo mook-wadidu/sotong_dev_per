@@ -399,12 +399,29 @@
       "button": "邀请链接",
       "created": "已生成邀请链接。",
       "hint": "把此链接发给设计师（一次性，14天后失效）。"
+    },
+    "search": {
+      "hint": "通过邮箱搜索已注册设计师并发送加入请求（对方接受）。",
+      "button": "搜索",
+      "send": "发送请求",
+      "sent": "已发送加入请求。",
+      "notFound": "未找到已注册的设计师。",
+      "failed": "搜索失败"
     }
   },
   "account": {
     "loginHint": "使用门店或设计师账号登录。",
     "waitingTitle": "等待归属",
-    "waitingHint": "您还未加入任何门店。请向门店管理员索取邀请。"
+    "waitingHint": "您还未加入任何门店。请向门店管理员索取邀请。",
+    "signupSubmit": "注册",
+    "toSignup": "设计师注册",
+    "toLogin": "返回登录",
+    "signupPrompt": "还没有账号?",
+    "requestsTitle": "收到的加入请求",
+    "requestsEmpty": "暂无请求。",
+    "accept": "接受",
+    "decline": "拒绝",
+    "joinLabel": "加入 {salon} 的请求"
   },
   "invite": {
     "joinTitle": "加入 {salon}",

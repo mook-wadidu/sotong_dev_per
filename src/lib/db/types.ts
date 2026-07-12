@@ -342,6 +342,20 @@ export interface NewSalonInvite {
   expiresAt?: string;
 }
 
+export type MembershipStatus = "pending" | "accepted" | "declined";
+
+/** 소속 요청 — 오너→가입된 디자이너. 디자이너가 수락/거절. */
+export interface MembershipRequest {
+  id: string;
+  salonSlug: string;
+  designerEmail: string;
+  status: MembershipStatus;
+  createdAt: string;
+  respondedAt?: string;
+  /** 표시용(조인) — 살롱명. 조회 시 채움. */
+  salonName?: string;
+}
+
 /** 계정 레지스트리 — Supabase Auth 유저 미러(역할·검색·표시명). */
 export interface Profile {
   id: string; // auth.users.id
@@ -585,6 +599,18 @@ export interface Repo {
   createSalonInvite(input: NewSalonInvite): Promise<SalonInvite>;
   getSalonInvite(token: string): Promise<SalonInvite | null>;
   markSalonInviteUsed(token: string): Promise<void>;
+  /** 소속 요청(오너→디자이너, 수락/거절). */
+  createMembershipRequest(
+    salonSlug: string,
+    designerEmail: string,
+  ): Promise<MembershipRequest>;
+  getMembershipRequest(id: string): Promise<MembershipRequest | null>;
+  /** 디자이너 이메일로 받은 요청(pending). salonName 채워 반환. */
+  listMembershipRequestsByEmail(email: string): Promise<MembershipRequest[]>;
+  setMembershipRequestStatus(
+    id: string,
+    status: MembershipStatus,
+  ): Promise<void>;
   /** 학습 샘플 만족도 갱신 — 완결 후 도착한 손님 별점을 consultationId 로 찾아 반영. */
   updateTrainingSampleSatisfaction(
     consultationId: string,

@@ -399,12 +399,29 @@
       "button": "Invite link",
       "created": "Invite link created.",
       "hint": "Send this link to your designer (single-use, expires in 14 days)."
+    },
+    "search": {
+      "hint": "Search a registered designer by email and request membership (they accept).",
+      "button": "Search",
+      "send": "Send request",
+      "sent": "Membership request sent.",
+      "notFound": "No registered designer found.",
+      "failed": "Search failed"
     }
   },
   "account": {
     "loginHint": "Log in with your salon or designer account.",
     "waitingTitle": "Awaiting salon",
-    "waitingHint": "You're not part of a salon yet. Ask your salon admin for an invite."
+    "waitingHint": "You're not part of a salon yet. Ask your salon admin for an invite.",
+    "signupSubmit": "Sign up",
+    "toSignup": "New designer sign up",
+    "toLogin": "Back to login",
+    "signupPrompt": "No account?",
+    "requestsTitle": "Membership requests",
+    "requestsEmpty": "No requests.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "joinLabel": "Request to join {salon}"
   },
   "invite": {
     "joinTitle": "Join {salon}",

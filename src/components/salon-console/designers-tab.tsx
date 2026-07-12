@@ -17,7 +17,12 @@ import {
 } from "@/components/ui";
 import { SalonQR } from "@/components/admin/salon-qr";
 import { CopyButton } from "@/components/admin/copy-button";
-import { salonUpsertDesigner, createSalonInvite } from "@/lib/actions";
+import {
+  salonUpsertDesigner,
+  createSalonInvite,
+  salonSearchDesigner,
+  salonSendMembershipRequest,
+} from "@/lib/actions";
 import type { Designer, DesignerRank } from "@/lib/db/types";
 import type { SalonConsole as SalonConsoleData } from "@/lib/actions";
 import { RanksEditor } from "./ranks-editor";
@@ -47,6 +52,12 @@ export function DesignersTab({
   });
   const [inviteUrl, setInviteUrl] = React.useState<string | null>(null);
   const [inviting, setInviting] = React.useState(false);
+  const [searchEmail, setSearchEmail] = React.useState("");
+  const [searching, setSearching] = React.useState(false);
+  const [searchResult, setSearchResult] = React.useState<{
+    found: boolean;
+    name?: string;
+  } | null>(null);
 
   const onInvite = async () => {
     setInviting(true);
@@ -55,6 +66,28 @@ export function DesignersTab({
     if (res.ok) {
       setInviteUrl(origin ? origin + res.path : res.path);
       toast.success(t("console.invite.created"));
+    } else {
+      toast.error(res.error);
+    }
+  };
+
+  const onSearch = async () => {
+    const e = searchEmail.trim();
+    if (!e) return;
+    setSearching(true);
+    setSearchResult(null);
+    const res = await salonSearchDesigner(ownerToken, e);
+    setSearching(false);
+    if (res.ok) setSearchResult({ found: !!res.found, name: res.name });
+    else toast.error(t("console.search.failed"));
+  };
+
+  const onSendRequest = async () => {
+    const res = await salonSendMembershipRequest(ownerToken, searchEmail.trim());
+    if (res.ok) {
+      toast.success(t("console.search.sent"));
+      setSearchResult(null);
+      setSearchEmail("");
     } else {
       toast.error(res.error);
     }
@@ -116,6 +149,49 @@ export function DesignersTab({
           </div>
         </div>
       ) : null}
+
+      {/* 기존(가입된) 디자이너 검색 → 소속 요청(디자이너가 수락/거절) */}
+      <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+        <p className="text-xs font-medium text-muted-foreground">
+          {t("console.search.hint")}
+        </p>
+        <div className="flex items-center gap-2">
+          <Input
+            type="email"
+            value={searchEmail}
+            onChange={(e) => {
+              setSearchEmail(e.target.value);
+              setSearchResult(null);
+            }}
+            placeholder="designer@email.com"
+            className="flex-1"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onSearch}
+            disabled={searching || !searchEmail.trim()}
+          >
+            {t("console.search.button")}
+          </Button>
+        </div>
+        {searchResult ? (
+          searchResult.found ? (
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <span className="text-sm text-foreground">
+                {searchResult.name ?? searchEmail.trim()}
+              </span>
+              <Button size="sm" onClick={onSendRequest}>
+                {t("console.search.send")}
+              </Button>
+            </div>
+          ) : (
+            <p className="pt-1 text-xs text-muted-foreground">
+              {t("console.search.notFound")}
+            </p>
+          )
+        ) : null}
+      </div>
 
       {designers.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">

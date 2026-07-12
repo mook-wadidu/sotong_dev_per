@@ -22,6 +22,8 @@ import type {
   CustomerHairProfileInput,
   NewAnalyticsEvent,
   NewAnnouncement,
+  MembershipRequest,
+  MembershipStatus,
   NewSalonInvite,
   NewSupportNote,
   Profile,
@@ -76,6 +78,7 @@ interface Store {
   supportNotes: SupportNote[]; // 고객센터 상담별 메모(append)
   profiles: Profile[]; // 계정 레지스트리(email→role)
   salonInvites: SalonInvite[]; // 디자이너 초대(단일사용/만료)
+  membershipRequests: MembershipRequest[]; // 소속 요청(오너→디자이너)
 }
 
 /** last_seen write-on-read 스로틀(10분) — supabase 드라이버와 동일. */
@@ -307,6 +310,7 @@ function freshStore(): Store {
     supportNotes: [],
     profiles: [],
     salonInvites: [],
+    membershipRequests: [],
     revokedOwnerTokens: new Set(),
     revokedStaffTokens: new Set(),
     ownerTokenSeen: new Map(),
@@ -327,6 +331,7 @@ store.announcements ??= [];
 store.supportNotes ??= [];
 store.profiles ??= [];
 store.salonInvites ??= [];
+store.membershipRequests ??= [];
 
 /** 무인증 접근 토큰 — 절단 없이 192bit 랜덤(base64url). 추측/열거 차단(P0/P1-36). */
 const token = () => randomBytes(24).toString("base64url");
@@ -932,6 +937,49 @@ export class MemoryRepo implements Repo {
   async markSalonInviteUsed(token: string): Promise<void> {
     const inv = store.salonInvites.find((i) => i.token === token);
     if (inv) inv.usedAt = new Date().toISOString();
+  }
+
+  async createMembershipRequest(
+    salonSlug: string,
+    designerEmail: string,
+  ): Promise<MembershipRequest> {
+    const req: MembershipRequest = {
+      id: randomUUID(),
+      salonSlug,
+      designerEmail: designerEmail.toLowerCase(),
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+    store.membershipRequests.push(req);
+    return req;
+  }
+
+  async getMembershipRequest(id: string): Promise<MembershipRequest | null> {
+    return store.membershipRequests.find((r) => r.id === id) ?? null;
+  }
+
+  async listMembershipRequestsByEmail(
+    email: string,
+  ): Promise<MembershipRequest[]> {
+    if (!email) return [];
+    const e = email.toLowerCase();
+    return store.membershipRequests
+      .filter((r) => r.designerEmail === e && r.status === "pending")
+      .map((r) => ({
+        ...r,
+        salonName: store.salons.get(r.salonSlug)?.name ?? r.salonSlug,
+      }));
+  }
+
+  async setMembershipRequestStatus(
+    id: string,
+    status: MembershipStatus,
+  ): Promise<void> {
+    const req = store.membershipRequests.find((r) => r.id === id);
+    if (req) {
+      req.status = status;
+      req.respondedAt = new Date().toISOString();
+    }
   }
 
   async updateTrainingSampleSatisfaction(

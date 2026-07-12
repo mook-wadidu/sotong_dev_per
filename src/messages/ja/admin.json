@@ -399,12 +399,29 @@
       "button": "招待リンク",
       "created": "招待リンクを発行しました。",
       "hint": "このリンクをスタイリストに送ってください(1回限り・14日で失効)。"
+    },
+    "search": {
+      "hint": "登録済みのスタイリストをメールで検索し所属をリクエスト(本人が承認)。",
+      "button": "検索",
+      "send": "リクエスト送信",
+      "sent": "所属リクエストを送りました。",
+      "notFound": "該当するスタイリストがいません。",
+      "failed": "検索失敗"
     }
   },
   "account": {
     "loginHint": "サロン・スタイリストのアカウントでログイン。",
     "waitingTitle": "所属待ち",
-    "waitingHint": "まだ所属サロンがありません。サロン管理者に招待を依頼してください。"
+    "waitingHint": "まだ所属サロンがありません。サロン管理者に招待を依頼してください。",
+    "signupSubmit": "登録",
+    "toSignup": "スタイリスト新規登録",
+    "toLogin": "ログインへ",
+    "signupPrompt": "アカウントがない?",
+    "requestsTitle": "受け取った所属リクエスト",
+    "requestsEmpty": "リクエストはありません。",
+    "accept": "承認",
+    "decline": "拒否",
+    "joinLabel": "{salon} への参加リクエスト"
   },
   "invite": {
     "joinTitle": "{salon} に参加",

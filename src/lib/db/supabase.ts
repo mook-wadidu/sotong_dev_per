@@ -31,6 +31,8 @@ import type {
   AnalyticsEvent,
   Announcement,
   CreateTreatmentRecordInput,
+  MembershipRequest,
+  MembershipStatus,
   NewAnalyticsEvent,
   NewAnnouncement,
   NewSalonInvite,
@@ -498,6 +500,17 @@ function toHairReport(r: HairReportRow): HairReport {
     styleRequest: r.style_request ?? undefined,
     concerns: r.concerns ?? undefined,
     cautions: r.cautions ?? undefined,
+  };
+}
+
+function toMembershipRequest(r: Record<string, unknown>): MembershipRequest {
+  return {
+    id: r.id as string,
+    salonSlug: r.salon_slug as string,
+    designerEmail: r.designer_email as string,
+    status: r.status as MembershipStatus,
+    createdAt: r.created_at as string,
+    respondedAt: (r.responded_at as string) ?? undefined,
   };
 }
 
@@ -1530,6 +1543,61 @@ export class SupabaseRepo implements Repo {
       .update({ used_at: new Date().toISOString() })
       .eq("token", token);
     if (error) fail("markSalonInviteUsed", error);
+  }
+
+  async createMembershipRequest(
+    salonSlug: string,
+    designerEmail: string,
+  ): Promise<MembershipRequest> {
+    const { data, error } = await this.client
+      .from("membership_requests")
+      .insert({ salon_slug: salonSlug, designer_email: designerEmail.toLowerCase() })
+      .select("id,salon_slug,designer_email,status,created_at,responded_at")
+      .single();
+    if (error) fail("createMembershipRequest", error);
+    return toMembershipRequest(data as Record<string, unknown>);
+  }
+
+  async getMembershipRequest(id: string): Promise<MembershipRequest | null> {
+    const { data, error } = await this.client
+      .from("membership_requests")
+      .select("id,salon_slug,designer_email,status,created_at,responded_at")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) fail("getMembershipRequest", error);
+    return data ? toMembershipRequest(data as Record<string, unknown>) : null;
+  }
+
+  async listMembershipRequestsByEmail(
+    email: string,
+  ): Promise<MembershipRequest[]> {
+    if (!email) return [];
+    const { data, error } = await this.client
+      .from("membership_requests")
+      .select(
+        "id,salon_slug,designer_email,status,created_at,responded_at,salons(name)",
+      )
+      .ilike("designer_email", email)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    if (error) fail("listMembershipRequestsByEmail", error);
+    return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+      ...toMembershipRequest(r),
+      salonName:
+        (r.salons as { name?: string } | null)?.name ??
+        (r.salon_slug as string),
+    }));
+  }
+
+  async setMembershipRequestStatus(
+    id: string,
+    status: MembershipStatus,
+  ): Promise<void> {
+    const { error } = await this.client
+      .from("membership_requests")
+      .update({ status, responded_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) fail("setMembershipRequestStatus", error);
   }
 
   async updateTrainingSampleSatisfaction(

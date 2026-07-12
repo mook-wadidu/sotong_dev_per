@@ -10,6 +10,7 @@ import {
   type AdminSalon,
   type Announcement,
   type AnnouncementAudience,
+  type MembershipRequest,
   type SupportNote,
   type NewSupportNote,
   type ConsultationListItem,
@@ -46,6 +47,7 @@ import {
 import { readAdminSession } from "@/lib/admin-session";
 import { getAdminUser } from "@/lib/admin-auth";
 import { provisionAccount } from "@/lib/account-provision";
+import { getSessionAccount } from "@/lib/session-auth";
 import {
   customerEntryPath,
   designerInboxPath,
@@ -2883,4 +2885,114 @@ export async function acceptSalonInvite(input: {
   await repo.setStaffEmail(designer.id, email);
   await repo.markSalonInviteUsed(input.token);
   return { ok: true, email };
+}
+
+/* ── 자가가입 + 소속 요청 (Phase 0c) ───────────────────────── */
+
+/** 디자이너 자가가입(공개) — 계정만 생성(미소속). 이후 초대/요청으로 소속. */
+export async function signUpDesigner(input: {
+  email: string;
+  password: string;
+  name: string;
+}): Promise<{ ok: boolean; email?: string; error?: string }> {
+  const email = input.email?.trim();
+  const name = input.name?.trim();
+  if (!email || !name) return { ok: false, error: "이름·이메일은 필수입니다." };
+  try {
+    await provisionAccount({
+      email,
+      role: "designer",
+      displayName: name,
+      password: input.password,
+    });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "가입 실패" };
+  }
+  return { ok: true, email };
+}
+
+/** 오너 콘솔: 이메일로 가입된 디자이너 검색(정확 일치, 열거 방지). */
+export async function salonSearchDesigner(
+  ownerToken: string,
+  email: string,
+): Promise<{ ok: boolean; found?: boolean; name?: string }> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return { ok: false };
+  const e = email?.trim();
+  if (!e) return { ok: true, found: false };
+  const profile = await getRepo().getProfileByEmail(e);
+  return {
+    ok: true,
+    found: !!profile && profile.role === "designer",
+    name: profile?.displayName,
+  };
+}
+
+/** 오너 콘솔: 소속 요청 전송(가입된 디자이너에게). */
+export async function salonSendMembershipRequest(
+  ownerToken: string,
+  email: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return { ok: false, error: "권한 없음" };
+  const e = email?.trim();
+  if (!e) return { ok: false, error: "이메일 필수" };
+  const profile = await getRepo().getProfileByEmail(e);
+  if (!profile || profile.role !== "designer") {
+    return { ok: false, error: "가입된 디자이너를 찾을 수 없습니다." };
+  }
+  // 이미 이 살롱 소속이면 요청 불필요.
+  const existing = await getRepo().getStaffByEmail(e);
+  if (existing && existing.salonSlug === salon.slug) {
+    return { ok: false, error: "이미 이 살롱 소속입니다." };
+  }
+  await getRepo().createMembershipRequest(salon.slug, e);
+  return { ok: true };
+}
+
+/** 로그인한 디자이너가 받은 소속 요청(pending). */
+export async function listMyMembershipRequests(): Promise<MembershipRequest[]> {
+  const acc = await getSessionAccount();
+  if (!acc || (acc.role !== "designer" && acc.role !== "designer-unaffiliated")) {
+    return [];
+  }
+  // 소속 대기 홈이 조회 실패로 죽지 않도록 방어(빈 목록으로 degrade).
+  try {
+    return await getRepo().listMembershipRequestsByEmail(acc.email);
+  } catch {
+    return [];
+  }
+}
+
+/** 디자이너가 소속 요청 수락/거절. 수락 시 staff 생성=소속 확정. */
+export async function respondMembership(
+  requestId: string,
+  accept: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  const acc = await getSessionAccount();
+  if (!acc || (acc.role !== "designer" && acc.role !== "designer-unaffiliated")) {
+    return { ok: false, error: "권한 없음" };
+  }
+  const repo = getRepo();
+  const req = await repo.getMembershipRequest(requestId);
+  if (!req || req.status !== "pending") {
+    return { ok: false, error: "유효하지 않은 요청" };
+  }
+  if (req.designerEmail.toLowerCase() !== acc.email.toLowerCase()) {
+    return { ok: false, error: "본인 요청이 아닙니다." };
+  }
+  if (!accept) {
+    await repo.setMembershipRequestStatus(requestId, "declined");
+    return { ok: true };
+  }
+  const salon = await repo.getSalon(req.salonSlug);
+  if (!salon) return { ok: false, error: "살롱 없음" };
+  const profile = await repo.getProfileByEmail(acc.email);
+  const designer = await repo.createDesigner({
+    salonSlug: salon.slug,
+    name: profile?.displayName ?? acc.email,
+  });
+  await repo.setStaffEmail(designer.id, acc.email);
+  await repo.setMembershipRequestStatus(requestId, "accepted");
+  return { ok: true };
 }

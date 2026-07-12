@@ -3,6 +3,11 @@
 import {
   acceptSalonInvite as acceptSalonInviteSvc,
   salonCreateInvite as salonCreateInviteSvc,
+  signUpDesigner as signUpDesignerSvc,
+  salonSearchDesigner as salonSearchDesignerSvc,
+  salonSendMembershipRequest as salonSendMembershipRequestSvc,
+  listMyMembershipRequests as listMyMembershipRequestsSvc,
+  respondMembership as respondMembershipSvc,
   adminAddSupportNote as adminAddSupportNoteSvc,
   adminCreateAnnouncement as adminCreateAnnouncementSvc,
   adminCreateDesigner as adminCreateDesignerSvc,
@@ -65,6 +70,7 @@ import {
   type ConsultationListItem,
   type Designer,
   type DesignerRank,
+  type MembershipRequest,
   type NewAnnouncement,
   type SupportNote,
   type PublicDesigner,
@@ -427,6 +433,47 @@ export async function acceptSalonInvite(input: {
   return res.ok && res.email
     ? { ok: true, email: res.email }
     : { ok: false, error: res.error ?? "실패" };
+}
+
+/** 디자이너 자가가입(공개) — 미소속 계정 생성. */
+export async function signUpDesigner(input: {
+  email: string;
+  password: string;
+  name: string;
+}): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
+  const res = await signUpDesignerSvc(input);
+  return res.ok && res.email
+    ? { ok: true, email: res.email }
+    : { ok: false, error: res.error ?? "가입 실패" };
+}
+
+/** 오너 콘솔: 디자이너 검색(정확 이메일). */
+export async function salonSearchDesigner(
+  ownerToken: string,
+  email: string,
+): Promise<{ ok: boolean; found?: boolean; name?: string }> {
+  return salonSearchDesignerSvc(ownerToken, email);
+}
+
+/** 오너 콘솔: 소속 요청 전송. */
+export async function salonSendMembershipRequest(
+  ownerToken: string,
+  email: string,
+): Promise<{ ok: boolean; error?: string }> {
+  return salonSendMembershipRequestSvc(ownerToken, email);
+}
+
+/** 로그인 디자이너: 받은 소속 요청(pending). */
+export async function listMyMembershipRequests(): Promise<MembershipRequest[]> {
+  return listMyMembershipRequestsSvc();
+}
+
+/** 로그인 디자이너: 소속 요청 수락/거절. */
+export async function respondMembership(
+  requestId: string,
+  accept: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  return respondMembershipSvc(requestId, accept);
 }
 
 export async function listSupportNotes(

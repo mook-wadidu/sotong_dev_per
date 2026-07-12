@@ -1,8 +1,10 @@
 "use server";
 
 import {
+  adminCreateAnnouncement as adminCreateAnnouncementSvc,
   adminCreateDesigner as adminCreateDesignerSvc,
   adminCreateSalon as adminCreateSalonSvc,
+  adminSetAnnouncementActive as adminSetAnnouncementActiveSvc,
   assignConsultation as assignConsultationSvc,
   completeConsultation,
   recordDesignerIntake as recordDesignerIntakeSvc,
@@ -54,9 +56,11 @@ import type {
 import {
   toPublicSalon,
   toPublicDesigner,
+  type Announcement,
   type ConsultationListItem,
   type Designer,
   type DesignerRank,
+  type NewAnnouncement,
   type PublicDesigner,
   type PublicSalon,
   type SalonService,
@@ -353,5 +357,30 @@ export async function adminCreateDesigner(
     return { ok: true, result };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "생성 실패" };
+  }
+}
+
+export async function createAnnouncement(
+  input: NewAnnouncement,
+): Promise<
+  { ok: true; result: Announcement } | { ok: false; error: string }
+> {
+  try {
+    const result = await adminCreateAnnouncementSvc(input);
+    return { ok: true, result };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "생성 실패" };
+  }
+}
+
+export async function setAnnouncementActive(
+  id: string,
+  active: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await adminSetAnnouncementActiveSvc(id, active);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "변경 실패" };
   }
 }

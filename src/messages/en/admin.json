@@ -9,8 +9,13 @@
     "open": "Open menu",
     "close": "Close",
     "dashboard": "Dashboard",
+    "analytics": "Analytics",
+    "reports": "Reports",
+    "dataset": "AI dataset",
+    "designers": "Designers",
+    "notices": "Notices",
     "salons": "Salon management",
-    "inquiries": "Intakes",
+    "inquiries": "Support",
     "errors": "Errors",
     "onboarding": "Onboarding",
     "logout": "Log out"
@@ -56,8 +61,135 @@
     "salons": "Salons",
     "inquiries": "Intakes"
   },
+  "analytics": {
+    "title": "Analytics dashboard",
+    "hint": "Traffic, consultations and reports over time",
+    "rangeLabel": "Select period",
+    "range7": "7 days",
+    "range30": "30 days",
+    "range90": "90 days",
+    "empty": "No data to show yet.",
+    "kpi": {
+      "demoViews": "Demo views",
+      "consults": "Consultations",
+      "completionRate": "Completion rate",
+      "returningRate": "Returning rate",
+      "reports": "Reports issued",
+      "satisfaction": "Avg. rating"
+    },
+    "trend": {
+      "title": "Daily trend",
+      "consults": "Consultations",
+      "completed": "Completed",
+      "demoTitle": "Demo views (daily)"
+    },
+    "funnel": {
+      "title": "Progress funnel",
+      "intake": "Intake",
+      "consulting": "Consulting",
+      "in_service": "In service",
+      "completed": "Completed"
+    },
+    "byLocale": "By language",
+    "bySalon": "By salon"
+  },
+  "reports": {
+    "title": "Report collection",
+    "hint": "Hair reports issued across all salons",
+    "search": "Search salon / designer",
+    "count": "{count} reports",
+    "empty": "No reports issued yet.",
+    "view": "Open",
+    "weeks": "in {count} wks",
+    "col": {
+      "date": "Issued",
+      "salon": "Salon",
+      "designer": "Designer",
+      "lang": "Lang",
+      "score": "Hair score",
+      "nextVisit": "Next visit"
+    }
+  },
+  "dataset": {
+    "title": "AI training dataset status",
+    "hint": "Counts, consent rates and structure of the pseudonymized dataset (no raw records shown)",
+    "kpi": {
+      "samples": "Training samples",
+      "photos": "Training photos",
+      "completed": "Completed"
+    },
+    "photo": {
+      "title": "By photo type",
+      "before": "Before",
+      "after": "After",
+      "style": "Style ref"
+    },
+    "consent": {
+      "title": "Training consent (of completed)",
+      "training": "Data training",
+      "photo": "Photo training"
+    },
+    "schema": {
+      "title": "Collected features (schema)",
+      "hint": "Pseudonymized dataset columns — not identifiable"
+    },
+    "excluded": {
+      "title": "Excluded (PII / raw)",
+      "hint": "These never enter the training set"
+    },
+    "policy": {
+      "title": "Pseudonymization & retention (basis for training)",
+      "pseudonymLabel": "Pseudonym",
+      "retentionLabel": "PII purge",
+      "retention": "Customer PII auto-purged after 90 days — the pseudonymized set is retained (non-re-identifiable)",
+      "judgement": "This dataset is non-re-identifiable (pseudonymized), opt-in consent based, and excludes faces/selfies — suitable for training. Once sample volume and consent rates are sufficient, style-recommendation and hair-state prediction models can begin training."
+    }
+  },
+  "designers": {
+    "title": "Designer performance (all salons)",
+    "hint": "Ranking by consultations, completion, returning rate and reports",
+    "empty": "No designers registered.",
+    "col": {
+      "designer": "Designer",
+      "salon": "Salon",
+      "consults": "Consults",
+      "completion": "Completion",
+      "returning": "Returning",
+      "reports": "Reports"
+    }
+  },
+  "notices": {
+    "newTitle": "New notice",
+    "listTitle": "Notices",
+    "empty": "No notices yet.",
+    "field": {
+      "title": "Title",
+      "body": "Body",
+      "audience": "Audience"
+    },
+    "audience": {
+      "platform": "All platform",
+      "salon": "Salon / designer",
+      "customer": "Customer"
+    },
+    "create": "Create notice",
+    "creating": "Creating…",
+    "needTitle": "Please enter a title.",
+    "created": "Notice created.",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "inactive": "Inactive"
+  },
   "denied": {
     "title": "Invalid access"
+  },
+  "login": {
+    "title": "Admin sign in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "pending": "Signing in…",
+    "error": "Incorrect email or password."
   },
   "qr": {
     "title": "Salon QR",
@@ -72,6 +204,9 @@
   },
   "inquiries": {
     "title": "Intakes",
+    "search": "Search name / salon / contact",
+    "count": "{count}",
+    "allStatus": "All",
     "customer": "Guest",
     "designer": "Designer",
     "unassigned": "Unassigned",

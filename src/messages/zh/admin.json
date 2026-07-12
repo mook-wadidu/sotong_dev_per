@@ -9,8 +9,13 @@
     "open": "打开菜单",
     "close": "关闭",
     "dashboard": "仪表盘",
+    "analytics": "分析",
+    "reports": "报告集",
+    "dataset": "AI数据集",
+    "designers": "设计师",
+    "notices": "公告",
     "salons": "门店管理",
-    "inquiries": "登记记录",
+    "inquiries": "客服",
     "errors": "错误",
     "onboarding": "入驻",
     "logout": "退出登录"
@@ -56,8 +61,135 @@
     "salons": "门店数",
     "inquiries": "登记数"
   },
+  "analytics": {
+    "title": "分析仪表板",
+    "hint": "按时间段的流量、咨询与报告指标",
+    "rangeLabel": "选择时间段",
+    "range7": "7天",
+    "range30": "30天",
+    "range90": "90天",
+    "empty": "暂无可显示的数据。",
+    "kpi": {
+      "demoViews": "演示浏览量",
+      "consults": "咨询",
+      "completionRate": "完成率",
+      "returningRate": "回访率",
+      "reports": "报告发放",
+      "satisfaction": "平均满意度"
+    },
+    "trend": {
+      "title": "每日趋势",
+      "consults": "咨询",
+      "completed": "完成",
+      "demoTitle": "演示浏览量（每日）"
+    },
+    "funnel": {
+      "title": "进度漏斗",
+      "intake": "接待",
+      "consulting": "咨询",
+      "in_service": "施作",
+      "completed": "完成"
+    },
+    "byLocale": "按语言",
+    "bySalon": "按门店"
+  },
+  "reports": {
+    "title": "报告集",
+    "hint": "全部门店发放的头发报告",
+    "search": "搜索门店 / 设计师",
+    "count": "报告 {count} 份",
+    "empty": "尚无发放的报告。",
+    "view": "查看",
+    "weeks": "{count} 周后",
+    "col": {
+      "date": "发放日",
+      "salon": "门店",
+      "designer": "设计师",
+      "lang": "语言",
+      "score": "头发评分",
+      "nextVisit": "下次到店"
+    }
+  },
+  "dataset": {
+    "title": "AI训练数据集状况",
+    "hint": "已化名的训练数据的数量、同意率与结构（不展示原始记录）",
+    "kpi": {
+      "samples": "训练样本",
+      "photos": "训练照片",
+      "completed": "已完成咨询"
+    },
+    "photo": {
+      "title": "按照片类型",
+      "before": "之前",
+      "after": "之后",
+      "style": "风格参考"
+    },
+    "consent": {
+      "title": "训练同意率（占已完成咨询）",
+      "training": "数据训练",
+      "photo": "照片训练"
+    },
+    "schema": {
+      "title": "采集特征（结构）",
+      "hint": "化名数据集字段 — 无法识别个人"
+    },
+    "excluded": {
+      "title": "排除项（PII / 原始）",
+      "hint": "以下内容绝不进入训练集"
+    },
+    "policy": {
+      "title": "化名与销毁政策（训练判断依据）",
+      "pseudonymLabel": "化名键",
+      "retentionLabel": "PII销毁",
+      "retention": "客户 PII 在 90 天后自动销毁 — 化名训练集因无法重新识别而保留",
+      "judgement": "该数据集无法重新识别（化名）、基于选择加入的同意、并排除面部/自拍，适合训练。当样本量与同意率充足时，即可开始训练风格推荐与头发状态预测模型。"
+    }
+  },
+  "designers": {
+    "title": "设计师业绩（全部门店）",
+    "hint": "按咨询、完成率、回访率与报告排名",
+    "empty": "尚无注册的设计师。",
+    "col": {
+      "designer": "设计师",
+      "salon": "门店",
+      "consults": "咨询",
+      "completion": "完成率",
+      "returning": "回访率",
+      "reports": "报告"
+    }
+  },
+  "notices": {
+    "newTitle": "新建公告",
+    "listTitle": "公告列表",
+    "empty": "尚无公告。",
+    "field": {
+      "title": "标题",
+      "body": "内容",
+      "audience": "对象"
+    },
+    "audience": {
+      "platform": "全平台",
+      "salon": "门店 / 设计师",
+      "customer": "顾客"
+    },
+    "create": "发布公告",
+    "creating": "发布中…",
+    "needTitle": "请输入标题。",
+    "created": "公告已发布。",
+    "activate": "启用",
+    "deactivate": "停用",
+    "inactive": "停用"
+  },
   "denied": {
     "title": "无效的访问"
+  },
+  "login": {
+    "title": "管理员登录",
+    "email": "邮箱",
+    "password": "密码",
+    "submit": "登录",
+    "pending": "登录中…",
+    "error": "邮箱或密码不正确。"
   },
   "qr": {
     "title": "门店二维码",
@@ -72,6 +204,9 @@
   },
   "inquiries": {
     "title": "登记记录",
+    "search": "搜索姓名 / 门店 / 联系方式",
+    "count": "{count} 条",
+    "allStatus": "全部",
     "customer": "顾客",
     "designer": "设计师",
     "unassigned": "未指定",

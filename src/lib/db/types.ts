@@ -279,6 +279,44 @@ export type NewMessage = Omit<Message, "id" | "createdAt"> & {
   createdAt?: string;
 };
 
+/** 유입/조회 트래킹 이벤트 — PII 없음. /demo 조회수·QR 스캔·리포트 열람 등. */
+export interface AnalyticsEvent {
+  id: string;
+  eventType: string;
+  salonSlug?: string;
+  locale?: string;
+  actor?: string;
+  createdAt: string;
+}
+export interface NewAnalyticsEvent {
+  eventType: string;
+  salonSlug?: string;
+  locale?: string;
+  actor?: string;
+}
+
+export type AnnouncementAudience = "platform" | "salon" | "customer";
+
+/** 공지 — 플랫폼→살롱/디자이너 또는 손님 대상. title/body 는 로케일별(ko 필수, 나머지 폴백). */
+export interface Announcement {
+  id: string;
+  title: Partial<Record<Locale, string>>;
+  body: Partial<Record<Locale, string>>;
+  audience: AnnouncementAudience;
+  salonSlugs: string[]; // 빈 배열 = 전체 대상
+  active: boolean;
+  activeFrom?: string;
+  activeTo?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface NewAnnouncement {
+  title: Partial<Record<Locale, string>>;
+  body: Partial<Record<Locale, string>>;
+  audience: AnnouncementAudience;
+  salonSlugs?: string[];
+}
+
 /** 사진 학습 적재 입력 — dataURL 을 Storage 로 올리고 메타(경로)만 DB 에 남긴다. */
 export interface TrainingPhotosInput {
   customerPseudonym: string;
@@ -463,11 +501,26 @@ export interface Repo {
   saveTrainingSample(sample: TrainingSample): Promise<void>;
   /** 사진 학습 적재(사진 옵트인 동의 건만) — Storage 비공개 버킷 + 메타. 가명 키. */
   saveTrainingPhotos(input: TrainingPhotosInput): Promise<void>;
+  /** 유입/조회 이벤트 적재(fire-and-forget). */
+  saveEvent(e: NewAnalyticsEvent): Promise<void>;
+  /** 기준 시각 이후 이벤트 목록(분석용, created_at asc). */
+  listEventsSince(sinceIso: string): Promise<AnalyticsEvent[]>;
+  /** 공지 — 어드민 CRUD(최신순). */
+  listAnnouncements(): Promise<Announcement[]>;
+  createAnnouncement(input: NewAnnouncement): Promise<Announcement>;
+  setAnnouncementActive(id: string, active: boolean): Promise<void>;
   /** 학습 샘플 만족도 갱신 — 완결 후 도착한 손님 별점을 consultationId 로 찾아 반영. */
   updateTrainingSampleSatisfaction(
     consultationId: string,
     score: number,
   ): Promise<void>;
+  /** 어드민 학습 데이터셋 현황 — 샘플/사진 건수 집계(원본 노출 없음). */
+  countTrainingSamples(): Promise<number>;
+  countTrainingPhotosByKind(): Promise<{
+    before: number;
+    after: number;
+    style: number;
+  }>;
   /**
    * 상담 1건의 시술 기록(완료건 EMR 용). consultation_id 매칭 최신 1건.
    * 없으면 null. (완료 상담은 보통 1건이나 방어적으로 최신을 고른다.)
@@ -507,6 +560,8 @@ export interface Repo {
 
   saveReport(report: HairReport): Promise<void>;
   getReport(reportToken: string): Promise<HairReport | null>;
+  /** 어드민 리포트 모음 — 전 살롱 발급 리포트를 최신순으로(파일럿 규모용). */
+  listReports(opts?: { limit?: number }): Promise<HairReport[]>;
 
   /** 디자이너 웹푸시 구독 (PWA Push/VAPID) */
   savePushSubscription(input: NewPushSub): Promise<void>;

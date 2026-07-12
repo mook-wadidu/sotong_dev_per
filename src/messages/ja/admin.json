@@ -9,8 +9,13 @@
     "open": "メニューを開く",
     "close": "閉じる",
     "dashboard": "ダッシュボード",
+    "analytics": "分析",
+    "reports": "レポート集",
+    "dataset": "AIデータセット",
+    "designers": "スタイリスト",
+    "notices": "お知らせ",
     "salons": "店舗管理",
-    "inquiries": "受付履歴",
+    "inquiries": "カスタマー",
     "errors": "エラー",
     "onboarding": "オンボーディング",
     "logout": "ログアウト"
@@ -56,8 +61,135 @@
     "salons": "店舗数",
     "inquiries": "受付数"
   },
+  "analytics": {
+    "title": "分析ダッシュボード",
+    "hint": "期間別の流入・相談・レポート指標",
+    "rangeLabel": "期間を選択",
+    "range7": "7日間",
+    "range30": "30日間",
+    "range90": "90日間",
+    "empty": "表示するデータがありません。",
+    "kpi": {
+      "demoViews": "デモ閲覧数",
+      "consults": "相談",
+      "completionRate": "完了率",
+      "returningRate": "再来店率",
+      "reports": "レポート発行",
+      "satisfaction": "平均満足度"
+    },
+    "trend": {
+      "title": "日別の推移",
+      "consults": "相談",
+      "completed": "完了",
+      "demoTitle": "デモ閲覧数（日別）"
+    },
+    "funnel": {
+      "title": "進行ファネル",
+      "intake": "受付",
+      "consulting": "相談",
+      "in_service": "施術",
+      "completed": "完了"
+    },
+    "byLocale": "言語別の流入",
+    "bySalon": "店舗別の相談"
+  },
+  "reports": {
+    "title": "レポート集",
+    "hint": "全店舗で発行された髪レポート",
+    "search": "店舗・スタイリスト検索",
+    "count": "レポート {count}件",
+    "empty": "発行されたレポートがありません。",
+    "view": "閲覧",
+    "weeks": "{count}週間後",
+    "col": {
+      "date": "発行日",
+      "salon": "店舗",
+      "designer": "スタイリスト",
+      "lang": "言語",
+      "score": "髪スコア",
+      "nextVisit": "次回来店"
+    }
+  },
+  "dataset": {
+    "title": "AI学習データセットの状況",
+    "hint": "仮名化された学習データの件数・同意率・構造（原本は非表示）",
+    "kpi": {
+      "samples": "学習サンプル",
+      "photos": "学習写真",
+      "completed": "完了相談"
+    },
+    "photo": {
+      "title": "写真の種類別",
+      "before": "ビフォー",
+      "after": "アフター",
+      "style": "スタイル参考"
+    },
+    "consent": {
+      "title": "学習同意率（完了相談比）",
+      "training": "データ学習",
+      "photo": "写真学習"
+    },
+    "schema": {
+      "title": "収集フィーチャー（スキーマ）",
+      "hint": "仮名データセットの列 — 個人特定不可"
+    },
+    "excluded": {
+      "title": "学習除外（PII/原本）",
+      "hint": "以下は学習セットに一切含まれません"
+    },
+    "policy": {
+      "title": "仮名化・破棄ポリシー（学習判断の根拠）",
+      "pseudonymLabel": "仮名キー",
+      "retentionLabel": "PII破棄",
+      "retention": "顧客PIIは90日後に自動破棄 — 仮名学習セットは再識別不可のため保存",
+      "judgement": "このデータセットは再識別不可（仮名）、オプトイン同意ベース、顔/自撮り除外で設計され学習に適しています。十分なサンプル数と同意率が確保されれば、スタイル推薦・髪状態予測モデルの学習を開始できます。"
+    }
+  },
+  "designers": {
+    "title": "スタイリスト成績（全店舗）",
+    "hint": "相談・完了率・再来店率・レポート発行のランキング",
+    "empty": "登録されたスタイリストがいません。",
+    "col": {
+      "designer": "スタイリスト",
+      "salon": "店舗",
+      "consults": "相談",
+      "completion": "完了率",
+      "returning": "再来店率",
+      "reports": "レポート"
+    }
+  },
+  "notices": {
+    "newTitle": "新規お知らせ",
+    "listTitle": "お知らせ一覧",
+    "empty": "登録されたお知らせがありません。",
+    "field": {
+      "title": "タイトル",
+      "body": "内容",
+      "audience": "対象"
+    },
+    "audience": {
+      "platform": "プラットフォーム全体",
+      "salon": "サロン/スタイリスト",
+      "customer": "お客様"
+    },
+    "create": "お知らせを登録",
+    "creating": "登録中…",
+    "needTitle": "タイトルを入力してください。",
+    "created": "お知らせを登録しました。",
+    "activate": "有効化",
+    "deactivate": "無効化",
+    "inactive": "無効"
+  },
   "denied": {
     "title": "無効なアクセスです"
+  },
+  "login": {
+    "title": "管理者ログイン",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "submit": "ログイン",
+    "pending": "ログイン中…",
+    "error": "メールアドレスまたはパスワードが正しくありません。"
   },
   "qr": {
     "title": "店舗QR",
@@ -72,6 +204,9 @@
   },
   "inquiries": {
     "title": "受付履歴",
+    "search": "名前・店舗・連絡先で検索",
+    "count": "{count}件",
+    "allStatus": "すべて",
     "customer": "お客様",
     "designer": "デザイナー",
     "unassigned": "指定なし",

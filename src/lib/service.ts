@@ -8,11 +8,13 @@ import {
   toPublicSalon,
   type AdminDesigner,
   type AdminSalon,
+  type Announcement,
   type ConsultationListItem,
   type Designer,
   type DesignerRank,
   type ErrorLog,
   type ErrorSeverity,
+  type NewAnnouncement,
   type PublicSalon,
   type Salon,
   type SalonService,
@@ -2627,6 +2629,36 @@ export interface CreatedDesignerResult {
   entryToken: string;
   entryPath: string;
   inboxPath: string;
+}
+
+/* ── 공지(어드민) ─────────────────────────────────────────── */
+
+export async function adminListAnnouncements(): Promise<Announcement[]> {
+  await ensureAdminSession();
+  return getRepo().listAnnouncements();
+}
+
+export async function adminCreateAnnouncement(
+  input: NewAnnouncement,
+): Promise<Announcement> {
+  await ensureAdminSession();
+  const ko = input.title?.ko?.trim();
+  if (!ko) throw new Error("제목(ko)은 필수입니다.");
+  return getRepo().createAnnouncement({
+    title: input.title,
+    body: input.body,
+    audience: input.audience,
+    salonSlugs: input.salonSlugs,
+  });
+}
+
+export async function adminSetAnnouncementActive(
+  id: string,
+  active: boolean,
+): Promise<void> {
+  await ensureAdminSession();
+  if (!id) throw new Error("id 필수");
+  await getRepo().setAnnouncementActive(id, active);
 }
 
 /** 디자이너 생성(어드민). staffToken/QR/인박스 경로 반환(전달용). */

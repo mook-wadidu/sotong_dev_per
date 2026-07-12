@@ -2,14 +2,15 @@ import "server-only";
 import { createSsrServerClient } from "@/lib/supabase/ssr-server";
 
 /**
- * 어드민 Google SSO 게이트(스캐폴딩) — 기존 공유키 세션과 병행하는 추가 경로.
+ * 어드민 Supabase Auth 게이트 — 기존 공유키 세션과 병행하는 추가 경로.
  *
- * Google OAuth 프로바이더/세션이 설정되기 전에는 getUser() 가 세션 없음으로 null 을
- *   반환하므로 getAdminUser() 도 null → 기존 공유키(sotong_admin) 경로가 그대로 유지된다(비파괴).
+ * 로그인 방식은 Supabase Auth 세션 쿠키(현재 이메일+비밀번호, 추후 Google OAuth 가능).
+ * 세션이 없으면 getUser() 가 null → getAdminUser() 도 null → 기존 공유키(sotong_admin)
+ *   경로가 그대로 유지된다(비파괴).
  */
 
-/** 허용 어드민 이메일. env로 이동 가능, 지금은 싱글 어드민. */
-const ADMIN_ALLOWLIST = ["bill@wadidu.com"];
+/** 허용 어드민 이메일. env로 이동 가능, 지금은 싱글 팀. */
+const ADMIN_ALLOWLIST = ["bill@wadidu.com", "admin@wadidu.com"];
 
 /**
  * 현재 요청에 유효한 Google 어드민 세션이 있으면 { email } 을, 없으면 null.

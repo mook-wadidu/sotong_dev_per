@@ -28,7 +28,11 @@ import type {
   CreateCustomerInput,
   CreateDesignerInput,
   CreateSalonInput,
+  AnalyticsEvent,
+  Announcement,
   CreateTreatmentRecordInput,
+  NewAnalyticsEvent,
+  NewAnnouncement,
   TrainingPhotosInput,
   CustomerHairProfileInput,
   Designer,
@@ -482,6 +486,21 @@ function toHairReport(r: HairReportRow): HairReport {
     styleRequest: r.style_request ?? undefined,
     concerns: r.concerns ?? undefined,
     cautions: r.cautions ?? undefined,
+  };
+}
+
+function toAnnouncement(r: Record<string, unknown>): Announcement {
+  return {
+    id: r.id as string,
+    title: (r.title ?? {}) as Partial<Record<Locale, string>>,
+    body: (r.body ?? {}) as Partial<Record<Locale, string>>,
+    audience: r.audience as Announcement["audience"],
+    salonSlugs: (r.salon_slugs as string[]) ?? [],
+    active: !!r.active,
+    activeFrom: (r.active_from as string) ?? undefined,
+    activeTo: (r.active_to as string) ?? undefined,
+    createdAt: r.created_at as string,
+    updatedAt: r.updated_at as string,
   };
 }
 
@@ -1248,6 +1267,72 @@ export class SupabaseRepo implements Repo {
     }
   }
 
+  async saveEvent(e: NewAnalyticsEvent): Promise<void> {
+    const { error } = await this.client.from("analytics_events").insert({
+      event_type: e.eventType,
+      salon_slug: e.salonSlug ?? null,
+      locale: e.locale ?? null,
+      actor: e.actor ?? null,
+    });
+    if (error) fail("saveEvent", error);
+  }
+
+  async listEventsSince(sinceIso: string): Promise<AnalyticsEvent[]> {
+    const { data, error } = await this.client
+      .from("analytics_events")
+      .select("id,event_type,salon_slug,locale,actor,created_at")
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: true })
+      .limit(20000);
+    if (error) fail("listEventsSince", error);
+    return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+      id: r.id as string,
+      eventType: r.event_type as string,
+      salonSlug: (r.salon_slug as string) ?? undefined,
+      locale: (r.locale as string) ?? undefined,
+      actor: (r.actor as string) ?? undefined,
+      createdAt: r.created_at as string,
+    }));
+  }
+
+  async listAnnouncements(): Promise<Announcement[]> {
+    const { data, error } = await this.client
+      .from("announcements")
+      .select(
+        "id,title,body,audience,salon_slugs,active,active_from,active_to,created_at,updated_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) fail("listAnnouncements", error);
+    return ((data ?? []) as Record<string, unknown>[]).map(toAnnouncement);
+  }
+
+  async createAnnouncement(input: NewAnnouncement): Promise<Announcement> {
+    const { data, error } = await this.client
+      .from("announcements")
+      .insert({
+        title: input.title,
+        body: input.body,
+        audience: input.audience,
+        salon_slugs: input.salonSlugs ?? [],
+        active: true,
+      })
+      .select(
+        "id,title,body,audience,salon_slugs,active,active_from,active_to,created_at,updated_at",
+      )
+      .single();
+    if (error) fail("createAnnouncement", error);
+    return toAnnouncement(data as Record<string, unknown>);
+  }
+
+  async setAnnouncementActive(id: string, active: boolean): Promise<void> {
+    const { error } = await this.client
+      .from("announcements")
+      .update({ active, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) fail("setAnnouncementActive", error);
+  }
+
   async updateTrainingSampleSatisfaction(
     consultationId: string,
     score: number,
@@ -1258,6 +1343,33 @@ export class SupabaseRepo implements Repo {
       .update({ satisfaction_score: score })
       .eq("consultation_id", consultationId);
     if (error) fail("updateTrainingSampleSatisfaction", error);
+  }
+
+  async countTrainingSamples(): Promise<number> {
+    const { count, error } = await this.client
+      .from("training_samples")
+      .select("id", { count: "exact", head: true });
+    if (error) fail("countTrainingSamples", error);
+    return count ?? 0;
+  }
+
+  async countTrainingPhotosByKind(): Promise<{
+    before: number;
+    after: number;
+    style: number;
+  }> {
+    const kinds = ["before", "after", "style"] as const;
+    const counts = await Promise.all(
+      kinds.map(async (k) => {
+        const { count, error } = await this.client
+          .from("training_photos")
+          .select("id", { count: "exact", head: true })
+          .eq("kind", k);
+        if (error) fail("countTrainingPhotosByKind", error);
+        return count ?? 0;
+      }),
+    );
+    return { before: counts[0], after: counts[1], style: counts[2] };
   }
 
   async getTreatmentByConsultation(
@@ -1390,6 +1502,16 @@ export class SupabaseRepo implements Repo {
       .maybeSingle();
     if (error) fail("getReport", error);
     return data ? toHairReport(data as HairReportRow) : null;
+  }
+
+  async listReports(opts?: { limit?: number }): Promise<HairReport[]> {
+    const { data, error } = await this.client
+      .from("hair_reports")
+      .select(REPORT_COLS)
+      .order("report_date", { ascending: false })
+      .limit(opts?.limit ?? 500);
+    if (error) fail("listReports", error);
+    return ((data ?? []) as HairReportRow[]).map(toHairReport);
   }
 
   /* ── 디자이너 웹푸시 구독 ─────────────────────────────────── */

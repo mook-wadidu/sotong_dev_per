@@ -47,6 +47,10 @@ export function AdminInquiries({
 }) {
   const t = useTranslations("Admin");
   const router = useRouter();
+  const [q, setQ] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<
+    ConsultationStatus | "all"
+  >("all");
 
   const statusLabel = (s: ConsultationStatus): string => {
     switch (s) {
@@ -151,15 +155,74 @@ export function AdminInquiries({
     },
   ];
 
+  const needle = q.trim().toLowerCase();
+  const filtered = consultations.filter((row) => {
+    if (statusFilter !== "all" && row.status !== statusFilter) return false;
+    if (!needle) return true;
+    return [
+      row.headline,
+      salonName(row.salonSlug),
+      row.designerName ?? "",
+      row.maskedPhone ?? "",
+      LOCALE_LABEL[row.customerLocale] ?? row.customerLocale,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(needle);
+  });
+
+  const statusChips: (ConsultationStatus | "all")[] = [
+    "all",
+    "intake",
+    "consulting",
+    "in_service",
+    "completed",
+    "cancelled",
+  ];
+
   return (
-    <DataTable
-      columns={inquiryColumns}
-      rows={consultations}
-      rowKey={(row) => row.id}
-      onRowClick={(row) => router.push(designerSummaryPath(row.designerToken))}
-      empty={t("empty.inquiries")}
-      caption={t("inquiries.title")}
-    />
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t("inquiries.search")}
+          className="h-9 w-full max-w-xs rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-foreground sm:w-64"
+        />
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {t("inquiries.count", { count: filtered.length })}
+        </span>
+      </div>
+      <nav className="flex flex-wrap gap-1.5">
+        {statusChips.map((s) => {
+          const active = s === statusFilter;
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatusFilter(s)}
+              aria-pressed={active}
+              className={
+                active
+                  ? "inline-flex h-8 items-center rounded-lg bg-foreground px-3 text-xs font-medium text-background"
+                  : "inline-flex h-8 items-center rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground hover:bg-muted"
+              }
+            >
+              {s === "all" ? t("inquiries.allStatus") : statusLabel(s)}
+            </button>
+          );
+        })}
+      </nav>
+      <DataTable
+        columns={inquiryColumns}
+        rows={filtered}
+        rowKey={(row) => row.id}
+        onRowClick={(row) => router.push(designerSummaryPath(row.designerToken))}
+        empty={t("empty.inquiries")}
+        caption={t("inquiries.title")}
+      />
+    </div>
   );
 }
 

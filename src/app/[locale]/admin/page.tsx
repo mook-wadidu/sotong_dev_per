@@ -4,21 +4,38 @@ import Link from "next/link";
 import {
   getAdminData,
   getSalonConsole,
+  adminListAnnouncements,
   type AdminViewData,
 } from "@/lib/service";
 import { AdminShell, buttonVariants } from "@/components/ui";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminInquiries, AdminErrors } from "@/components/admin/admin-sections";
+import { AdminAnalyticsView } from "@/components/admin/admin-analytics";
+import {
+  getAdminAnalytics,
+  type AnalyticsRange,
+} from "@/lib/admin-analytics";
+import { AdminReports } from "@/components/admin/admin-reports";
+import { getAdminReports } from "@/lib/admin-reports";
+import { AdminDataset } from "@/components/admin/admin-dataset";
+import { getTrainingDataStatus } from "@/lib/admin-dataset";
+import { AdminDesigners } from "@/components/admin/admin-designers";
+import { getAdminDesigners } from "@/lib/admin-designers";
+import { AdminAnnouncements } from "@/components/admin/admin-announcements";
 import { SalonManageSection } from "@/components/admin/salon-manage-section";
 import { Onboarding } from "@/components/admin/onboarding";
 import { adminPath, salonConsolePath, type AdminView } from "@/lib/links";
 import { shareOrigin } from "@/lib/origin";
 import { readAdminSession } from "@/lib/admin-session";
 import { getAdminUser } from "@/lib/admin-auth";
-import { AdminLogin } from "@/components/admin/admin-login";
+import { AdminLogin, type AdminLoginLabels } from "@/components/admin/admin-login";
 
 const VIEWS: AdminView[] = [
   "dashboard",
+  "analytics",
+  "reports",
+  "dataset",
+  "designers",
   "salons",
   "inquiries",
   "errors",
@@ -41,17 +58,28 @@ export default async function AdminPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ salon?: string; view?: string }>;
+  searchParams: Promise<{ salon?: string; view?: string; range?: string }>;
 }) {
   const { locale } = await params;
-  const { salon, view: viewParam } = await searchParams;
+  const { salon, view: viewParam, range: rangeParam } = await searchParams;
   const t = await getTranslations("Admin");
 
   // ── 게이트: Google 어드민 세션 OR 공유키 세션(브레이크글래스) ────────
   // 프로바이더 미설정 시 getAdminUser()는 null → 기존 공유키 경로가 그대로 유지된다(비파괴).
   const authed = (await getAdminUser()) || (await readAdminSession());
   if (!authed) {
-    return <AdminLoginScreen title={t("denied.title")} />;
+    return (
+      <AdminLoginScreen
+        title={t("login.title")}
+        labels={{
+          email: t("login.email"),
+          password: t("login.password"),
+          submit: t("login.submit"),
+          pending: t("login.pending"),
+          error: t("login.error"),
+        }}
+      />
+    );
   }
 
   // 세션 통과 → 데이터 로드(서버에서 재검증).
@@ -60,6 +88,22 @@ export default async function AdminPage({
   const view: AdminView = VIEWS.includes(viewParam as AdminView)
     ? (viewParam as AdminView)
     : "dashboard";
+
+  // 분석 뷰일 때만 집계 로드(다른 뷰에 불필요한 스캔 방지).
+  const range: AnalyticsRange = ([7, 30, 90] as const).includes(
+    Number(rangeParam) as AnalyticsRange,
+  )
+    ? (Number(rangeParam) as AnalyticsRange)
+    : 30;
+  const analytics =
+    view === "analytics"
+      ? await getAdminAnalytics({ range, salonSlug: salon })
+      : null;
+  const reports = view === "reports" ? await getAdminReports() : null;
+  const dataset = view === "dataset" ? await getTrainingDataStatus() : null;
+  const designers = view === "designers" ? await getAdminDesigners() : null;
+  const announcements =
+    view === "notices" ? await adminListAnnouncements() : null;
 
   // QR 절대 URL — 운영 정식 도메인(NEXT_PUBLIC_BASE_URL) 우선(보호된 프리뷰 호스트
   // 인코딩 → 모바일 Vercel 로그인 벽 방지), 미설정 시 요청 Host 폴백.
@@ -180,6 +224,36 @@ export default async function AdminPage({
           </div>
         ) : null}
 
+        {view === "analytics" && analytics ? (
+          <div className="space-y-4">
+            <SalonFilter
+              locale={locale}
+              view="analytics"
+              salons={salons}
+              selected={salon}
+              label={t("salonFilter")}
+              allLabel={t("allSalons")}
+            />
+            <AdminAnalyticsView data={analytics} locale={locale} salon={salon} />
+          </div>
+        ) : null}
+
+        {view === "reports" && reports ? (
+          <AdminReports rows={reports.rows} />
+        ) : null}
+
+        {view === "dataset" && dataset ? (
+          <AdminDataset data={dataset} />
+        ) : null}
+
+        {view === "designers" && designers ? (
+          <AdminDesigners rows={designers} />
+        ) : null}
+
+        {view === "notices" && announcements ? (
+          <AdminAnnouncements items={announcements} />
+        ) : null}
+
         {view === "salons" ? (
           <SalonsView
             origin={origin}
@@ -230,12 +304,18 @@ export default async function AdminPage({
  * 기존 중립 "잘못된 접근" 카드를 유지하되 어드민 Google SSO 버튼을 얹는다.
  * 공유키(break-glass) 진입은 여전히 /api/admin/enter?key= 로 (URL 노출 없음).
  */
-function AdminLoginScreen({ title }: { title: string }) {
+function AdminLoginScreen({
+  title,
+  labels,
+}: {
+  title: string;
+  labels: AdminLoginLabels;
+}) {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-5 rounded-2xl border border-border bg-card p-8 text-center">
-        <p className="text-base font-semibold text-foreground">{title}</p>
-        <AdminLogin />
+      <div className="w-full max-w-sm space-y-5 rounded-2xl border border-border bg-card p-8">
+        <p className="text-center text-base font-semibold text-foreground">{title}</p>
+        <AdminLogin labels={labels} />
       </div>
     </div>
   );

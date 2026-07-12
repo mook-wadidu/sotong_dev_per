@@ -16,8 +16,12 @@ import type {
   CreateCustomerInput,
   CreateDesignerInput,
   CreateSalonInput,
+  AnalyticsEvent,
+  Announcement,
   CreateTreatmentRecordInput,
   CustomerHairProfileInput,
+  NewAnalyticsEvent,
+  NewAnnouncement,
   TrainingPhotosInput,
   Designer,
   DesignerRank,
@@ -61,6 +65,8 @@ interface Store {
   revokedStaffTokens: Set<string>; // staff_token 무효화 — designerId 집합
   ownerTokenSeen: Map<string, { at: number; ip: string | null }>; // slug -> last_seen(스로틀)
   staffTokenSeen: Map<string, { at: number; ip: string | null }>; // designerId -> last_seen
+  events: AnalyticsEvent[]; // 유입/조회 이벤트(append-only)
+  announcements: Announcement[]; // 공지(최신순으로 unshift)
 }
 
 /** last_seen write-on-read 스로틀(10분) — supabase 드라이버와 동일. */
@@ -287,6 +293,8 @@ function freshStore(): Store {
     hairProfiles: new Map(),
     treatmentRecords: new Map(),
     trainingSamples: [],
+    events: [],
+    announcements: [],
     revokedOwnerTokens: new Set(),
     revokedStaffTokens: new Set(),
     ownerTokenSeen: new Map(),
@@ -302,6 +310,8 @@ store.customers ??= new Map();
 store.hairProfiles ??= new Map();
 store.treatmentRecords ??= new Map();
 store.trainingSamples ??= [];
+store.events ??= [];
+store.announcements ??= [];
 
 /** 무인증 접근 토큰 — 절단 없이 192bit 랜덤(base64url). 추측/열거 차단(P0/P1-36). */
 const token = () => randomBytes(24).toString("base64url");
@@ -752,6 +762,51 @@ export class MemoryRepo implements Repo {
     void _input;
   }
 
+  async saveEvent(e: NewAnalyticsEvent): Promise<void> {
+    store.events.push({
+      id: randomUUID(),
+      eventType: e.eventType,
+      salonSlug: e.salonSlug,
+      locale: e.locale,
+      actor: e.actor,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  async listEventsSince(sinceIso: string): Promise<AnalyticsEvent[]> {
+    return store.events
+      .filter((x) => x.createdAt >= sinceIso)
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  }
+
+  async listAnnouncements(): Promise<Announcement[]> {
+    return [...store.announcements];
+  }
+
+  async createAnnouncement(input: NewAnnouncement): Promise<Announcement> {
+    const now = new Date().toISOString();
+    const a: Announcement = {
+      id: randomUUID(),
+      title: input.title,
+      body: input.body,
+      audience: input.audience,
+      salonSlugs: input.salonSlugs ?? [],
+      active: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+    store.announcements.unshift(a);
+    return a;
+  }
+
+  async setAnnouncementActive(id: string, active: boolean): Promise<void> {
+    const a = store.announcements.find((x) => x.id === id);
+    if (a) {
+      a.active = active;
+      a.updatedAt = new Date().toISOString();
+    }
+  }
+
   async updateTrainingSampleSatisfaction(
     consultationId: string,
     score: number,
@@ -760,6 +815,19 @@ export class MemoryRepo implements Repo {
     for (const s of store.trainingSamples) {
       if (s.consultationId === consultationId) s.satisfactionScore = score;
     }
+  }
+
+  async countTrainingSamples(): Promise<number> {
+    return store.trainingSamples.length;
+  }
+
+  async countTrainingPhotosByKind(): Promise<{
+    before: number;
+    after: number;
+    style: number;
+  }> {
+    // memory 드라이버는 사진 Storage 가 없어 항상 0(운영은 supabase).
+    return { before: 0, after: 0, style: 0 };
   }
 
   async getTreatmentByConsultation(
@@ -818,6 +886,13 @@ export class MemoryRepo implements Repo {
 
   async getReport(reportToken: string): Promise<HairReport | null> {
     return store.reports.get(reportToken) ?? null;
+  }
+
+  async listReports(opts?: { limit?: number }): Promise<HairReport[]> {
+    const all = [...store.reports.values()].sort((a, b) =>
+      a.date < b.date ? 1 : a.date > b.date ? -1 : 0,
+    );
+    return opts?.limit ? all.slice(0, opts.limit) : all;
   }
 
   /* ── 디자이너 웹푸시 구독 ─────────────────────────────────── */

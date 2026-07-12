@@ -9,8 +9,13 @@
     "open": "메뉴 열기",
     "close": "닫기",
     "dashboard": "대시보드",
+    "analytics": "분석",
+    "reports": "리포트 모음",
+    "dataset": "AI 데이터셋",
+    "designers": "디자이너",
+    "notices": "공지",
     "salons": "지점 관리",
-    "inquiries": "접수 내역",
+    "inquiries": "고객센터",
     "errors": "오류",
     "onboarding": "온보딩",
     "logout": "로그아웃"
@@ -56,8 +61,135 @@
     "salons": "지점 수",
     "inquiries": "접수 수"
   },
+  "analytics": {
+    "title": "분석 대시보드",
+    "hint": "기간별 유입·상담·리포트 지표",
+    "rangeLabel": "기간 선택",
+    "range7": "7일",
+    "range30": "30일",
+    "range90": "90일",
+    "empty": "표시할 데이터가 없어요.",
+    "kpi": {
+      "demoViews": "데모 조회수",
+      "consults": "상담",
+      "completionRate": "완료율",
+      "returningRate": "재방문율",
+      "reports": "리포트 발급",
+      "satisfaction": "평균 만족도"
+    },
+    "trend": {
+      "title": "일자별 추이",
+      "consults": "상담",
+      "completed": "완료",
+      "demoTitle": "데모 조회수 (일자별)"
+    },
+    "funnel": {
+      "title": "진행 퍼널",
+      "intake": "접수",
+      "consulting": "상담",
+      "in_service": "시술",
+      "completed": "완료"
+    },
+    "byLocale": "언어별 유입",
+    "bySalon": "지점별 상담"
+  },
+  "reports": {
+    "title": "리포트 모음",
+    "hint": "전 지점에서 발급된 모발 리포트",
+    "search": "지점·디자이너 검색",
+    "count": "리포트 {count}건",
+    "empty": "발급된 리포트가 없어요.",
+    "view": "열람",
+    "weeks": "{count}주 후",
+    "col": {
+      "date": "발급일",
+      "salon": "지점",
+      "designer": "디자이너",
+      "lang": "언어",
+      "score": "모발점수",
+      "nextVisit": "다음 방문"
+    }
+  },
+  "dataset": {
+    "title": "AI 학습 데이터셋 현황",
+    "hint": "가명 처리된 학습 데이터의 건수·동의율·구조 (원본 미노출)",
+    "kpi": {
+      "samples": "학습 샘플",
+      "photos": "학습 사진",
+      "completed": "완료 상담"
+    },
+    "photo": {
+      "title": "사진 종류별",
+      "before": "비포",
+      "after": "애프터",
+      "style": "스타일 참고"
+    },
+    "consent": {
+      "title": "학습 동의율 (완료 상담 대비)",
+      "training": "데이터 학습",
+      "photo": "사진 학습"
+    },
+    "schema": {
+      "title": "수집 피처 (스키마)",
+      "hint": "가명 데이터셋 컬럼 — 개인식별 불가"
+    },
+    "excluded": {
+      "title": "학습 제외 (PII/원본)",
+      "hint": "아래 항목은 학습셋에 절대 포함되지 않음"
+    },
+    "policy": {
+      "title": "가명화·파기 정책 (학습 판단 근거)",
+      "pseudonymLabel": "가명 키",
+      "retentionLabel": "PII 파기",
+      "retention": "고객 PII 는 90일 후 자동 파기 — 가명 학습셋은 재식별 불가로 보존",
+      "judgement": "이 데이터셋은 재식별 불가(가명), 옵트인 동의 기반, 얼굴/셀카 제외로 설계되어 학습에 적합합니다. 충분한 표본 수와 동의율이 확보되면 스타일 추천·모발 상태 예측 모델 학습을 시작할 수 있습니다."
+    }
+  },
+  "designers": {
+    "title": "디자이너 성과 (전 지점)",
+    "hint": "상담·완료율·재방문율·리포트 발급 랭킹",
+    "empty": "등록된 디자이너가 없어요.",
+    "col": {
+      "designer": "디자이너",
+      "salon": "지점",
+      "consults": "상담",
+      "completion": "완료율",
+      "returning": "재방문율",
+      "reports": "리포트"
+    }
+  },
+  "notices": {
+    "newTitle": "새 공지",
+    "listTitle": "공지 목록",
+    "empty": "등록된 공지가 없어요.",
+    "field": {
+      "title": "제목",
+      "body": "내용",
+      "audience": "대상"
+    },
+    "audience": {
+      "platform": "플랫폼 전체",
+      "salon": "살롱/디자이너",
+      "customer": "손님"
+    },
+    "create": "공지 등록",
+    "creating": "등록 중…",
+    "needTitle": "제목을 입력하세요.",
+    "created": "공지를 등록했어요.",
+    "activate": "활성화",
+    "deactivate": "비활성화",
+    "inactive": "비활성"
+  },
   "denied": {
     "title": "잘못된 접근입니다"
+  },
+  "login": {
+    "title": "관리자 로그인",
+    "email": "이메일",
+    "password": "비밀번호",
+    "submit": "로그인",
+    "pending": "로그인 중…",
+    "error": "이메일 또는 비밀번호가 올바르지 않습니다."
   },
   "qr": {
     "title": "매장 QR",
@@ -72,6 +204,9 @@
   },
   "inquiries": {
     "title": "접수 내역",
+    "search": "이름·지점·연락처 검색",
+    "count": "{count}건",
+    "allStatus": "전체",
     "customer": "손님",
     "designer": "디자이너",
     "unassigned": "지정없음",

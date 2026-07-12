@@ -36,6 +36,11 @@ export function AdminLayout({
 
   const items: { key: AdminView; label: string }[] = [
     { key: "dashboard", label: t("nav.dashboard") },
+    { key: "analytics", label: t("nav.analytics") },
+    { key: "reports", label: t("nav.reports") },
+    { key: "dataset", label: t("nav.dataset") },
+    { key: "designers", label: t("nav.designers") },
+    { key: "notices", label: t("nav.notices") },
     { key: "salons", label: t("nav.salons") },
     { key: "inquiries", label: t("nav.inquiries") },
     { key: "errors", label: t("nav.errors") },

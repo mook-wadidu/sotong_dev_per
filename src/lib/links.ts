@@ -60,6 +60,11 @@ export function salonConsolePath(ownerToken: string) {
 /** 어드민 사이드바 뷰 키 — URL `view` 파라미터(새로고침/북마크 견딤). */
 export type AdminView =
   | "dashboard"
+  | "analytics"
+  | "reports"
+  | "dataset"
+  | "designers"
+  | "notices"
   | "salons"
   | "inquiries"
   | "errors"

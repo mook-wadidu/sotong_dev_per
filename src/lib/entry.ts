@@ -58,8 +58,8 @@ function b64url(s: string): string {
 }
 
 function safeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return timingSafeEqual(ab, bb);
+  // 길이 조기반환은 타이밍 오라클(길이 노출) → 양쪽을 고정 32B HMAC 다이제스트로 비교.
+  const ha = createHmac("sha256", config.entrySecret).update(a).digest();
+  const hb = createHmac("sha256", config.entrySecret).update(b).digest();
+  return timingSafeEqual(ha, hb);
 }

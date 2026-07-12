@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import {
   acceptSalonInvite as acceptSalonInviteSvc,
   adminProvisionOwner as adminProvisionOwnerSvc,
@@ -51,6 +52,7 @@ import {
   salonUpsertService as salonUpsertServiceSvc,
   startConsultation,
   logIssue,
+  rateLimitOk as rateLimitOkSvc,
   type AdminViewData,
   type CreatedDesignerResult,
   type CreatedSalonResult,
@@ -263,12 +265,21 @@ export async function reportClientError(input: {
   detail?: string;
   source?: string;
 }): Promise<void> {
+  // 무인증 공개 액션 — IP rate limit + 길이 캡(에러로그 플러딩/주입 방어).
+  const h = await headers();
+  const ip =
+    h.get("x-real-ip") ??
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown";
+  if (!(await rateLimitOkSvc(`client-error:${ip}`, 20, 60_000, "client"))) {
+    return; // 조용히 드롭
+  }
   await logIssue({
     salonSlug: input.salonSlug,
     severity: "error",
-    source: input.source ?? "client",
-    message: input.message,
-    detail: input.detail,
+    source: (input.source ?? "client").slice(0, 40),
+    message: (input.message ?? "").slice(0, 500),
+    detail: input.detail?.slice(0, 2000),
   });
 }
 

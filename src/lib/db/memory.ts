@@ -567,12 +567,14 @@ export class MemoryRepo implements Repo {
   async assignConsultation(
     consultationId: string,
     designer: { id: string; name: string },
-  ): Promise<void> {
+    opts?: { onlyIfUnassigned?: boolean },
+  ): Promise<boolean> {
     const c = store.consultations.get(consultationId);
-    if (c) {
-      c.designerId = designer.id;
-      c.designerName = designer.name;
-    }
+    if (!c) return false;
+    if (opts?.onlyIfUnassigned && c.designerId) return false;
+    c.designerId = designer.id;
+    c.designerName = designer.name;
+    return true;
   }
 
   async listConsultations(
@@ -610,6 +612,15 @@ export class MemoryRepo implements Repo {
   async updateStatus(id: string, status: ConsultationStatus): Promise<void> {
     const c = store.consultations.get(id);
     if (c) c.status = status;
+  }
+
+  async claimConsultationForCompletion(id: string): Promise<boolean> {
+    const c = store.consultations.get(id);
+    if (!c || (c.status !== "in_service" && c.status !== "consulting")) {
+      return false;
+    }
+    c.status = "completed";
+    return true;
   }
 
   async setSummary(id: string, summary: DesignerSummary): Promise<void> {
@@ -960,6 +971,14 @@ export class MemoryRepo implements Repo {
     if (inv) inv.usedAt = new Date().toISOString();
   }
 
+  async consumeSalonInvite(token: string): Promise<SalonInvite | null> {
+    const inv = store.salonInvites.find((i) => i.token === token);
+    if (!inv || inv.usedAt || inv.revoked) return null;
+    if (inv.expiresAt && inv.expiresAt < new Date().toISOString()) return null;
+    inv.usedAt = new Date().toISOString(); // 단일스레드라 원자적.
+    return inv;
+  }
+
   async listSalonInvites(salonSlug: string): Promise<SalonInvite[]> {
     return store.salonInvites
       .filter((i) => i.salonSlug === salonSlug)
@@ -1012,6 +1031,14 @@ export class MemoryRepo implements Repo {
       req.status = status;
       req.respondedAt = new Date().toISOString();
     }
+  }
+
+  async acceptMembershipRequestAtomic(id: string): Promise<boolean> {
+    const req = store.membershipRequests.find((r) => r.id === id);
+    if (!req || req.status !== "pending") return false;
+    req.status = "accepted";
+    req.respondedAt = new Date().toISOString();
+    return true;
   }
 
   async updateTrainingSampleSatisfaction(

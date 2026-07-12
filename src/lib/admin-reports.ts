@@ -11,6 +11,7 @@ export interface AdminReportRow {
   reportToken: string;
   consultationId: string;
   salonName: string;
+  salonSlug?: string;
   designerName: string;
   locale: Locale;
   date: string; // ISO
@@ -34,6 +35,7 @@ export async function getAdminReports(opts?: {
     reportToken: r.reportToken,
     consultationId: r.consultationId,
     salonName: r.salonName,
+    salonSlug: r.salonSlug,
     designerName: r.designerName,
     locale: r.locale,
     date: r.date,

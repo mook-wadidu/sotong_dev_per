@@ -7,6 +7,8 @@ import { config } from "@/lib/config";
 import {
   DEFAULT_DESIGNER_RANKS,
   toPublicSalon,
+  toOwnerConsoleSalon,
+  type OwnerConsoleSalon,
   type AdminDesigner,
   type AdminSalon,
   type Announcement,
@@ -46,7 +48,7 @@ import {
   verifyEntryToken,
 } from "@/lib/entry";
 import { readAdminSession } from "@/lib/admin-session";
-import { getAdminUser } from "@/lib/admin-auth";
+import { getAdminUser, isAdminEmail } from "@/lib/admin-auth";
 import { provisionAccount } from "@/lib/account-provision";
 import { getSessionAccount } from "@/lib/session-auth";
 import {
@@ -125,15 +127,34 @@ async function enforceRate(
   }
   // count===0 은 리미터 비가용(폴백 통과). 정상 경로는 1 이상.
   if (count === 0 || count <= max) return;
+  // key 에 capability 토큰이 섞여 있으므로 로그엔 프리픽스 + 꼬리 6자만(재사용 방지).
+  const dot = key.indexOf(":");
+  const safeKey =
+    dot > 0 ? `${key.slice(0, dot)}:…${key.slice(-6)}` : key.slice(0, 12);
   await logIssue({
     salonSlug: ctx.salonSlug,
     severity: "warning",
     source: ctx.source,
     message: "레이트리밋 초과",
-    detail: `key=${key} count=${count} max=${max}/${windowMs}ms`,
+    detail: `key=${safeKey} count=${count} max=${max}/${windowMs}ms`,
     consultationId: ctx.consultationId,
   });
   throw new RateLimitError();
+}
+
+/** 공개 rate 체크(라우트핸들러용) — 초과면 false, 아니면 true(throw 안 함). */
+export async function rateLimitOk(
+  key: string,
+  max: number,
+  windowMs: number,
+  source: string,
+): Promise<boolean> {
+  try {
+    await enforceRate(key, max, windowMs, { source });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /* ── 사진 dataURL 검증 (서버 입력 경계, P0) ───────────────────
@@ -286,8 +307,8 @@ export async function notifyDesigner(
       );
       if (res.gone) {
         await repo.deletePushSubscription(sub.endpoint);
-      } else {
-        sent += 1;
+      } else if (res.ok) {
+        sent += 1; // 실제 전송 성공만 카운트(비활성/5xx는 실패로).
       }
     }
     status = subs.length === 0 ? "no_subscription" : sent > 0 ? "sent" : "failed";
@@ -545,7 +566,9 @@ export async function startConsultation(input: {
   customerLocale: Locale;
   isReturning: boolean;
   intake: IntakeDraft;
-}): Promise<{ consultationToken: string; designerToken: string; consultationId: string }> {
+}): Promise<{ consultationToken: string; consultationId: string }> {
+  // 주의(보안): designerToken 은 손님에게 반환하지 않는다 — 손님이 그것으로 /d/summary 를
+  // 열면 staffToken 이 노출돼 디자이너 인박스가 탈취된다. 디자이너는 push 로 링크를 받는다.
   const repo = getRepo();
 
   // 1) 입장 토큰 검증 — 서버가 salonSlug/디자이너를 확정(클라 신뢰 금지)
@@ -777,7 +800,6 @@ export async function startConsultation(input: {
 
     return {
       consultationToken: consultation.consultationToken,
-      designerToken: consultation.designerToken,
       consultationId: consultation.id,
     };
   } catch (e) {
@@ -1326,6 +1348,12 @@ export async function completeConsultation(input: {
     return null;
   }
 
+  // 원자 클레임(M-K) — 동시 이중완결 레이스에서 승자 1건만 body 실행(중복 카르테/샘플 방지).
+  // 여기서 status→completed 로 선점하고, 리포트 저장 전 실패 시 아래 catch 가 원 상태로 복원.
+  const prevStatus = c.status;
+  const claimed = await repo.claimConsultationForCompletion(c.id);
+  if (!claimed) return null;
+
   // before 소스 결정: 기록폼이 보낸 값(요약 단계 촬영분으로 프리필되며 교체 가능)을 우선,
   // 없으면 상담에 저장된 beforePhotoUrl 폴백. after 는 그대로 input.
   const beforeUrl = input.beforePhotoUrl ?? c.beforePhotoUrl;
@@ -1406,6 +1434,7 @@ export async function completeConsultation(input: {
       consultationId: c.id,
       reportToken,
       salonName: salon?.name ?? "소통 헤어",
+      salonSlug: c.salonSlug,
       designerName: c.designerName ?? "담당 디자이너",
       date: new Date().toISOString(),
       beforePhotoUrl: beforeUrl,
@@ -1415,7 +1444,7 @@ export async function completeConsultation(input: {
 
     await repo.saveReport(report);
     await repo.setReportToken(c.id, reportToken);
-    await repo.updateStatus(c.id, "completed");
+    // status 는 위 claimConsultationForCompletion 에서 이미 completed 로 전이됨.
 
     // ── 디자이너용 ko 리포트 ───────────────────────────────────────
     // 손님 언어가 ko 가 아니면 별도 ko 리포트를 추가 생성·저장하고 designerReportToken 을 둔다.
@@ -1455,6 +1484,7 @@ export async function completeConsultation(input: {
           consultationId: c.id,
           reportToken: koToken,
           salonName: salon?.name ?? "소통 헤어",
+          salonSlug: c.salonSlug,
           designerName: c.designerName ?? "담당 디자이너",
           // before/after/점수/등급/다음 방문은 손님 리포트와 공유(같은 시술 결과).
           hairStateGrade: report.hairStateGrade,
@@ -1638,6 +1668,9 @@ export async function completeConsultation(input: {
 
     return { reportToken, designerReportToken };
   } catch (e) {
+    // 리포트 저장 전 실패 — 클레임으로 선점한 completed 상태를 원복해 재시도 가능케 한다.
+    // (saveReport 이후 단계는 모두 개별 try/catch 라 여기 도달 = 리포트 미완성.)
+    await repo.updateStatus(c.id, prevStatus).catch(() => {});
     await logIssue({
       salonSlug: c.salonSlug,
       source: "report",
@@ -2100,8 +2133,13 @@ export async function assignConsultation(
     });
     return { ok: false };
   }
-  await repo.assignConsultation(c.id, { id: designer.id, name: designer.name });
-  return { ok: true };
+  // 조건부 배정 — 이미 다른 디자이너가 집었으면 실패(double-grab 방지).
+  const ok = await repo.assignConsultation(
+    c.id,
+    { id: designer.id, name: designer.name },
+    { onlyIfUnassigned: true },
+  );
+  return { ok };
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -2129,7 +2167,7 @@ async function authorizeConsole(
 }
 
 export interface SalonConsoleData {
-  salon: Salon;
+  salon: OwnerConsoleSalon;
   designers: Designer[];
   categories: SalonServiceCategory[];
   services: SalonService[];
@@ -2160,7 +2198,8 @@ export async function getSalonConsole(
   ]);
   const salonEntryToken = makeSalonEntryToken(salon.slug, salon.entryKeyVersion);
   return {
-    salon,
+    // 비밀(ownerToken·ownerEmail) strip 투영 — 콘솔 편집용 designerRanks 는 유지.
+    salon: toOwnerConsoleSalon(salon),
     designers,
     categories,
     services,
@@ -2735,16 +2774,28 @@ export async function adminCreateSalon(
   });
 
   // 오너 이메일 지정 시 계정 발급 + 매핑(세션 로그인 진입).
+  // 실패(중복 이메일 등)해도 살롱 생성을 orphan 시키지 않도록 격리 — 오너 계정만
+  // 미발급으로 두고(어드민이 나중에 adminProvisionOwner 로 재시도) 살롱은 유지한다.
   let ownerTempPassword: string | undefined;
   const ownerEmail = input.ownerEmail?.trim();
   if (ownerEmail) {
-    const { tempPassword } = await provisionAccount({
-      email: ownerEmail,
-      role: "owner",
-      displayName: name,
-    });
-    await repo.setSalonOwnerEmail(salon.slug, ownerEmail);
-    ownerTempPassword = tempPassword;
+    try {
+      const { tempPassword } = await provisionAccount({
+        email: ownerEmail,
+        role: "owner",
+        displayName: name,
+      });
+      await repo.setSalonOwnerEmail(salon.slug, ownerEmail);
+      ownerTempPassword = tempPassword;
+    } catch (e) {
+      await logIssue({
+        salonSlug: salon.slug,
+        severity: "warning",
+        source: "console",
+        message: "살롱 생성 중 오너 계정 발급 실패(살롱은 유지)",
+        detail: e instanceof Error ? e.message : "unknown",
+      });
+    }
   }
 
   const salonEntryToken = makeSalonEntryToken(salon.slug, salon.entryKeyVersion);
@@ -2900,13 +2951,23 @@ export async function adminCreateDesigner(
     rankId,
   });
 
-  // email 지정 시 디자이너 계정 발급 + 소속(staff.email) 매핑.
+  // email 지정 시 디자이너 계정 발급 + 소속(staff.email) 매핑. 실패해도 디자이너는 유지.
   let tempPassword: string | undefined;
   const email = input.email?.trim();
   if (email) {
-    const res = await provisionAccount({ email, role: "designer", displayName: name });
-    await repo.setStaffEmail(designer.id, email);
-    tempPassword = res.tempPassword;
+    try {
+      const res = await provisionAccount({ email, role: "designer", displayName: name });
+      await repo.setStaffEmail(designer.id, email);
+      tempPassword = res.tempPassword;
+    } catch (e) {
+      await logIssue({
+        salonSlug: salon.slug,
+        severity: "warning",
+        source: "console",
+        message: "디자이너 생성 중 계정 발급 실패(디자이너는 유지)",
+        detail: e instanceof Error ? e.message : "unknown",
+      });
+    }
   }
 
   const entryToken = makeDesignerEntryToken(
@@ -3020,13 +3081,23 @@ export async function salonOwnerReports(
   const salon = await authorizeConsole(ownerToken, "console");
   if (!salon) return [];
   const { rows } = await getAdminReports({ limit: 2000 });
-  return rows.filter((r) => r.salonName === salon.name);
+  // 테넌트 격리는 unique **slug** 로(name 은 non-unique → 동명 살롱 유출). slug 있는 행만 노출.
+  return rows.filter((r) => r.salonSlug === salon.slug);
 }
 
 /** 초대 유효성 + 대상 살롱명(가입 화면 표시용). 무효면 null. */
 export async function getInviteView(
   token: string,
 ): Promise<{ salonName: string } | null> {
+  // 초대 토큰 프로빙 방어 — IP당 분당 30회 초과 시 무효 취급.
+  const h = await headers();
+  const ip =
+    h.get("x-real-ip") ??
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown";
+  if (!(await rateLimitOk(`invite-view:${ip}`, 30, 60_000, "invite"))) {
+    return null;
+  }
   const inv = await getRepo().getSalonInvite(token);
   if (!inv || inv.revoked || inv.usedAt) return null;
   if (inv.expiresAt && inv.expiresAt < new Date().toISOString()) return null;
@@ -3046,19 +3117,32 @@ export async function acceptSalonInvite(input: {
   name: string;
 }): Promise<{ ok: boolean; email?: string; error?: string }> {
   const repo = getRepo();
-  const inv = await repo.getSalonInvite(input.token);
-  if (!inv || inv.revoked || inv.usedAt) {
-    return { ok: false, error: "유효하지 않은 초대입니다." };
+  const name = input.name?.trim();
+  const email = input.email?.trim().toLowerCase();
+  if (!name || !email) return { ok: false, error: "이름·이메일은 필수입니다." };
+
+  // rate limit(공개 계정 생성 — IP당 분당 10회).
+  try {
+    const h = await headers();
+    const ip =
+      h.get("x-real-ip") ??
+      h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+    await enforceRate(`accept-invite:${ip}`, 10, 60_000, { source: "invite" });
+  } catch {
+    return { ok: false, error: "잠시 후 다시 시도해 주세요." };
   }
-  if (inv.expiresAt && inv.expiresAt < new Date().toISOString()) {
-    return { ok: false, error: "만료된 초대입니다." };
+
+  // 어드민 allowlist·기존 오너/스태프 이메일로는 초대 수락 불가(승격·중복 차단).
+  if (await selfProvisionBlocked(email)) {
+    return { ok: false, error: "이 이메일로는 가입할 수 없습니다." };
   }
+
+  // 원자적 단일사용 소비(레이스 방지) — 유효할 때만 used 마킹 후 반환.
+  const inv = await repo.consumeSalonInvite(input.token);
+  if (!inv) return { ok: false, error: "유효하지 않은 초대입니다." };
   const salon = await repo.getSalon(inv.salonSlug);
   if (!salon) return { ok: false, error: "살롱을 찾을 수 없습니다." };
-
-  const name = input.name?.trim();
-  const email = input.email?.trim();
-  if (!name || !email) return { ok: false, error: "이름·이메일은 필수입니다." };
 
   try {
     await provisionAccount({
@@ -3073,7 +3157,6 @@ export async function acceptSalonInvite(input: {
 
   const designer = await repo.createDesigner({ salonSlug: salon.slug, name });
   await repo.setStaffEmail(designer.id, email);
-  await repo.markSalonInviteUsed(input.token);
   await logIssue({
     salonSlug: salon.slug,
     severity: "info",
@@ -3086,13 +3169,25 @@ export async function acceptSalonInvite(input: {
 
 /* ── 자가가입 + 소속 요청 (Phase 0c) ───────────────────────── */
 
+/**
+ * 자가발급 금지 이메일 — 어드민 allowlist 또는 이미 오너/스태프인 이메일.
+ * 자가가입/초대가 이 이메일로 계정을 발급하지 못하게 막는다(어드민 승격·스쿼팅 차단).
+ */
+async function selfProvisionBlocked(email: string): Promise<boolean> {
+  if (isAdminEmail(email)) return true;
+  const repo = getRepo();
+  if (await repo.getSalonByOwnerEmail(email)) return true;
+  if (await repo.getStaffByEmail(email)) return true;
+  return false;
+}
+
 /** 디자이너 자가가입(공개) — 계정만 생성(미소속). 이후 초대/요청으로 소속. */
 export async function signUpDesigner(input: {
   email: string;
   password: string;
   name: string;
 }): Promise<{ ok: boolean; email?: string; error?: string }> {
-  const email = input.email?.trim();
+  const email = input.email?.trim().toLowerCase();
   const name = input.name?.trim();
   if (!email || !name) return { ok: false, error: "이름·이메일은 필수입니다." };
 
@@ -3106,6 +3201,11 @@ export async function signUpDesigner(input: {
     await enforceRate(`signup:${ip}`, 5, 60_000, { source: "signup" });
   } catch {
     return { ok: false, error: "잠시 후 다시 시도해 주세요." };
+  }
+
+  // 어드민 allowlist·기존 오너/스태프 이메일로는 자가가입 불가(승격·스쿼팅 차단).
+  if (await selfProvisionBlocked(email)) {
+    return { ok: false, error: "이 이메일로는 가입할 수 없습니다." };
   }
 
   try {
@@ -3156,6 +3256,11 @@ export async function salonSendMembershipRequest(
   if (existing && existing.salonSlug === salon.slug) {
     return { ok: false, error: "이미 이 살롱 소속입니다." };
   }
+  // 중복 pending 방지(멱등) — DB partial-unique(0020)의 앱단 선방어.
+  const pending = await getRepo().listMembershipRequestsByEmail(e);
+  if (pending.some((r) => r.salonSlug === salon.slug && r.status === "pending")) {
+    return { ok: true };
+  }
   await getRepo().createMembershipRequest(salon.slug, e);
   return { ok: true };
 }
@@ -3197,13 +3302,20 @@ export async function respondMembership(
   }
   const salon = await repo.getSalon(req.salonSlug);
   if (!salon) return { ok: false, error: "살롱 없음" };
+  // 원자 전이 — 동시 이중수락 시 승자 1건만 진행(중복 staff 방지).
+  const won = await repo.acceptMembershipRequestAtomic(requestId);
+  if (!won) return { ok: false, error: "이미 처리된 요청" };
+  // 이미 이 살롱 staff 면 재생성 금지(멱등).
+  const already = await repo.getStaffByEmail(acc.email);
+  if (already && already.salonSlug === salon.slug) {
+    return { ok: true };
+  }
   const profile = await repo.getProfileByEmail(acc.email);
   const designer = await repo.createDesigner({
     salonSlug: salon.slug,
     name: profile?.displayName ?? acc.email,
   });
   await repo.setStaffEmail(designer.id, acc.email);
-  await repo.setMembershipRequestStatus(requestId, "accepted");
   await logIssue({
     salonSlug: salon.slug,
     severity: "info",

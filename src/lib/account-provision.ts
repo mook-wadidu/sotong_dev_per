@@ -26,7 +26,7 @@ export async function provisionAccount(input: {
   /** 지정 시 이 비밀번호로 생성(초대 가입 — 디자이너가 직접 설정). 없으면 임시 발급. */
   password?: string;
 }): Promise<ProvisionResult> {
-  const email = input.email.trim();
+  const email = input.email.trim().toLowerCase(); // 정규화 — 저장/조회 일관성.
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     throw new Error("올바른 이메일이 필요합니다.");
   }
@@ -42,7 +42,10 @@ export async function provisionAccount(input: {
       email_confirm: true,
     });
     if (error || !data.user) {
-      throw new Error(error?.message ?? "계정 생성 실패");
+      // 원문(예: "User already registered")은 이메일 열거 오라클 → 로그만 남기고
+      // 사용자에겐 원인 불문 동일한 generic 메시지(열거 차단).
+      console.warn("[provisionAccount] createUser 실패:", error?.message);
+      throw new Error("계정을 만들 수 없습니다. 입력을 확인해 주세요.");
     }
     userId = data.user.id;
   } else {

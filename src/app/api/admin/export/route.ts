@@ -10,7 +10,9 @@ import { getAdminReports } from "@/lib/admin-reports";
 export const dynamic = "force-dynamic";
 
 function csvCell(v: unknown): string {
-  const s = String(v ?? "");
+  let s = String(v ?? "");
+  // 수식 인젝션 방어 — Excel/Sheets 가 =,+,-,@,탭,CR 로 시작하는 셀을 수식으로 실행.
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

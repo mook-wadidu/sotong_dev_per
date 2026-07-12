@@ -225,6 +225,7 @@ interface HairReportRow {
   consultation_id: string;
   report_token: string;
   salon_name: string;
+  salon_slug: string | null;
   designer_name: string;
   locale: Locale;
   service_summary: string;
@@ -283,7 +284,7 @@ const TREATMENT_RECORD_COLS =
 const MESSAGE_COLS =
   "id,consultation_id,sender,source_text,source_locale,intent,translations,created_at";
 const REPORT_COLS =
-  "consultation_id,report_token,salon_name,designer_name,locale,service_summary,products,hair_state_grade,hair_state_score,home_care,next_visit_weeks,report_date,before_photo_url,after_photo_url,style_request,concerns,cautions";
+  "consultation_id,report_token,salon_name,salon_slug,designer_name,locale,service_summary,products,hair_state_grade,hair_state_score,home_care,next_visit_weeks,report_date,before_photo_url,after_photo_url,style_request,concerns,cautions";
 const ERROR_COLS =
   "id,salon_slug,severity,source,message,detail,consultation_id,created_at";
 const PUSH_SUB_COLS =
@@ -488,6 +489,7 @@ function toHairReport(r: HairReportRow): HairReport {
     consultationId: r.consultation_id,
     reportToken: r.report_token,
     salonName: r.salon_name,
+    salonSlug: r.salon_slug ?? undefined,
     designerName: r.designer_name,
     locale: r.locale,
     serviceSummary: r.service_summary,
@@ -936,12 +938,16 @@ export class SupabaseRepo implements Repo {
   async assignConsultation(
     consultationId: string,
     designer: { id: string; name: string },
-  ): Promise<void> {
-    const { error } = await this.client
+    opts?: { onlyIfUnassigned?: boolean },
+  ): Promise<boolean> {
+    let q = this.client
       .from("consultations")
       .update({ designer_id: designer.id, designer_name: designer.name })
       .eq("id", consultationId);
+    if (opts?.onlyIfUnassigned) q = q.is("designer_id", null);
+    const { data, error } = await q.select("id").maybeSingle();
     if (error) fail("assignConsultation", error);
+    return !!data;
   }
 
   async listConsultations(
@@ -1000,6 +1006,18 @@ export class SupabaseRepo implements Repo {
       .update({ status })
       .eq("id", id);
     if (error) fail("updateStatus", error);
+  }
+
+  async claimConsultationForCompletion(id: string): Promise<boolean> {
+    const { data, error } = await this.client
+      .from("consultations")
+      .update({ status: "completed" })
+      .eq("id", id)
+      .in("status", ["in_service", "consulting"])
+      .select("id")
+      .maybeSingle();
+    if (error) fail("claimConsultationForCompletion", error);
+    return !!data;
   }
 
   async setSummary(id: string, summary: DesignerSummary): Promise<void> {
@@ -1465,7 +1483,7 @@ export class SupabaseRepo implements Repo {
       .upsert(
         {
           id: input.id,
-          email: input.email,
+          email: input.email.trim().toLowerCase(),
           role: input.role,
           display_name: input.displayName ?? null,
         },
@@ -1486,10 +1504,11 @@ export class SupabaseRepo implements Repo {
 
   async getProfileByEmail(email: string): Promise<Profile | null> {
     if (!email) return null;
+    // 정확일치(.eq) + 정규화 — .ilike 는 %/_ 가 와일드카드라 신원조회에 금지.
     const { data, error } = await this.client
       .from("profiles")
       .select("id,email,role,display_name,created_at")
-      .ilike("email", email)
+      .eq("email", email.trim().toLowerCase())
       .maybeSingle();
     if (error) fail("getProfileByEmail", error);
     if (!data) return null;
@@ -1508,7 +1527,7 @@ export class SupabaseRepo implements Repo {
     const { data, error } = await this.client
       .from("salons")
       .select(SALON_COLS)
-      .ilike("owner_email", email)
+      .eq("owner_email", email.trim().toLowerCase())
       .maybeSingle();
     if (error) fail("getSalonByOwnerEmail", error);
     return data ? toSalon(data as SalonRow) : null;
@@ -1519,7 +1538,7 @@ export class SupabaseRepo implements Repo {
     const { data, error } = await this.client
       .from("staff")
       .select(STAFF_COLS)
-      .ilike("email", email)
+      .eq("email", email.trim().toLowerCase())
       .maybeSingle();
     if (error) fail("getStaffByEmail", error);
     return data ? toDesigner(data as StaffRow) : null;
@@ -1528,7 +1547,7 @@ export class SupabaseRepo implements Repo {
   async setSalonOwnerEmail(slug: string, email: string): Promise<void> {
     const { error } = await this.client
       .from("salons")
-      .update({ owner_email: email })
+      .update({ owner_email: email.trim().toLowerCase() })
       .eq("slug", slug);
     if (error) fail("setSalonOwnerEmail", error);
   }
@@ -1536,7 +1555,7 @@ export class SupabaseRepo implements Repo {
   async setStaffEmail(designerId: string, email: string): Promise<void> {
     const { error } = await this.client
       .from("staff")
-      .update({ email })
+      .update({ email: email.trim().toLowerCase() })
       .eq("id", designerId);
     if (error) fail("setStaffEmail", error);
   }
@@ -1573,6 +1592,22 @@ export class SupabaseRepo implements Repo {
       .update({ used_at: new Date().toISOString() })
       .eq("token", token);
     if (error) fail("markSalonInviteUsed", error);
+  }
+
+  async consumeSalonInvite(token: string): Promise<SalonInvite | null> {
+    const nowIso = new Date().toISOString();
+    // 원자적 조건부 업데이트 — 미사용·미취소·미만료일 때만 used 마킹. 영향 행이 있으면 소비 성공.
+    const { data, error } = await this.client
+      .from("salon_invites")
+      .update({ used_at: nowIso })
+      .eq("token", token)
+      .is("used_at", null)
+      .eq("revoked", false)
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+      .select("token,salon_slug,created_by,expires_at,used_at,revoked,created_at")
+      .maybeSingle();
+    if (error) fail("consumeSalonInvite", error);
+    return data ? toSalonInvite(data as Record<string, unknown>) : null;
   }
 
   async listSalonInvites(salonSlug: string): Promise<SalonInvite[]> {
@@ -1626,7 +1661,7 @@ export class SupabaseRepo implements Repo {
       .select(
         "id,salon_slug,designer_email,status,created_at,responded_at,salons(name)",
       )
-      .ilike("designer_email", email)
+      .eq("designer_email", email.trim().toLowerCase())
       .eq("status", "pending")
       .order("created_at", { ascending: false });
     if (error) fail("listMembershipRequestsByEmail", error);
@@ -1647,6 +1682,18 @@ export class SupabaseRepo implements Repo {
       .update({ status, responded_at: new Date().toISOString() })
       .eq("id", id);
     if (error) fail("setMembershipRequestStatus", error);
+  }
+
+  async acceptMembershipRequestAtomic(id: string): Promise<boolean> {
+    const { data, error } = await this.client
+      .from("membership_requests")
+      .update({ status: "accepted", responded_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
+    if (error) fail("acceptMembershipRequestAtomic", error);
+    return !!data;
   }
 
   async updateTrainingSampleSatisfaction(
@@ -1788,6 +1835,7 @@ export class SupabaseRepo implements Repo {
       consultation_id: report.consultationId,
       report_token: report.reportToken,
       salon_name: report.salonName,
+      salon_slug: report.salonSlug ?? null,
       designer_name: report.designerName,
       locale: report.locale,
       service_summary: report.serviceSummary,

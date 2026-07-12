@@ -130,6 +130,18 @@ export function toPublicSalon(salon: Salon): PublicSalon {
 }
 
 /**
+ * 오너 콘솔용 살롱 투영 — 비밀(ownerToken·ownerEmail)은 제거하되,
+ * 콘솔 편집에 필요한 designerRanks(내부 가격 키)는 오너 본인 것이므로 유지.
+ * (PublicSalon 은 손님용이라 ranks 를 strip → 오너 콘솔엔 부족.)
+ */
+export interface OwnerConsoleSalon extends PublicSalon {
+  designerRanks: DesignerRank[];
+}
+export function toOwnerConsoleSalon(salon: Salon): OwnerConsoleSalon {
+  return { ...toPublicSalon(salon), designerRanks: salon.designerRanks };
+}
+
+/**
  * 디자이너 — 살롱 그룹 아래 개별 스태프.
  * QR/인박스는 디자이너 단위(또는 살롱 공용)로 동작한다.
  */
@@ -531,10 +543,16 @@ export interface Repo {
 
   createConsultation(input: CreateConsultationInput): Promise<Consultation>;
   /** 미배정 상담을 디자이너에게 배정(인박스 '내 손님으로 가져오기') */
+  /**
+   * 상담에 디자이너 배정. `onlyIfUnassigned` 면 designer_id 가 비어있을 때만 배정하고
+   * 실제 배정됐으면(레이스 승자) true — 두 디자이너의 동시 집기(double-grab) 방지.
+   * 기본(옵션 없음)은 무조건 배정 후 true(재배정 경로용).
+   */
   assignConsultation(
     consultationId: string,
     designer: { id: string; name: string },
-  ): Promise<void>;
+    opts?: { onlyIfUnassigned?: boolean },
+  ): Promise<boolean>;
   /** 어드민 문의사항 목록 (지점 필터 가능) */
   listConsultations(opts?: ListConsultationsOptions): Promise<Consultation[]>;
   getByConsultationToken(token: string): Promise<Consultation | null>;
@@ -544,6 +562,12 @@ export interface Repo {
   getConsultationById(id: string): Promise<Consultation | null>;
 
   updateStatus(id: string, status: ConsultationStatus): Promise<void>;
+  /**
+   * 완결 클레임 — status 가 in_service/consulting 인 경우에만 'completed' 로 원자 전이하고
+   * 승자면 true. 동시 이중완결 시 1건만 body 실행 → 중복 카르테/학습샘플 방지.
+   * (전이 후 리포트 저장 전 실패 시 호출측이 원 상태로 되돌려 재시도 가능케 함.)
+   */
+  claimConsultationForCompletion(id: string): Promise<boolean>;
   setSummary(id: string, summary: DesignerSummary): Promise<void>;
   setReportToken(id: string, reportToken: string): Promise<void>;
   /** 디자이너용 ko 리포트 토큰 저장 — consultation.designer_report_token UPDATE. */
@@ -618,6 +642,8 @@ export interface Repo {
   createSalonInvite(input: NewSalonInvite): Promise<SalonInvite>;
   getSalonInvite(token: string): Promise<SalonInvite | null>;
   markSalonInviteUsed(token: string): Promise<void>;
+  /** 원자적 단일사용 소비 — 유효(미사용·미취소·미만료)면 used 마킹 후 반환, 아니면 null(레이스 방지). */
+  consumeSalonInvite(token: string): Promise<SalonInvite | null>;
   listSalonInvites(salonSlug: string): Promise<SalonInvite[]>;
   revokeSalonInvite(token: string): Promise<void>;
   /** 소속 요청(오너→디자이너, 수락/거절). */
@@ -632,6 +658,11 @@ export interface Repo {
     id: string,
     status: MembershipStatus,
   ): Promise<void>;
+  /**
+   * 조건부 원자 수락 — status='pending' 인 경우에만 'accepted' 로 전이하고
+   * 전이에 성공(레이스 승자)했으면 true. 동시 이중수락 시 1건만 true → 중복 staff 방지.
+   */
+  acceptMembershipRequestAtomic(id: string): Promise<boolean>;
   /** 학습 샘플 만족도 갱신 — 완결 후 도착한 손님 별점을 consultationId 로 찾아 반영. */
   updateTrainingSampleSatisfaction(
     consultationId: string,

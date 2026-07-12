@@ -13,6 +13,15 @@ import { createSsrServerClient } from "@/lib/supabase/ssr-server";
 const ADMIN_ALLOWLIST = ["bill@wadidu.com", "admin@wadidu.com"];
 
 /**
+ * 이메일이 어드민 allowlist 인지(대소문자 무시). 자가가입/초대가 이 이메일로
+ * 계정을 발급하지 못하게 차단하는 데 쓴다(자가발급→어드민 승격 방지).
+ */
+export function isAdminEmail(email: string): boolean {
+  const e = email.trim().toLowerCase();
+  return ADMIN_ALLOWLIST.some((a) => a.toLowerCase() === e);
+}
+
+/**
  * 현재 요청에 유효한 Google 어드민 세션이 있으면 { email } 을, 없으면 null.
  * - 세션 없음 → getUser() 가 null user + AuthSessionMissingError(정상, 로깅 대상 아님).
  * - user.email 이 ADMIN_ALLOWLIST(대소문자 무시)에 있을 때만 인증으로 인정.

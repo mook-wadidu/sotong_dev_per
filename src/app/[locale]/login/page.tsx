@@ -32,6 +32,7 @@ export default async function LoginPage({
     const reqs = await listMyMembershipRequests();
     return (
       <WaitingScreen
+        locale={locale}
         title={t("account.waitingTitle")}
         hint={t("account.waitingHint")}
         logout={t("nav.logout")}
@@ -80,12 +81,14 @@ export default async function LoginPage({
 }
 
 function WaitingScreen({
+  locale,
   title,
   hint,
   logout,
   requests,
   reqLabels,
 }: {
+  locale: string;
   title: string;
   hint: string;
   logout: string;
@@ -107,13 +110,16 @@ function WaitingScreen({
           {hint}
         </p>
         <MembershipRequests initial={requests} labels={reqLabels} />
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a
-          href="/api/session/logout"
-          className="text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
-        >
-          {logout}
-        </a>
+        {/* CSRF 방지 — GET 링크 대신 POST 폼(로케일 보존). */}
+        <form action="/api/session/logout" method="post">
+          <input type="hidden" name="locale" value={locale} />
+          <button
+            type="submit"
+            className="text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            {logout}
+          </button>
+        </form>
       </ScreenBody>
     </MobileFrame>
   );

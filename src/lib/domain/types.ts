@@ -272,6 +272,8 @@ export interface HairReport extends HairReportDraft {
   consultationId: string;
   reportToken: string;
   salonName: string;
+  /** 살롱 slug(unique) — 오너 콘솔 리포트 필터의 테넌트 키(name 은 non-unique). */
+  salonSlug?: string;
   designerName: string;
   date: string; // ISO date
   beforePhotoUrl?: string;

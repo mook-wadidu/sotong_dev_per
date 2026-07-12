@@ -398,7 +398,11 @@
     "invite": {
       "button": "邀请链接",
       "created": "已生成邀请链接。",
-      "hint": "把此链接发给设计师（一次性，14天后失效）。"
+      "hint": "把此链接发给设计师（一次性，14天后失效）。",
+      "activeTitle": "有效邀请",
+      "revoke": "撤销",
+      "revoked": "已撤销邀请。",
+      "revokeFailed": "撤销失败"
     },
     "search": {
       "hint": "通过邮箱搜索已注册设计师并发送加入请求（对方接受）。",
@@ -407,7 +411,16 @@
       "sent": "已发送加入请求。",
       "notFound": "未找到已注册的设计师。",
       "failed": "搜索失败"
-    }
+    },
+    "account": {
+      "emailLabel": "邮箱 (登录账号)",
+      "emailHint": "填写后将创建登录账号（可选）。",
+      "ownerEmailLabel": "店主邮箱 (登录账号)",
+      "provision": "创建账号",
+      "issued": "账号已创建。请转达初始密码。",
+      "has": "账号：{email}"
+    },
+    "close": "关闭"
   },
   "account": {
     "loginHint": "使用门店或设计师账号登录。",

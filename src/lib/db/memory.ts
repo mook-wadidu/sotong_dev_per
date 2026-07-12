@@ -939,6 +939,17 @@ export class MemoryRepo implements Repo {
     if (inv) inv.usedAt = new Date().toISOString();
   }
 
+  async listSalonInvites(salonSlug: string): Promise<SalonInvite[]> {
+    return store.salonInvites
+      .filter((i) => i.salonSlug === salonSlug)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }
+
+  async revokeSalonInvite(token: string): Promise<void> {
+    const inv = store.salonInvites.find((i) => i.token === token);
+    if (inv) inv.revoked = true;
+  }
+
   async createMembershipRequest(
     salonSlug: string,
     designerEmail: string,

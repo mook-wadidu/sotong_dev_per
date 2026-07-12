@@ -599,6 +599,8 @@ export interface Repo {
   createSalonInvite(input: NewSalonInvite): Promise<SalonInvite>;
   getSalonInvite(token: string): Promise<SalonInvite | null>;
   markSalonInviteUsed(token: string): Promise<void>;
+  listSalonInvites(salonSlug: string): Promise<SalonInvite[]>;
+  revokeSalonInvite(token: string): Promise<void>;
   /** 소속 요청(오너→디자이너, 수락/거절). */
   createMembershipRequest(
     salonSlug: string,

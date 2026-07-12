@@ -398,7 +398,11 @@
     "invite": {
       "button": "Invite link",
       "created": "Invite link created.",
-      "hint": "Send this link to your designer (single-use, expires in 14 days)."
+      "hint": "Send this link to your designer (single-use, expires in 14 days).",
+      "activeTitle": "Active invites",
+      "revoke": "Revoke",
+      "revoked": "Invite revoked.",
+      "revokeFailed": "Revoke failed"
     },
     "search": {
       "hint": "Search a registered designer by email and request membership (they accept).",
@@ -407,7 +411,16 @@
       "sent": "Membership request sent.",
       "notFound": "No registered designer found.",
       "failed": "Search failed"
-    }
+    },
+    "account": {
+      "emailLabel": "Email (login account)",
+      "emailHint": "If set, a login account is created (optional).",
+      "ownerEmailLabel": "Owner email (login account)",
+      "provision": "Create account",
+      "issued": "Account created. Share the initial password.",
+      "has": "Account: {email}"
+    },
+    "close": "Close"
   },
   "account": {
     "loginHint": "Log in with your salon or designer account.",

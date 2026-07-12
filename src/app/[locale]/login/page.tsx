@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { getSessionAccount } from "@/lib/session-auth";
 import { listMyMembershipRequests } from "@/lib/actions";
-import { salonConsolePath, designerInboxPath } from "@/lib/links";
+import { designerInboxPath } from "@/lib/links";
 import { AccountEntry } from "@/components/account/account-entry";
 import { MembershipRequests } from "@/components/account/membership-requests";
 import { MobileFrame, ScreenBody } from "@/components/ui";
@@ -28,8 +28,9 @@ export default async function LoginPage({
   const acc = await getSessionAccount();
   if (acc) {
     if (acc.role === "admin") redirect(`/${locale}/admin`);
-    if (acc.role === "owner") redirect(loc(salonConsolePath(acc.salon.ownerToken)));
+    if (acc.role === "owner") redirect(`/${locale}/s`); // 세션형 클린 URL
     if (acc.role === "designer") {
+      // 디자이너 인박스 클린 URL은 네이티브 준비 시 추출 예정 — 현재는 토큰 경로.
       redirect(loc(designerInboxPath(acc.designer.staffToken)));
     }
     // designer-unaffiliated → 소속 대기 + 받은 요청 수락/거절

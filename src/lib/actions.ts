@@ -2,7 +2,11 @@
 
 import {
   acceptSalonInvite as acceptSalonInviteSvc,
+  adminProvisionOwner as adminProvisionOwnerSvc,
   salonCreateInvite as salonCreateInviteSvc,
+  salonListInvites as salonListInvitesSvc,
+  salonRevokeInvite as salonRevokeInviteSvc,
+  type SalonInviteView,
   signUpDesigner as signUpDesignerSvc,
   salonSearchDesigner as salonSearchDesignerSvc,
   salonSendMembershipRequest as salonSendMembershipRequestSvc,
@@ -306,8 +310,17 @@ export async function salonUpsertDesigner(input: {
   id?: string;
   name: string;
   rankId?: string;
-}): Promise<{ ok: boolean; designer?: Designer }> {
+  email?: string;
+}): Promise<{ ok: boolean; designer?: Designer; tempPassword?: string }> {
   return salonUpsertDesignerSvc(input);
+}
+
+/** 어드민/오너: 기존 살롱 오너 계정 발급(백필). */
+export async function adminProvisionOwner(
+  ownerToken: string,
+  email: string,
+): Promise<{ ok: boolean; tempPassword?: string; error?: string }> {
+  return adminProvisionOwnerSvc(ownerToken, email);
 }
 
 /* ── 살롱 콘솔: 직급(rank) 편집 (ownerToken 검증) ────────── */
@@ -420,6 +433,21 @@ export async function createSalonInvite(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "발급 실패" };
   }
+}
+
+/** 오너 콘솔: 발급 초대 목록. */
+export async function salonListInvites(
+  ownerToken: string,
+): Promise<SalonInviteView[]> {
+  return salonListInvitesSvc(ownerToken);
+}
+
+/** 오너 콘솔: 초대 취소. */
+export async function salonRevokeInvite(
+  ownerToken: string,
+  token: string,
+): Promise<{ ok: boolean }> {
+  return salonRevokeInviteSvc(ownerToken, token);
 }
 
 /** 초대 수락(공개) — 디자이너 가입 + 소속 확정. */

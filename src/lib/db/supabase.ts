@@ -1545,6 +1545,25 @@ export class SupabaseRepo implements Repo {
     if (error) fail("markSalonInviteUsed", error);
   }
 
+  async listSalonInvites(salonSlug: string): Promise<SalonInvite[]> {
+    const { data, error } = await this.client
+      .from("salon_invites")
+      .select("token,salon_slug,created_by,expires_at,used_at,revoked,created_at")
+      .eq("salon_slug", salonSlug)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) fail("listSalonInvites", error);
+    return ((data ?? []) as Record<string, unknown>[]).map(toSalonInvite);
+  }
+
+  async revokeSalonInvite(token: string): Promise<void> {
+    const { error } = await this.client
+      .from("salon_invites")
+      .update({ revoked: true })
+      .eq("token", token);
+    if (error) fail("revokeSalonInvite", error);
+  }
+
   async createMembershipRequest(
     salonSlug: string,
     designerEmail: string,

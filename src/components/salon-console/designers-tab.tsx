@@ -22,7 +22,10 @@ import {
   createSalonInvite,
   salonSearchDesigner,
   salonSendMembershipRequest,
+  salonListInvites,
+  salonRevokeInvite,
 } from "@/lib/actions";
+import type { SalonInviteView } from "@/lib/service";
 import type { Designer, DesignerRank } from "@/lib/db/types";
 import type { SalonConsole as SalonConsoleData } from "@/lib/actions";
 import { RanksEditor } from "./ranks-editor";
@@ -52,6 +55,28 @@ export function DesignersTab({
   });
   const [inviteUrl, setInviteUrl] = React.useState<string | null>(null);
   const [inviting, setInviting] = React.useState(false);
+  const [invites, setInvites] = React.useState<SalonInviteView[]>([]);
+
+  const loadInvites = React.useCallback(async () => {
+    const list = await salonListInvites(ownerToken);
+    setInvites(list.filter((i) => i.status === "active"));
+  }, [ownerToken]);
+
+  React.useEffect(() => {
+    // 마운트 시 발급 초대 로드(async — setState는 await 이후).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadInvites();
+  }, [loadInvites]);
+
+  const onRevoke = async (token: string) => {
+    const res = await salonRevokeInvite(ownerToken, token);
+    if (res.ok) {
+      setInvites((list) => list.filter((i) => i.token !== token));
+      toast.success(t("console.invite.revoked"));
+    } else {
+      toast.error(t("console.invite.revokeFailed"));
+    }
+  };
   const [searchEmail, setSearchEmail] = React.useState("");
   const [searching, setSearching] = React.useState(false);
   const [searchResult, setSearchResult] = React.useState<{
@@ -66,6 +91,7 @@ export function DesignersTab({
     if (res.ok) {
       setInviteUrl(origin ? origin + res.path : res.path);
       toast.success(t("console.invite.created"));
+      void loadInvites();
     } else {
       toast.error(res.error);
     }
@@ -147,6 +173,39 @@ export function DesignersTab({
             </p>
             <CopyButton value={inviteUrl} label={qrLabels.copy} />
           </div>
+        </div>
+      ) : null}
+
+      {invites.length > 0 ? (
+        <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t("console.invite.activeTitle")}
+          </p>
+          <ul className="space-y-1.5">
+            {invites.map((inv) => (
+              <li
+                key={inv.token}
+                className="flex items-center justify-between gap-2"
+              >
+                <span className="truncate font-mono text-xs text-muted-foreground">
+                  …{inv.token.slice(-8)}
+                </span>
+                <div className="flex shrink-0 items-center gap-1">
+                  <CopyButton
+                    value={origin ? origin + inv.path : inv.path}
+                    label={qrLabels.copy}
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onRevoke(inv.token)}
+                  >
+                    {t("console.invite.revoke")}
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 
@@ -291,7 +350,12 @@ function DesignerDialog({
   const t = useTranslations("Admin");
   const [name, setName] = React.useState(edit?.name ?? "");
   const [rankId, setRankId] = React.useState<string>(edit?.rankId ?? "");
+  const [email, setEmail] = React.useState("");
   const [pending, setPending] = React.useState(false);
+  const [createdPassword, setCreatedPassword] = React.useState<string | null>(
+    null,
+  );
+  const hasAccount = !!edit?.email;
 
   const rankOptions = [
     { value: "", label: t("console.designers.noRank") },
@@ -310,12 +374,18 @@ function DesignerDialog({
       id: edit?.id,
       name: name.trim(),
       rankId: rankId || undefined,
+      email: email.trim() || undefined,
     });
     setPending(false);
     if (res.ok) {
       toast.success(t("console.saved"));
-      onOpenChange(false);
       onChanged();
+      if (res.tempPassword) {
+        // 초기 비번을 전달용으로 유지(다이얼로그 유지).
+        setCreatedPassword(res.tempPassword);
+      } else {
+        onOpenChange(false);
+      }
     } else {
       toast.error(t("console.error"));
     }
@@ -331,38 +401,74 @@ function DesignerDialog({
               : t("console.designers.addTitle")}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <FormField label={t("console.designers.name")} required>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="김민지"
-            />
-          </FormField>
-          <div>
-            <p className="mb-2 text-sm font-semibold text-foreground">
-              {t("console.designers.rank")}
+        {createdPassword ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {t("console.account.issued")}
             </p>
-            <RadioGroup
-              label={t("console.designers.rank")}
-              value={rankId}
-              onValueChange={setRankId}
-              options={rankOptions}
-            />
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <span className="font-mono text-sm text-foreground">
+                {createdPassword}
+              </span>
+              <CopyButton value={createdPassword} label={t("qr.copy")} />
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={() => onOpenChange(false)}>
+                {t("console.close")}
+              </Button>
+            </DialogFooter>
           </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              {t("console.cancel")}
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {t("console.save")}
-            </Button>
-          </DialogFooter>
-        </form>
+        ) : (
+          <form onSubmit={onSubmit} className="space-y-4">
+            <FormField label={t("console.designers.name")} required>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="김민지"
+              />
+            </FormField>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-foreground">
+                {t("console.designers.rank")}
+              </p>
+              <RadioGroup
+                label={t("console.designers.rank")}
+                value={rankId}
+                onValueChange={setRankId}
+                options={rankOptions}
+              />
+            </div>
+            {hasAccount ? (
+              <p className="text-xs text-muted-foreground">
+                {t("console.account.has", { email: edit?.email ?? "" })}
+              </p>
+            ) : (
+              <FormField
+                label={t("console.account.emailLabel")}
+                hint={t("console.account.emailHint")}
+              >
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="designer@email.com"
+                />
+              </FormField>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                {t("console.cancel")}
+              </Button>
+              <Button type="submit" disabled={pending}>
+                {t("console.save")}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

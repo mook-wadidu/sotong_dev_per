@@ -1,5 +1,6 @@
 import "server-only";
 import { after } from "next/server";
+import { headers } from "next/headers";
 import { createHash, randomBytes } from "node:crypto";
 import { getRepo } from "@/lib/db";
 import { config } from "@/lib/config";
@@ -2414,7 +2415,8 @@ export async function salonUpsertDesigner(input: {
   id?: string;
   name: string;
   rankId?: string;
-}): Promise<{ ok: boolean; designer?: Designer }> {
+  email?: string;
+}): Promise<{ ok: boolean; designer?: Designer; tempPassword?: string }> {
   const salon = await authorizeConsole(input.ownerToken, "console");
   if (!salon) return { ok: false };
   const repo = getRepo();
@@ -2428,6 +2430,7 @@ export async function salonUpsertDesigner(input: {
       ? input.rankId
       : undefined;
 
+  let designer: Designer;
   if (input.id) {
     const existing = await repo.getDesignerById(input.id);
     if (!existing || existing.salonSlug !== salon.slug) {
@@ -2442,15 +2445,57 @@ export async function salonUpsertDesigner(input: {
     }
     const updated: Designer = { ...existing, name, rankId };
     await repo.updateDesigner(updated);
-    return { ok: true, designer: updated };
+    designer = updated;
+  } else {
+    designer = await repo.createDesigner({ salonSlug: salon.slug, name, rankId });
   }
 
-  const designer = await repo.createDesigner({
-    salonSlug: salon.slug,
-    name,
-    rankId,
-  });
-  return { ok: true, designer };
+  // 이메일 지정 + 아직 계정 없으면 계정 발급 + 소속(staff.email) 부착(중복 방지).
+  let tempPassword: string | undefined;
+  const email = input.email?.trim();
+  if (email && !designer.email) {
+    try {
+      const res = await provisionAccount({ email, role: "designer", displayName: name });
+      await repo.setStaffEmail(designer.id, email);
+      designer = { ...designer, email };
+      tempPassword = res.tempPassword;
+    } catch (e) {
+      await logIssue({
+        salonSlug: salon.slug,
+        severity: "warning",
+        source: "console",
+        message: "디자이너 계정 발급 실패",
+        detail: e instanceof Error ? e.message : "unknown",
+      });
+    }
+  }
+
+  return { ok: true, designer, tempPassword };
+}
+
+/** 어드민/오너: 기존 살롱에 오너 계정 발급(백필). ownerToken 게이트. */
+export async function adminProvisionOwner(
+  ownerToken: string,
+  email: string,
+): Promise<{ ok: boolean; tempPassword?: string; error?: string }> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return { ok: false, error: "권한 없음" };
+  if (salon.ownerEmail) {
+    return { ok: false, error: "이미 오너 계정이 있습니다." };
+  }
+  const e = email?.trim();
+  if (!e) return { ok: false, error: "이메일 필수" };
+  try {
+    const res = await provisionAccount({
+      email: e,
+      role: "owner",
+      displayName: salon.name,
+    });
+    await getRepo().setSalonOwnerEmail(salon.slug, e);
+    return { ok: true, tempPassword: res.tempPassword };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "발급 실패" };
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -2833,6 +2878,48 @@ export async function salonCreateInvite(
   return { ok: true, path: invitePath(token) };
 }
 
+export interface SalonInviteView {
+  token: string;
+  path: string;
+  status: "active" | "used" | "revoked" | "expired";
+  createdAt: string;
+}
+
+/** 오너 콘솔: 발급 초대 목록(상태 계산). */
+export async function salonListInvites(
+  ownerToken: string,
+): Promise<SalonInviteView[]> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return [];
+  const now = new Date().toISOString();
+  const invites = await getRepo().listSalonInvites(salon.slug);
+  return invites.map((i) => ({
+    token: i.token,
+    path: invitePath(i.token),
+    createdAt: i.createdAt,
+    status: i.revoked
+      ? "revoked"
+      : i.usedAt
+        ? "used"
+        : i.expiresAt && i.expiresAt < now
+          ? "expired"
+          : "active",
+  }));
+}
+
+/** 오너 콘솔: 초대 취소(본인 살롱 것만). */
+export async function salonRevokeInvite(
+  ownerToken: string,
+  token: string,
+): Promise<{ ok: boolean }> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return { ok: false };
+  const inv = await getRepo().getSalonInvite(token);
+  if (!inv || inv.salonSlug !== salon.slug) return { ok: false };
+  await getRepo().revokeSalonInvite(token);
+  return { ok: true };
+}
+
 /** 초대 유효성 + 대상 살롱명(가입 화면 표시용). 무효면 null. */
 export async function getInviteView(
   token: string,
@@ -2898,6 +2985,19 @@ export async function signUpDesigner(input: {
   const email = input.email?.trim();
   const name = input.name?.trim();
   if (!email || !name) return { ok: false, error: "이름·이메일은 필수입니다." };
+
+  // 스팸 계정 생성 방어 — IP당 분당 5회(공개 엔드포인트).
+  try {
+    const h = await headers();
+    const ip =
+      h.get("x-real-ip") ??
+      h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+    await enforceRate(`signup:${ip}`, 5, 60_000, { source: "signup" });
+  } catch {
+    return { ok: false, error: "잠시 후 다시 시도해 주세요." };
+  }
+
   try {
     await provisionAccount({
       email,

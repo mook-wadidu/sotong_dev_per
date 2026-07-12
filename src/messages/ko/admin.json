@@ -71,7 +71,9 @@
     "empty": "표시할 데이터가 없어요.",
     "kpi": {
       "demoViews": "데모 조회수",
+      "scans": "QR 스캔",
       "consults": "상담",
+      "reportViews": "리포트 열람",
       "completionRate": "완료율",
       "returningRate": "재방문율",
       "reports": "리포트 발급",
@@ -155,8 +157,12 @@
       "consults": "상담",
       "completion": "완료율",
       "returning": "재방문율",
-      "reports": "리포트"
-    }
+      "satisfaction": "만족도",
+      "reports": "리포트",
+      "status": "상태"
+    },
+    "activate": "활성화",
+    "deactivate": "비활성화"
   },
   "notices": {
     "newTitle": "새 공지",
@@ -222,7 +228,14 @@
     "statusInService": "시술 중",
     "statusCompleted": "완료",
     "statusCancelled": "취소",
-    "openEmr": "EMR·리포트"
+    "openEmr": "EMR·리포트",
+    "notes": "메모",
+    "notesTitle": "이슈 메모",
+    "notePlaceholder": "이 상담 관련 내부 메모…",
+    "noteAdd": "메모 추가",
+    "noteSaving": "저장 중…",
+    "noteLoading": "불러오는 중…",
+    "noteEmpty": "아직 메모가 없어요."
   },
   "errors": {
     "title": "오류 로그",

@@ -1,10 +1,13 @@
 "use server";
 
 import {
+  adminAddSupportNote as adminAddSupportNoteSvc,
   adminCreateAnnouncement as adminCreateAnnouncementSvc,
   adminCreateDesigner as adminCreateDesignerSvc,
   adminCreateSalon as adminCreateSalonSvc,
+  adminListSupportNotes as adminListSupportNotesSvc,
   adminSetAnnouncementActive as adminSetAnnouncementActiveSvc,
+  adminSetDesignerActive as adminSetDesignerActiveSvc,
   assignConsultation as assignConsultationSvc,
   completeConsultation,
   recordDesignerIntake as recordDesignerIntakeSvc,
@@ -61,6 +64,7 @@ import {
   type Designer,
   type DesignerRank,
   type NewAnnouncement,
+  type SupportNote,
   type PublicDesigner,
   type PublicSalon,
   type SalonService,
@@ -382,5 +386,42 @@ export async function setAnnouncementActive(
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "변경 실패" };
+  }
+}
+
+export async function setDesignerActive(
+  designerId: string,
+  active: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await adminSetDesignerActiveSvc(designerId, active);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "변경 실패" };
+  }
+}
+
+export async function listSupportNotes(
+  consultationId: string,
+): Promise<
+  { ok: true; notes: SupportNote[] } | { ok: false; error: string }
+> {
+  try {
+    const notes = await adminListSupportNotesSvc(consultationId);
+    return { ok: true, notes };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "조회 실패" };
+  }
+}
+
+export async function addSupportNote(input: {
+  consultationId: string;
+  body: string;
+}): Promise<{ ok: true; note: SupportNote } | { ok: false; error: string }> {
+  try {
+    const note = await adminAddSupportNoteSvc(input);
+    return { ok: true, note };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "저장 실패" };
   }
 }

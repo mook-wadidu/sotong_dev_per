@@ -9,6 +9,9 @@ import {
   type AdminDesigner,
   type AdminSalon,
   type Announcement,
+  type AnnouncementAudience,
+  type SupportNote,
+  type NewSupportNote,
   type ConsultationListItem,
   type Designer,
   type DesignerRank,
@@ -2659,6 +2662,83 @@ export async function adminSetAnnouncementActive(
   await ensureAdminSession();
   if (!id) throw new Error("id 필수");
   await getRepo().setAnnouncementActive(id, active);
+}
+
+/** 디자이너 활성/비활성 토글(어드민 전역). */
+export async function adminSetDesignerActive(
+  designerId: string,
+  active: boolean,
+): Promise<void> {
+  await ensureAdminSession();
+  if (!designerId) throw new Error("designerId 필수");
+  await getRepo().setDesignerActive(designerId, active);
+}
+
+/* ── 고객센터 이슈 메모(어드민) ─────────────────────────────── */
+
+export async function adminListSupportNotes(
+  consultationId: string,
+): Promise<SupportNote[]> {
+  await ensureAdminSession();
+  if (!consultationId) return [];
+  return getRepo().listSupportNotes(consultationId);
+}
+
+export async function adminAddSupportNote(
+  input: NewSupportNote,
+): Promise<SupportNote> {
+  await ensureAdminSession();
+  const body = input.body?.trim();
+  if (!input.consultationId || !body) throw new Error("상담·내용은 필수입니다.");
+  const author = input.author ?? (await getAdminUser())?.email;
+  return getRepo().addSupportNote({
+    consultationId: input.consultationId,
+    body,
+    author,
+  });
+}
+
+/** 노출용 공지(해석 완료) — title/body 는 대상 로케일로 폴백 해석. */
+export interface ActiveAnnouncement {
+  id: string;
+  title: string;
+  body: string;
+}
+
+/**
+ * 활성 공지 조회(공개 — 어드민 게이트 없음, active 만 노출).
+ * 필터: active ∧ audience ∈ audiences ∧ (전체 대상 || salonSlug 포함) ∧ 노출기간.
+ * (살롱 스태프 화면은 audiences=["salon","platform"] — platform 은 전 살롱 브로드캐스트.)
+ * title/body 는 locale → ko 폴백. 최신순.
+ */
+export async function getActiveAnnouncements(opts: {
+  audiences: AnnouncementAudience[];
+  salonSlug?: string;
+  locale: string;
+}): Promise<ActiveAnnouncement[]> {
+  const all = await getRepo()
+    .listAnnouncements()
+    .catch(() => [] as Announcement[]);
+  const now = new Date().toISOString();
+  const loc = opts.locale as Locale;
+  return all
+    .filter((a) => a.active && opts.audiences.includes(a.audience))
+    .filter(
+      (a) =>
+        a.salonSlugs.length === 0 ||
+        (opts.salonSlug ? a.salonSlugs.includes(opts.salonSlug) : false),
+    )
+    .filter(
+      (a) =>
+        (!a.activeFrom || a.activeFrom <= now) &&
+        (!a.activeTo || a.activeTo >= now),
+    )
+    .map((a) => ({
+      id: a.id,
+      title: a.title[loc] ?? a.title.ko ?? "",
+      body: a.body[loc] ?? a.body.ko ?? "",
+    }))
+    .filter((a) => a.title || a.body);
 }
 
 /** 디자이너 생성(어드민). staffToken/QR/인박스 경로 반환(전달용). */

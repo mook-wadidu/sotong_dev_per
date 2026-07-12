@@ -71,7 +71,9 @@
     "empty": "No data to show yet.",
     "kpi": {
       "demoViews": "Demo views",
+      "scans": "QR scans",
       "consults": "Consultations",
+      "reportViews": "Report opens",
       "completionRate": "Completion rate",
       "returningRate": "Returning rate",
       "reports": "Reports issued",
@@ -155,8 +157,12 @@
       "consults": "Consults",
       "completion": "Completion",
       "returning": "Returning",
-      "reports": "Reports"
-    }
+      "satisfaction": "Rating",
+      "reports": "Reports",
+      "status": "Status"
+    },
+    "activate": "Activate",
+    "deactivate": "Deactivate"
   },
   "notices": {
     "newTitle": "New notice",
@@ -222,7 +228,14 @@
     "statusInService": "In service",
     "statusCompleted": "Completed",
     "statusCancelled": "Cancelled",
-    "openEmr": "EMR / report"
+    "openEmr": "EMR / report",
+    "notes": "Notes",
+    "notesTitle": "Issue notes",
+    "notePlaceholder": "Internal note for this consultation…",
+    "noteAdd": "Add note",
+    "noteSaving": "Saving…",
+    "noteLoading": "Loading…",
+    "noteEmpty": "No notes yet."
   },
   "errors": {
     "title": "Error log",

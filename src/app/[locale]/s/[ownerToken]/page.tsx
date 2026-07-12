@@ -4,6 +4,7 @@ import { getSalonConsole, recordOwnerTokenSeen } from "@/lib/service";
 import { shareOrigin } from "@/lib/origin";
 import { AdminShell } from "@/components/ui";
 import { SalonConsole } from "@/components/salon-console/salon-console";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 
 /**
  * 살롱 오너 콘솔 (ko 데스크톱/태블릿).
@@ -48,6 +49,14 @@ export default async function SalonConsolePage({
       title={data.salon.name}
       subtitle={t("console.subtitle")}
     >
+      {/* 플랫폼 공지(있으면) — 오너 콘솔 ko 고정 */}
+      <div className="mb-4">
+        <AnnouncementBanner
+          audiences={["salon", "platform"]}
+          salonSlug={data.salon.slug}
+          locale="ko"
+        />
+      </div>
       <SalonConsole ownerToken={ownerToken} origin={origin} data={data} />
     </AdminShell>
   );

@@ -71,7 +71,9 @@
     "empty": "暂无可显示的数据。",
     "kpi": {
       "demoViews": "演示浏览量",
+      "scans": "QR 扫码",
       "consults": "咨询",
+      "reportViews": "报告查看",
       "completionRate": "完成率",
       "returningRate": "回访率",
       "reports": "报告发放",
@@ -155,8 +157,12 @@
       "consults": "咨询",
       "completion": "完成率",
       "returning": "回访率",
-      "reports": "报告"
-    }
+      "satisfaction": "满意度",
+      "reports": "报告",
+      "status": "状态"
+    },
+    "activate": "启用",
+    "deactivate": "停用"
   },
   "notices": {
     "newTitle": "新建公告",
@@ -222,7 +228,14 @@
     "statusInService": "施术中",
     "statusCompleted": "已完成",
     "statusCancelled": "已取消",
-    "openEmr": "EMR·报告"
+    "openEmr": "EMR·报告",
+    "notes": "备注",
+    "notesTitle": "问题备注",
+    "notePlaceholder": "关于此咨询的内部备注…",
+    "noteAdd": "添加备注",
+    "noteSaving": "保存中…",
+    "noteLoading": "加载中…",
+    "noteEmpty": "暂无备注。"
   },
   "errors": {
     "title": "错误日志",

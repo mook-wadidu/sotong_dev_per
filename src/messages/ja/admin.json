@@ -71,7 +71,9 @@
     "empty": "表示するデータがありません。",
     "kpi": {
       "demoViews": "デモ閲覧数",
+      "scans": "QRスキャン",
       "consults": "相談",
+      "reportViews": "レポート閲覧",
       "completionRate": "完了率",
       "returningRate": "再来店率",
       "reports": "レポート発行",
@@ -155,8 +157,12 @@
       "consults": "相談",
       "completion": "完了率",
       "returning": "再来店率",
-      "reports": "レポート"
-    }
+      "satisfaction": "満足度",
+      "reports": "レポート",
+      "status": "状態"
+    },
+    "activate": "有効化",
+    "deactivate": "無効化"
   },
   "notices": {
     "newTitle": "新規お知らせ",
@@ -222,7 +228,14 @@
     "statusInService": "施術中",
     "statusCompleted": "完了",
     "statusCancelled": "キャンセル",
-    "openEmr": "EMR・レポート"
+    "openEmr": "EMR・レポート",
+    "notes": "メモ",
+    "notesTitle": "イシューメモ",
+    "notePlaceholder": "この相談に関する内部メモ…",
+    "noteAdd": "メモ追加",
+    "noteSaving": "保存中…",
+    "noteLoading": "読み込み中…",
+    "noteEmpty": "まだメモがありません。"
   },
   "errors": {
     "title": "エラーログ",

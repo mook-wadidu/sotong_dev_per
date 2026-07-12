@@ -141,6 +141,8 @@ export interface Designer {
   entryKeyVersion: number;
   /** 디자이너 직급 (Salon.designerRanks 의 id). 직급별 가격 보정에 사용. */
   rankId?: string;
+  /** 활성 상태(staff.is_active). 미설정=활성으로 취급. */
+  active?: boolean;
 }
 
 /**
@@ -317,6 +319,20 @@ export interface NewAnnouncement {
   salonSlugs?: string[];
 }
 
+/** 고객센터 이슈 메모(상담별) — 어드민 내부, 손님 비노출. */
+export interface SupportNote {
+  id: string;
+  consultationId: string;
+  body: string;
+  author?: string;
+  createdAt: string;
+}
+export interface NewSupportNote {
+  consultationId: string;
+  body: string;
+  author?: string;
+}
+
 /** 사진 학습 적재 입력 — dataURL 을 Storage 로 올리고 메타(경로)만 DB 에 남긴다. */
 export interface TrainingPhotosInput {
   customerPseudonym: string;
@@ -433,6 +449,8 @@ export interface Repo {
   updateDesignerStaffToken(designerId: string, staffToken: string): Promise<void>;
   /** staff_token 개별 무효화(재발급 없이 kill) — 무효 시 getDesignerByStaffToken 이 null. 유출 대응. */
   setStaffTokenRevoked(designerId: string, revoked: boolean): Promise<void>;
+  /** 디자이너 활성/비활성 토글(staff.is_active). 어드민 전역 관리. */
+  setDesignerActive(designerId: string, active: boolean): Promise<void>;
   /** staff_token 사용 흔적 기록(스로틀·유출 감지 soft 신호). ip 는 위조 불가 소스만(없으면 null). */
   touchStaffTokenSeen(designerId: string, ip: string | null): Promise<void>;
 
@@ -492,6 +510,8 @@ export interface Repo {
   ): Promise<TreatmentRecord>;
   /** 손님의 시술 기록 목록 — visitedAt desc. */
   listCustomerTreatments(customerId: string): Promise<TreatmentRecord[]>;
+  /** 어드민 만족도/시술 집계 — 기준 시각 이후 방문(파일럿 규모용). */
+  listTreatmentsSince(sinceIso: string): Promise<TreatmentRecord[]>;
   /** 기존 카르테 일부 필드 갱신(예: 손님 별점 만족도 후입력). */
   updateTreatmentRecord(
     id: string,
@@ -509,6 +529,9 @@ export interface Repo {
   listAnnouncements(): Promise<Announcement[]>;
   createAnnouncement(input: NewAnnouncement): Promise<Announcement>;
   setAnnouncementActive(id: string, active: boolean): Promise<void>;
+  /** 고객센터 상담별 이슈 메모 — 최신순 조회 / 추가. */
+  listSupportNotes(consultationId: string): Promise<SupportNote[]>;
+  addSupportNote(input: NewSupportNote): Promise<SupportNote>;
   /** 학습 샘플 만족도 갱신 — 완결 후 도착한 손님 별점을 consultationId 로 찾아 반영. */
   updateTrainingSampleSatisfaction(
     consultationId: string,

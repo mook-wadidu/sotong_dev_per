@@ -20,11 +20,14 @@ export interface AdminAnalytics {
   reportsIssued: number;
   avgSatisfaction: number | null; // 1~5
   demoViews: number;
+  scans: number; // QR 진입(유효 살롱)
+  reportViews: number; // 리포트 열람(플랫폼 전역 — report_view 는 salon 미부착)
   byDay: {
     day: string; // YYYY-MM-DD
     consults: number;
     completed: number;
     demoViews: number;
+    scans: number;
   }[];
   funnel: { key: ConsultationStatus; reached: number }[]; // 누적 퍼널
   byLocale: { locale: string; count: number }[];
@@ -39,11 +42,12 @@ export async function getAdminAnalytics(opts: {
   const now = Date.now();
   const sinceIso = new Date(now - opts.range * DAY_MS).toISOString();
 
-  const [consultations, events] = await Promise.all([
+  const [consultations, events, treatments] = await Promise.all([
     repo.listConsultations({ salonSlug: opts.salonSlug, limit: 5000 }),
     // analytics_events 미적용(migration 0014) 상태에서도 대시보드가 죽지 않도록 방어 —
     // 실패 시 이벤트 0(데모 조회수만 비고, 상담 지표는 유지).
     repo.listEventsSince(sinceIso).catch(() => []),
+    repo.listTreatmentsSince(sinceIso).catch(() => []),
   ]);
 
   const inRange = consultations.filter((c) => c.createdAt >= sinceIso);
@@ -54,7 +58,10 @@ export async function getAdminAnalytics(opts: {
     days.push(new Date(now - i * DAY_MS).toISOString().slice(0, 10));
   }
   const dayMap = new Map(
-    days.map((d) => [d, { day: d, consults: 0, completed: 0, demoViews: 0 }]),
+    days.map((d) => [
+      d,
+      { day: d, consults: 0, completed: 0, demoViews: 0, scans: 0 },
+    ]),
   );
 
   for (const c of inRange) {
@@ -74,6 +81,19 @@ export async function getAdminAnalytics(opts: {
     const b = dayMap.get(e.createdAt.slice(0, 10));
     if (b) b.demoViews += 1;
   }
+
+  const scanEvents = events.filter(
+    (e) =>
+      e.eventType === "scan" &&
+      (!opts.salonSlug || e.salonSlug === opts.salonSlug),
+  );
+  for (const e of scanEvents) {
+    const b = dayMap.get(e.createdAt.slice(0, 10));
+    if (b) b.scans += 1;
+  }
+
+  // report_view 는 salon 미부착 → 전역 지표(살롱 스코프에서도 플랫폼 전체).
+  const reportViewEvents = events.filter((e) => e.eventType === "report_view");
 
   const total = inRange.length;
   const completed = inRange.filter((c) => c.status === "completed").length;
@@ -116,8 +136,14 @@ export async function getAdminAnalytics(opts: {
     .map(([salonSlug, v]) => ({ salonSlug, ...v }))
     .sort((a, b) => b.consults - a.consults);
 
-  // 만족도는 treatment_records 집계 필요 — 다음 서브빌드에서 전역 시술 조회 메서드로 연결.
-  const avgSatisfaction: number | null = null;
+  // 만족도 — 기간 내 시술기록 satisfactionScore 평균(살롱 스코프 반영, 값 있는 건만).
+  const satScores = treatments
+    .filter((t) => !opts.salonSlug || t.salonSlug === opts.salonSlug)
+    .map((t) => t.satisfactionScore)
+    .filter((s): s is number => typeof s === "number");
+  const avgSatisfaction = satScores.length
+    ? satScores.reduce((a, b) => a + b, 0) / satScores.length
+    : null;
 
   return {
     range: opts.range,
@@ -128,6 +154,8 @@ export async function getAdminAnalytics(opts: {
     reportsIssued: reports,
     avgSatisfaction,
     demoViews: demoEvents.length,
+    scans: scanEvents.length,
+    reportViews: reportViewEvents.length,
     byDay: days.map((d) => dayMap.get(d)!),
     funnel,
     byLocale,

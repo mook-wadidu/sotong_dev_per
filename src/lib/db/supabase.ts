@@ -33,6 +33,8 @@ import type {
   CreateTreatmentRecordInput,
   NewAnalyticsEvent,
   NewAnnouncement,
+  NewSupportNote,
+  SupportNote,
   TrainingPhotosInput,
   CustomerHairProfileInput,
   Designer,
@@ -101,6 +103,7 @@ interface StaffRow {
   entry_key_version: number;
   rank_id: string | null;
   staff_token_revoked: boolean;
+  is_active: boolean;
 }
 
 interface SalonServiceCategoryRow {
@@ -252,7 +255,7 @@ interface PushSubRow {
 const SALON_COLS =
   "slug,name,name_translations,locales,address,tel,business_hours,placement_label,entry_key_version,designer_ranks,owner_token,owner_token_revoked";
 const STAFF_COLS =
-  "id,salon_slug,name,staff_token,entry_key_version,rank_id,staff_token_revoked";
+  "id,salon_slug,name,staff_token,entry_key_version,rank_id,staff_token_revoked,is_active";
 /** last_seen write-on-read 스로틀(10분) — 이 간격보다 최근 기록이 있으면 write 안 함. */
 const TOKEN_SEEN_THROTTLE_MS = 10 * 60 * 1000;
 const SALON_SERVICE_CATEGORY_COLS =
@@ -327,6 +330,7 @@ function toDesigner(r: StaffRow): Designer {
     staffToken: r.staff_token,
     entryKeyVersion: r.entry_key_version ?? 1,
     rankId: r.rank_id ?? undefined,
+    active: r.is_active ?? true,
   };
 }
 
@@ -686,6 +690,14 @@ export class SupabaseRepo implements Repo {
       .update({ staff_token_revoked: revoked })
       .eq("id", designerId);
     if (error) fail("setStaffTokenRevoked", error);
+  }
+
+  async setDesignerActive(designerId: string, active: boolean): Promise<void> {
+    const { error } = await this.client
+      .from("staff")
+      .update({ is_active: active })
+      .eq("id", designerId);
+    if (error) fail("setDesignerActive", error);
   }
 
   async touchStaffTokenSeen(
@@ -1199,6 +1211,17 @@ export class SupabaseRepo implements Repo {
     return ((data ?? []) as TreatmentRecordRow[]).map(toTreatmentRecord);
   }
 
+  async listTreatmentsSince(sinceIso: string): Promise<TreatmentRecord[]> {
+    const { data, error } = await this.client
+      .from("treatment_records")
+      .select(TREATMENT_RECORD_COLS)
+      .gte("visited_at", sinceIso)
+      .order("visited_at", { ascending: true })
+      .limit(20000);
+    if (error) fail("listTreatmentsSince", error);
+    return ((data ?? []) as TreatmentRecordRow[]).map(toTreatmentRecord);
+  }
+
   async saveTrainingSample(s: TrainingSample): Promise<void> {
     // 비식별 학습 샘플 적재(PII 컬럼 없음). 실패는 호출부에서 best-effort 처리.
     const { error } = await this.client.from("training_samples").insert({
@@ -1331,6 +1354,45 @@ export class SupabaseRepo implements Repo {
       .update({ active, updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) fail("setAnnouncementActive", error);
+  }
+
+  async listSupportNotes(consultationId: string): Promise<SupportNote[]> {
+    if (!consultationId) return [];
+    const { data, error } = await this.client
+      .from("support_notes")
+      .select("id,consultation_id,body,author,created_at")
+      .eq("consultation_id", consultationId)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) fail("listSupportNotes", error);
+    return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+      id: r.id as string,
+      consultationId: r.consultation_id as string,
+      body: r.body as string,
+      author: (r.author as string) ?? undefined,
+      createdAt: r.created_at as string,
+    }));
+  }
+
+  async addSupportNote(input: NewSupportNote): Promise<SupportNote> {
+    const { data, error } = await this.client
+      .from("support_notes")
+      .insert({
+        consultation_id: input.consultationId,
+        body: input.body,
+        author: input.author ?? null,
+      })
+      .select("id,consultation_id,body,author,created_at")
+      .single();
+    if (error) fail("addSupportNote", error);
+    const r = data as Record<string, unknown>;
+    return {
+      id: r.id as string,
+      consultationId: r.consultation_id as string,
+      body: r.body as string,
+      author: (r.author as string) ?? undefined,
+      createdAt: r.created_at as string,
+    };
   }
 
   async updateTrainingSampleSatisfaction(

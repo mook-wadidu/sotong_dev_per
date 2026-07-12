@@ -10,6 +10,7 @@ import {
   type Column,
 } from "@/components/ui";
 import { designerSummaryPath } from "@/lib/links";
+import { InquiryNotes } from "@/components/admin/inquiry-notes";
 import type {
   AdminSalon,
   ConsultationListItem,
@@ -151,6 +152,13 @@ export function AdminInquiries({
         <span className="whitespace-nowrap tabular-nums text-muted-foreground">
           {row.maskedPhone ?? "—"}
         </span>
+      ),
+    },
+    {
+      header: "",
+      align: "right",
+      cell: (row) => (
+        <InquiryNotes consultationId={row.id} title={row.headline} />
       ),
     },
   ];

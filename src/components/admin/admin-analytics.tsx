@@ -33,7 +33,9 @@ export async function AdminAnalyticsView({
 
   const kpis = [
     { label: t("analytics.kpi.demoViews"), value: data.demoViews },
+    { label: t("analytics.kpi.scans"), value: data.scans },
     { label: t("analytics.kpi.consults"), value: data.totalConsults },
+    { label: t("analytics.kpi.reportViews"), value: data.reportViews },
     {
       label: t("analytics.kpi.completionRate"),
       value: pct(data.completionRate),

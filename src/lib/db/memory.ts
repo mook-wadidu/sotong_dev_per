@@ -22,6 +22,8 @@ import type {
   CustomerHairProfileInput,
   NewAnalyticsEvent,
   NewAnnouncement,
+  NewSupportNote,
+  SupportNote,
   TrainingPhotosInput,
   Designer,
   DesignerRank,
@@ -67,6 +69,7 @@ interface Store {
   staffTokenSeen: Map<string, { at: number; ip: string | null }>; // designerId -> last_seen
   events: AnalyticsEvent[]; // 유입/조회 이벤트(append-only)
   announcements: Announcement[]; // 공지(최신순으로 unshift)
+  supportNotes: SupportNote[]; // 고객센터 상담별 메모(append)
 }
 
 /** last_seen write-on-read 스로틀(10분) — supabase 드라이버와 동일. */
@@ -295,6 +298,7 @@ function freshStore(): Store {
     trainingSamples: [],
     events: [],
     announcements: [],
+    supportNotes: [],
     revokedOwnerTokens: new Set(),
     revokedStaffTokens: new Set(),
     ownerTokenSeen: new Map(),
@@ -312,6 +316,7 @@ store.treatmentRecords ??= new Map();
 store.trainingSamples ??= [];
 store.events ??= [];
 store.announcements ??= [];
+store.supportNotes ??= [];
 
 /** 무인증 접근 토큰 — 절단 없이 192bit 랜덤(base64url). 추측/열거 차단(P0/P1-36). */
 const token = () => randomBytes(24).toString("base64url");
@@ -429,6 +434,11 @@ export class MemoryRepo implements Repo {
     else store.revokedStaffTokens.delete(designerId);
   }
 
+  async setDesignerActive(designerId: string, active: boolean): Promise<void> {
+    const d = store.designers.get(designerId);
+    if (d) store.designers.set(designerId, { ...d, active });
+  }
+
   async touchStaffTokenSeen(
     designerId: string,
     ip: string | null,
@@ -469,6 +479,7 @@ export class MemoryRepo implements Repo {
       staffToken: input.staffToken ?? `staff_${token()}`,
       entryKeyVersion: 1,
       rankId: input.rankId,
+      active: true,
     };
     store.designers.set(designer.id, designer);
     return designer;
@@ -745,6 +756,12 @@ export class MemoryRepo implements Repo {
       .sort((a, b) => (a.visitedAt < b.visitedAt ? 1 : -1));
   }
 
+  async listTreatmentsSince(sinceIso: string): Promise<TreatmentRecord[]> {
+    return [...store.treatmentRecords.values()]
+      .filter((r) => r.visitedAt >= sinceIso)
+      .sort((a, b) => (a.visitedAt < b.visitedAt ? -1 : 1));
+  }
+
   async updateTreatmentRecord(
     id: string,
     fields: Partial<Pick<TreatmentRecord, "satisfactionScore">>,
@@ -805,6 +822,24 @@ export class MemoryRepo implements Repo {
       a.active = active;
       a.updatedAt = new Date().toISOString();
     }
+  }
+
+  async listSupportNotes(consultationId: string): Promise<SupportNote[]> {
+    return store.supportNotes
+      .filter((n) => n.consultationId === consultationId)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }
+
+  async addSupportNote(input: NewSupportNote): Promise<SupportNote> {
+    const note: SupportNote = {
+      id: randomUUID(),
+      consultationId: input.consultationId,
+      body: input.body,
+      author: input.author,
+      createdAt: new Date().toISOString(),
+    };
+    store.supportNotes.push(note);
+    return note;
   }
 
   async updateTrainingSampleSatisfaction(

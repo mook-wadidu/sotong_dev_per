@@ -17,6 +17,7 @@ import { NotificationSetup } from "@/components/designer/notification-setup";
 import { InboxRefresh } from "@/components/designer/inbox-refresh";
 import { DesignerHelp } from "@/components/designer/designer-help";
 import { DesignerQrSheet } from "@/components/designer/designer-qr-sheet";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import { config } from "@/lib/config";
 import type {
   ConsultationListItem as Item,
@@ -129,6 +130,12 @@ export default async function DesignerInboxPage({
         }
       />
       <ScreenBody className="space-y-5">
+        {/* 살롱 공지(있으면) — 디자이너 뷰 ko 고정 */}
+        <AnnouncementBanner
+          audiences={["salon", "platform"]}
+          salonSlug={salon.slug}
+          locale="ko"
+        />
         {/* 웹푸시 알림 설정 (PWA) */}
         <NotificationSetup
           staffToken={staffToken}

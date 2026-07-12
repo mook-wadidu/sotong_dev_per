@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { AdminDesignerStats } from "@/lib/admin-designers";
+import { DesignerActiveToggle } from "@/components/admin/designer-active-toggle";
 
 /**
  * 전역 디자이너 성과 랭킹 — 상담·완료율·재방문율·리포트. 흑백 표.
@@ -47,7 +48,13 @@ export async function AdminDesigners({
                 {t("designers.col.returning")}
               </th>
               <th className="px-3 py-2.5 text-right font-medium">
+                {t("designers.col.satisfaction")}
+              </th>
+              <th className="px-3 py-2.5 text-right font-medium">
                 {t("designers.col.reports")}
+              </th>
+              <th className="px-3 py-2.5 text-right font-medium">
+                {t("designers.col.status")}
               </th>
             </tr>
           </thead>
@@ -55,7 +62,11 @@ export async function AdminDesigners({
             {rows.map((r, i) => (
               <tr
                 key={r.designerId}
-                className="border-b border-border last:border-0"
+                className={
+                  r.active
+                    ? "border-b border-border last:border-0"
+                    : "border-b border-border opacity-50 last:border-0"
+                }
               >
                 <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
                   {i + 1}
@@ -76,8 +87,17 @@ export async function AdminDesigners({
                 <td className="px-3 py-2.5 text-right tabular-nums">
                   {pct(r.returningRate)}
                 </td>
+                <td className="px-3 py-2.5 text-right tabular-nums">
+                  {r.avgSatisfaction != null ? r.avgSatisfaction.toFixed(1) : "—"}
+                </td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
                   {r.reports}
+                </td>
+                <td className="px-3 py-2.5 text-right">
+                  <DesignerActiveToggle
+                    designerId={r.designerId}
+                    active={r.active}
+                  />
                 </td>
               </tr>
             ))}

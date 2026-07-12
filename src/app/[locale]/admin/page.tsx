@@ -121,16 +121,17 @@ export default async function AdminPage({
       title={t("title")}
       subtitle={t("subtitle")}
       actions={
-        // 라우트핸들러(쿠키 만료 + 리다이렉트)로의 "전체 페이지 이동"이 필요 —
-        // next/link 의 클라 네비게이션은 Set-Cookie 리다이렉트를 제대로 타지 않는다.
-        // (api 경로는 페이지가 아니므로 아래 룰은 오탐.)
-        // eslint-disable-next-line @next/next/no-html-link-for-pages
-        <a
-          href="/api/admin/exit"
-          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {t("nav.logout")}
-        </a>
+        // CSRF 방지 — GET 링크 대신 POST 폼(쿠키 만료 + 리다이렉트, 로케일 보존).
+        // 라우트핸들러로의 전체 페이지 이동이라 form 제출이 Set-Cookie 리다이렉트를 제대로 탄다.
+        <form action="/api/admin/exit" method="post">
+          <input type="hidden" name="locale" value={locale} />
+          <button
+            type="submit"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t("nav.logout")}
+          </button>
+        </form>
       }
     >
       <AdminLayout view={view}>

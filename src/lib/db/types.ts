@@ -641,9 +641,10 @@ export interface Repo {
   /** 디자이너 초대 링크(단일사용/만료). */
   createSalonInvite(input: NewSalonInvite): Promise<SalonInvite>;
   getSalonInvite(token: string): Promise<SalonInvite | null>;
-  markSalonInviteUsed(token: string): Promise<void>;
   /** 원자적 단일사용 소비 — 유효(미사용·미취소·미만료)면 used 마킹 후 반환, 아니면 null(레이스 방지). */
   consumeSalonInvite(token: string): Promise<SalonInvite | null>;
+  /** 소비 후 provision 실패 시 초대를 원복(used_at=null) — 재시도 가능케(claim+rollback). */
+  reopenSalonInvite(token: string): Promise<void>;
   listSalonInvites(salonSlug: string): Promise<SalonInvite[]>;
   revokeSalonInvite(token: string): Promise<void>;
   /** 소속 요청(오너→디자이너, 수락/거절). */

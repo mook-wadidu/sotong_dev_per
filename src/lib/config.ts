@@ -46,6 +46,20 @@ function resolveSecret(
       `[sotong] ${name} 가 dev 기본값으로 가동됩니다 — 운영 배포 전 반드시 교체하세요.`,
     );
   }
+  // 엔트로피 하한(경고만) — 운영에서 24자 미만이면 온라인 브루트포스에 취약할 수 있음을 경고.
+  // 하드 fail-fast 는 기존 배포의 짧은 토큰을 락아웃시킬 수 있어 경고에 그친다
+  // (실질 방어는 /api/admin/enter 의 IP rate-limit). 부팅은 막지 않는다.
+  if (
+    IS_PROD &&
+    !IS_BUILD_PHASE &&
+    !isMissing &&
+    !isDevDefault &&
+    raw.trim().length < 24
+  ) {
+    console.warn(
+      `[sotong] ${name} 가 24자 미만입니다 — 강한 랜덤값(openssl rand -base64 32) 권장.`,
+    );
+  }
   return isMissing ? devDefault : raw;
 }
 

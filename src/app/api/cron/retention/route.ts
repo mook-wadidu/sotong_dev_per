@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { config } from "@/lib/config";
 import { cleanupExpiredPII, repoScrubber } from "@/lib/retention";
 
@@ -22,9 +22,9 @@ function authorized(req: Request): boolean {
   if (!secret) return false; // 시크릿 미설정 = 차단(안전 기본값)
   const header = req.headers.get("authorization") ?? "";
   const expected = `Bearer ${secret}`;
-  const a = Buffer.from(header);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
+  // 길이 조기반환은 타이밍 오라클 → 양쪽을 고정 32B 다이제스트로 비교(entry.ts safeEqual 동형).
+  const a = createHash("sha256").update(header).digest();
+  const b = createHash("sha256").update(expected).digest();
   return timingSafeEqual(a, b);
 }
 

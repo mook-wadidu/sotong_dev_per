@@ -3139,32 +3139,38 @@ export async function acceptSalonInvite(input: {
   }
 
   // 원자적 단일사용 소비(레이스 방지) — 유효할 때만 used 마킹 후 반환.
+  // 이 시점부터 초대는 "선점"됨. 이후 어떤 실패든 반드시 reopenSalonInvite 로 원복해야
+  // 단일사용 초대가 영구 소진되지 않는다(claim+rollback, completeConsultation 과 동형).
   const inv = await repo.consumeSalonInvite(input.token);
   if (!inv) return { ok: false, error: "유효하지 않은 초대입니다." };
-  const salon = await repo.getSalon(inv.salonSlug);
-  if (!salon) return { ok: false, error: "살롱을 찾을 수 없습니다." };
 
   try {
+    const salon = await repo.getSalon(inv.salonSlug);
+    if (!salon) {
+      await repo.reopenSalonInvite(input.token);
+      return { ok: false, error: "살롱을 찾을 수 없습니다." };
+    }
     await provisionAccount({
       email,
       role: "designer",
       displayName: name,
       password: input.password,
     });
+    const designer = await repo.createDesigner({ salonSlug: salon.slug, name });
+    await repo.setStaffEmail(designer.id, email);
+    await logIssue({
+      salonSlug: salon.slug,
+      severity: "info",
+      source: "audit",
+      message: "초대 수락 — 디자이너 가입/소속",
+      detail: email,
+    });
+    return { ok: true, email };
   } catch (e) {
+    // 실패 시 초대 원복(재시도 가능케). reopen 자체 실패는 무시(초대는 이미 소진 상태 유지).
+    await repo.reopenSalonInvite(input.token).catch(() => {});
     return { ok: false, error: e instanceof Error ? e.message : "가입 실패" };
   }
-
-  const designer = await repo.createDesigner({ salonSlug: salon.slug, name });
-  await repo.setStaffEmail(designer.id, email);
-  await logIssue({
-    salonSlug: salon.slug,
-    severity: "info",
-    source: "audit",
-    message: "초대 수락 — 디자이너 가입/소속",
-    detail: email,
-  });
-  return { ok: true, email };
 }
 
 /* ── 자가가입 + 소속 요청 (Phase 0c) ───────────────────────── */
@@ -3310,12 +3316,20 @@ export async function respondMembership(
   if (already && already.salonSlug === salon.slug) {
     return { ok: true };
   }
-  const profile = await repo.getProfileByEmail(acc.email);
-  const designer = await repo.createDesigner({
-    salonSlug: salon.slug,
-    name: profile?.displayName ?? acc.email,
-  });
-  await repo.setStaffEmail(designer.id, acc.email);
+  try {
+    const profile = await repo.getProfileByEmail(acc.email);
+    const designer = await repo.createDesigner({
+      salonSlug: salon.slug,
+      name: profile?.displayName ?? acc.email,
+    });
+    await repo.setStaffEmail(designer.id, acc.email);
+  } catch (e) {
+    // staff 생성 실패 시 요청을 pending 으로 되돌려 재시도 가능케(accepted-무staff 교착 방지).
+    await repo
+      .setMembershipRequestStatus(requestId, "pending")
+      .catch(() => {});
+    return { ok: false, error: e instanceof Error ? e.message : "합류 실패" };
+  }
   await logIssue({
     salonSlug: salon.slug,
     severity: "info",

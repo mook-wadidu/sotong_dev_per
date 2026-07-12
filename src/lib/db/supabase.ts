@@ -1586,12 +1586,12 @@ export class SupabaseRepo implements Repo {
     return data ? toSalonInvite(data as Record<string, unknown>) : null;
   }
 
-  async markSalonInviteUsed(token: string): Promise<void> {
+  async reopenSalonInvite(token: string): Promise<void> {
     const { error } = await this.client
       .from("salon_invites")
-      .update({ used_at: new Date().toISOString() })
+      .update({ used_at: null })
       .eq("token", token);
-    if (error) fail("markSalonInviteUsed", error);
+    if (error) fail("reopenSalonInvite", error);
   }
 
   async consumeSalonInvite(token: string): Promise<SalonInvite | null> {

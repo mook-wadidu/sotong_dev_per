@@ -940,12 +940,18 @@ export class MemoryRepo implements Repo {
 
   async setSalonOwnerEmail(slug: string, email: string): Promise<void> {
     const s = store.salons.get(slug);
-    if (s) store.salons.set(slug, { ...s, ownerEmail: email });
+    // supabase 와 동일하게 정규화 저장(조회는 양쪽 소문자라 무관하나 저장 정합).
+    if (s)
+      store.salons.set(slug, { ...s, ownerEmail: email.trim().toLowerCase() });
   }
 
   async setStaffEmail(designerId: string, email: string): Promise<void> {
     const d = store.designers.get(designerId);
-    if (d) store.designers.set(designerId, { ...d, email });
+    if (d)
+      store.designers.set(designerId, {
+        ...d,
+        email: email.trim().toLowerCase(),
+      });
   }
 
   async createSalonInvite(input: NewSalonInvite): Promise<SalonInvite> {
@@ -966,9 +972,9 @@ export class MemoryRepo implements Repo {
     return store.salonInvites.find((i) => i.token === token) ?? null;
   }
 
-  async markSalonInviteUsed(token: string): Promise<void> {
+  async reopenSalonInvite(token: string): Promise<void> {
     const inv = store.salonInvites.find((i) => i.token === token);
-    if (inv) inv.usedAt = new Date().toISOString();
+    if (inv) inv.usedAt = undefined;
   }
 
   async consumeSalonInvite(token: string): Promise<SalonInvite | null> {

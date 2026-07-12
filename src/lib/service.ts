@@ -45,6 +45,7 @@ import {
 } from "@/lib/entry";
 import { readAdminSession } from "@/lib/admin-session";
 import { getAdminUser } from "@/lib/admin-auth";
+import { provisionAccount } from "@/lib/account-provision";
 import {
   customerEntryPath,
   designerInboxPath,
@@ -2578,6 +2579,8 @@ export interface CreatedSalonResult {
   consolePath: string; // /ko/s/{ownerToken}
   salonEntryToken: string;
   salonEntryPath: string;
+  /** ownerEmail 지정 시 발급된 초기 비밀번호(어드민이 오너에게 전달). */
+  ownerTempPassword?: string;
 }
 
 /** 살롱 생성(어드민). ownerToken·콘솔 링크·공용 QR 토큰을 함께 반환. */
@@ -2586,6 +2589,7 @@ export async function adminCreateSalon(
     slug: string;
     name: string;
     address?: string;
+    ownerEmail?: string;
   },
 ): Promise<CreatedSalonResult> {
   await ensureAdminSession();
@@ -2618,12 +2622,26 @@ export async function adminCreateSalon(
     sort: 1,
   });
 
+  // 오너 이메일 지정 시 계정 발급 + 매핑(세션 로그인 진입).
+  let ownerTempPassword: string | undefined;
+  const ownerEmail = input.ownerEmail?.trim();
+  if (ownerEmail) {
+    const { tempPassword } = await provisionAccount({
+      email: ownerEmail,
+      role: "owner",
+      displayName: name,
+    });
+    await repo.setSalonOwnerEmail(salon.slug, ownerEmail);
+    ownerTempPassword = tempPassword;
+  }
+
   const salonEntryToken = makeSalonEntryToken(salon.slug, salon.entryKeyVersion);
   return {
     salon,
     consolePath: salonConsolePath(salon.ownerToken),
     salonEntryToken,
     salonEntryPath: customerEntryPath(salonEntryToken),
+    ownerTempPassword,
   };
 }
 
@@ -2632,6 +2650,8 @@ export interface CreatedDesignerResult {
   entryToken: string;
   entryPath: string;
   inboxPath: string;
+  /** email 지정 시 발급된 초기 비밀번호(오너/어드민이 디자이너에게 전달). */
+  tempPassword?: string;
 }
 
 /* ── 공지(어드민) ─────────────────────────────────────────── */
@@ -2747,6 +2767,7 @@ export async function adminCreateDesigner(
     salonSlug: string;
     name: string;
     rankId?: string;
+    email?: string;
   },
 ): Promise<CreatedDesignerResult> {
   await ensureAdminSession();
@@ -2766,6 +2787,16 @@ export async function adminCreateDesigner(
     name,
     rankId,
   });
+
+  // email 지정 시 디자이너 계정 발급 + 소속(staff.email) 매핑.
+  let tempPassword: string | undefined;
+  const email = input.email?.trim();
+  if (email) {
+    const res = await provisionAccount({ email, role: "designer", displayName: name });
+    await repo.setStaffEmail(designer.id, email);
+    tempPassword = res.tempPassword;
+  }
+
   const entryToken = makeDesignerEntryToken(
     designer.id,
     designer.entryKeyVersion,
@@ -2775,5 +2806,6 @@ export async function adminCreateDesigner(
     entryToken,
     entryPath: customerEntryPath(entryToken),
     inboxPath: designerInboxPath(designer.staffToken),
+    tempPassword,
   };
 }

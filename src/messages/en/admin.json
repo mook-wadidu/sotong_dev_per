@@ -283,7 +283,12 @@
     "consoleLink": "Owner console link",
     "staffToken": "Designer inbox token",
     "inboxLink": "Inbox link",
-    "qrLink": "Designer QR link"
+    "qrLink": "Designer QR link",
+    "ownerEmail": "Owner email (login account)",
+    "ownerEmailHint": "If set, a login account is created (optional).",
+    "designerEmail": "Designer email (login account)",
+    "designerEmailHint": "If set, a login account is created (optional).",
+    "tempPassword": "Initial password (to share)"
   },
   "console": {
     "title": "Salon console",
@@ -390,5 +395,10 @@
         "low": "Low"
       }
     }
+  },
+  "account": {
+    "loginHint": "Log in with your salon or designer account.",
+    "waitingTitle": "Awaiting salon",
+    "waitingHint": "You're not part of a salon yet. Ask your salon admin for an invite."
   }
 }

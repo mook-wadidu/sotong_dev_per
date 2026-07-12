@@ -34,7 +34,9 @@ import type {
   NewAnalyticsEvent,
   NewAnnouncement,
   NewSupportNote,
+  Profile,
   SupportNote,
+  UpsertProfileInput,
   TrainingPhotosInput,
   CustomerHairProfileInput,
   Designer,
@@ -93,6 +95,7 @@ interface SalonRow {
   designer_ranks: { id: string; label: unknown }[] | null;
   owner_token: string;
   owner_token_revoked: boolean;
+  owner_email: string | null;
 }
 
 interface StaffRow {
@@ -104,6 +107,7 @@ interface StaffRow {
   rank_id: string | null;
   staff_token_revoked: boolean;
   is_active: boolean;
+  email: string | null;
 }
 
 interface SalonServiceCategoryRow {
@@ -253,9 +257,9 @@ interface PushSubRow {
 }
 
 const SALON_COLS =
-  "slug,name,name_translations,locales,address,tel,business_hours,placement_label,entry_key_version,designer_ranks,owner_token,owner_token_revoked";
+  "slug,name,name_translations,locales,address,tel,business_hours,placement_label,entry_key_version,designer_ranks,owner_token,owner_token_revoked,owner_email";
 const STAFF_COLS =
-  "id,salon_slug,name,staff_token,entry_key_version,rank_id,staff_token_revoked,is_active";
+  "id,salon_slug,name,staff_token,entry_key_version,rank_id,staff_token_revoked,is_active,email";
 /** last_seen write-on-read 스로틀(10분) — 이 간격보다 최근 기록이 있으면 write 안 함. */
 const TOKEN_SEEN_THROTTLE_MS = 10 * 60 * 1000;
 const SALON_SERVICE_CATEGORY_COLS =
@@ -307,6 +311,7 @@ function toSalon(r: SalonRow): Salon {
     // 이미 LocalizedText 객체면 그대로 둔다(백필은 메인이 — jsonb 라 스키마 마이그레이션 불필요).
     designerRanks: (r.designer_ranks ?? []).map(normalizeRank),
     ownerToken: r.owner_token,
+    ownerEmail: r.owner_email ?? undefined,
   };
 }
 
@@ -331,6 +336,7 @@ function toDesigner(r: StaffRow): Designer {
     entryKeyVersion: r.entry_key_version ?? 1,
     rankId: r.rank_id ?? undefined,
     active: r.is_active ?? true,
+    email: r.email ?? undefined,
   };
 }
 
@@ -1393,6 +1399,89 @@ export class SupabaseRepo implements Repo {
       author: (r.author as string) ?? undefined,
       createdAt: r.created_at as string,
     };
+  }
+
+  /* ── 계정 로그인/소속 ─────────────────────────────────────── */
+  async upsertProfile(input: UpsertProfileInput): Promise<Profile> {
+    const { data, error } = await this.client
+      .from("profiles")
+      .upsert(
+        {
+          id: input.id,
+          email: input.email,
+          role: input.role,
+          display_name: input.displayName ?? null,
+        },
+        { onConflict: "id" },
+      )
+      .select("id,email,role,display_name,created_at")
+      .single();
+    if (error) fail("upsertProfile", error);
+    const r = data as Record<string, unknown>;
+    return {
+      id: r.id as string,
+      email: r.email as string,
+      role: r.role as Profile["role"],
+      displayName: (r.display_name as string) ?? undefined,
+      createdAt: r.created_at as string,
+    };
+  }
+
+  async getProfileByEmail(email: string): Promise<Profile | null> {
+    if (!email) return null;
+    const { data, error } = await this.client
+      .from("profiles")
+      .select("id,email,role,display_name,created_at")
+      .ilike("email", email)
+      .maybeSingle();
+    if (error) fail("getProfileByEmail", error);
+    if (!data) return null;
+    const r = data as Record<string, unknown>;
+    return {
+      id: r.id as string,
+      email: r.email as string,
+      role: r.role as Profile["role"],
+      displayName: (r.display_name as string) ?? undefined,
+      createdAt: r.created_at as string,
+    };
+  }
+
+  async getSalonByOwnerEmail(email: string): Promise<Salon | null> {
+    if (!email) return null;
+    const { data, error } = await this.client
+      .from("salons")
+      .select(SALON_COLS)
+      .ilike("owner_email", email)
+      .maybeSingle();
+    if (error) fail("getSalonByOwnerEmail", error);
+    return data ? toSalon(data as SalonRow) : null;
+  }
+
+  async getStaffByEmail(email: string): Promise<Designer | null> {
+    if (!email) return null;
+    const { data, error } = await this.client
+      .from("staff")
+      .select(STAFF_COLS)
+      .ilike("email", email)
+      .maybeSingle();
+    if (error) fail("getStaffByEmail", error);
+    return data ? toDesigner(data as StaffRow) : null;
+  }
+
+  async setSalonOwnerEmail(slug: string, email: string): Promise<void> {
+    const { error } = await this.client
+      .from("salons")
+      .update({ owner_email: email })
+      .eq("slug", slug);
+    if (error) fail("setSalonOwnerEmail", error);
+  }
+
+  async setStaffEmail(designerId: string, email: string): Promise<void> {
+    const { error } = await this.client
+      .from("staff")
+      .update({ email })
+      .eq("id", designerId);
+    if (error) fail("setStaffEmail", error);
   }
 
   async updateTrainingSampleSatisfaction(

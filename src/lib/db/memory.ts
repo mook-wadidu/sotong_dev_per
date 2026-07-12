@@ -23,7 +23,9 @@ import type {
   NewAnalyticsEvent,
   NewAnnouncement,
   NewSupportNote,
+  Profile,
   SupportNote,
+  UpsertProfileInput,
   TrainingPhotosInput,
   Designer,
   DesignerRank,
@@ -70,6 +72,7 @@ interface Store {
   events: AnalyticsEvent[]; // 유입/조회 이벤트(append-only)
   announcements: Announcement[]; // 공지(최신순으로 unshift)
   supportNotes: SupportNote[]; // 고객센터 상담별 메모(append)
+  profiles: Profile[]; // 계정 레지스트리(email→role)
 }
 
 /** last_seen write-on-read 스로틀(10분) — supabase 드라이버와 동일. */
@@ -299,6 +302,7 @@ function freshStore(): Store {
     events: [],
     announcements: [],
     supportNotes: [],
+    profiles: [],
     revokedOwnerTokens: new Set(),
     revokedStaffTokens: new Set(),
     ownerTokenSeen: new Map(),
@@ -317,6 +321,7 @@ store.trainingSamples ??= [];
 store.events ??= [];
 store.announcements ??= [];
 store.supportNotes ??= [];
+store.profiles ??= [];
 
 /** 무인증 접근 토큰 — 절단 없이 192bit 랜덤(base64url). 추측/열거 차단(P0/P1-36). */
 const token = () => randomBytes(24).toString("base64url");
@@ -840,6 +845,65 @@ export class MemoryRepo implements Repo {
     };
     store.supportNotes.push(note);
     return note;
+  }
+
+  /* ── 계정 로그인/소속 ─────────────────────────────────────── */
+  async upsertProfile(input: UpsertProfileInput): Promise<Profile> {
+    const email = input.email.toLowerCase();
+    const existing = store.profiles.find(
+      (p) => p.email.toLowerCase() === email || p.id === input.id,
+    );
+    if (existing) {
+      existing.email = input.email;
+      existing.role = input.role;
+      existing.displayName = input.displayName;
+      return existing;
+    }
+    const p: Profile = {
+      id: input.id,
+      email: input.email,
+      role: input.role,
+      displayName: input.displayName,
+      createdAt: new Date().toISOString(),
+    };
+    store.profiles.push(p);
+    return p;
+  }
+
+  async getProfileByEmail(email: string): Promise<Profile | null> {
+    if (!email) return null;
+    const e = email.toLowerCase();
+    return store.profiles.find((p) => p.email.toLowerCase() === e) ?? null;
+  }
+
+  async getSalonByOwnerEmail(email: string): Promise<Salon | null> {
+    if (!email) return null;
+    const e = email.toLowerCase();
+    return (
+      [...store.salons.values()].find(
+        (s) => s.ownerEmail?.toLowerCase() === e,
+      ) ?? null
+    );
+  }
+
+  async getStaffByEmail(email: string): Promise<Designer | null> {
+    if (!email) return null;
+    const e = email.toLowerCase();
+    return (
+      [...store.designers.values()].find(
+        (d) => d.email?.toLowerCase() === e,
+      ) ?? null
+    );
+  }
+
+  async setSalonOwnerEmail(slug: string, email: string): Promise<void> {
+    const s = store.salons.get(slug);
+    if (s) store.salons.set(slug, { ...s, ownerEmail: email });
+  }
+
+  async setStaffEmail(designerId: string, email: string): Promise<void> {
+    const d = store.designers.get(designerId);
+    if (d) store.designers.set(designerId, { ...d, email });
   }
 
   async updateTrainingSampleSatisfaction(

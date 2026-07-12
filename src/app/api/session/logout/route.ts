@@ -1,0 +1,21 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { createSsrServerClient } from "@/lib/supabase/ssr-server";
+
+/**
+ * 계정 로그아웃 — Supabase Auth 세션 쿠키를 만료(signOut)시키고 로그인으로.
+ * 라우트핸들러라 cookies().set 이 가능 → signOut 의 쿠키 제거가 응답에 반영된다.
+ */
+export const dynamic = "force-dynamic";
+
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  try {
+    const supabase = createSsrServerClient();
+    await supabase.auth.signOut();
+  } catch {
+    // 무시 — 세션 없거나 실패해도 로그인으로 보낸다.
+  }
+  const dest = req.nextUrl.clone();
+  dest.pathname = "/ko/login";
+  dest.search = "";
+  return NextResponse.redirect(dest);
+}

@@ -92,6 +92,8 @@ export interface Salon {
   designerRanks: DesignerRank[];
   /** 살롱 오너 콘솔 접근 토큰 — 메뉴/디자이너/직급 편집 권한 */
   ownerToken: string;
+  /** 오너 계정 이메일(Supabase Auth) — 세션 로그인 매핑. */
+  ownerEmail?: string;
 }
 
 /**
@@ -143,6 +145,8 @@ export interface Designer {
   rankId?: string;
   /** 활성 상태(staff.is_active). 미설정=활성으로 취급. */
   active?: boolean;
+  /** 디자이너 계정 이메일(Supabase Auth) — 세션 로그인 매핑. */
+  email?: string;
 }
 
 /**
@@ -317,6 +321,23 @@ export interface NewAnnouncement {
   body: Partial<Record<Locale, string>>;
   audience: AnnouncementAudience;
   salonSlugs?: string[];
+}
+
+export type AccountRole = "owner" | "designer" | "admin";
+
+/** 계정 레지스트리 — Supabase Auth 유저 미러(역할·검색·표시명). */
+export interface Profile {
+  id: string; // auth.users.id
+  email: string;
+  role: AccountRole;
+  displayName?: string;
+  createdAt: string;
+}
+export interface UpsertProfileInput {
+  id: string;
+  email: string;
+  role: AccountRole;
+  displayName?: string;
 }
 
 /** 고객센터 이슈 메모(상담별) — 어드민 내부, 손님 비노출. */
@@ -532,6 +553,17 @@ export interface Repo {
   /** 고객센터 상담별 이슈 메모 — 최신순 조회 / 추가. */
   listSupportNotes(consultationId: string): Promise<SupportNote[]>;
   addSupportNote(input: NewSupportNote): Promise<SupportNote>;
+
+  /* ── 계정 로그인/소속 (Phase 0) ─────────────────────────── */
+  /** 계정 레지스트리 upsert(가입/발급 시). */
+  upsertProfile(input: UpsertProfileInput): Promise<Profile>;
+  getProfileByEmail(email: string): Promise<Profile | null>;
+  /** 세션 email → 소유 살롱 / 소속 디자이너 해석. */
+  getSalonByOwnerEmail(email: string): Promise<Salon | null>;
+  getStaffByEmail(email: string): Promise<Designer | null>;
+  /** 계정↔레코드 매핑 기록(프로비저닝). */
+  setSalonOwnerEmail(slug: string, email: string): Promise<void>;
+  setStaffEmail(designerId: string, email: string): Promise<void>;
   /** 학습 샘플 만족도 갱신 — 완결 후 도착한 손님 별점을 consultationId 로 찾아 반영. */
   updateTrainingSampleSatisfaction(
     consultationId: string,

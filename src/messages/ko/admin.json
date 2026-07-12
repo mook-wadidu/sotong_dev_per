@@ -283,7 +283,12 @@
     "consoleLink": "오너 콘솔 링크",
     "staffToken": "디자이너 인박스 토큰",
     "inboxLink": "인박스 링크",
-    "qrLink": "디자이너 QR 링크"
+    "qrLink": "디자이너 QR 링크",
+    "ownerEmail": "오너 이메일 (로그인 계정)",
+    "ownerEmailHint": "입력 시 로그인 계정이 발급됩니다(선택).",
+    "designerEmail": "디자이너 이메일 (로그인 계정)",
+    "designerEmailHint": "입력 시 로그인 계정이 발급됩니다(선택).",
+    "tempPassword": "초기 비밀번호 (전달용)"
   },
   "console": {
     "title": "살롱 콘솔",
@@ -390,5 +395,10 @@
         "low": "하"
       }
     }
+  },
+  "account": {
+    "loginHint": "살롱·디자이너 계정으로 로그인하세요.",
+    "waitingTitle": "소속 대기 중",
+    "waitingHint": "아직 소속된 살롱이 없어요. 살롱 관리자에게 초대를 요청하세요."
   }
 }

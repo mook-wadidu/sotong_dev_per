@@ -341,7 +341,7 @@ export async function rotateOwnerToken(
 
 /* ── 플랫폼 어드민: 살롱/디자이너 생성 (세션 쿠키 검증) ──── */
 export async function adminCreateSalon(
-  input: { slug: string; name: string; address?: string },
+  input: { slug: string; name: string; address?: string; ownerEmail?: string },
 ): Promise<{ ok: true; result: CreatedSalonResult } | { ok: false; error: string }> {
   try {
     const result = await adminCreateSalonSvc(input);
@@ -352,7 +352,7 @@ export async function adminCreateSalon(
 }
 
 export async function adminCreateDesigner(
-  input: { salonSlug: string; name: string; rankId?: string },
+  input: { salonSlug: string; name: string; rankId?: string; email?: string },
 ): Promise<
   { ok: true; result: CreatedDesignerResult } | { ok: false; error: string }
 > {

@@ -92,6 +92,7 @@ function SalonForm({
   const [slug, setSlug] = React.useState("");
   const [name, setName] = React.useState("");
   const [address, setAddress] = React.useState("");
+  const [ownerEmail, setOwnerEmail] = React.useState("");
   const [error, setError] = React.useState<string | undefined>();
   const [pending, setPending] = React.useState(false);
   const [created, setCreated] = React.useState<CreatedSalonResult | null>(null);
@@ -104,6 +105,7 @@ function SalonForm({
       slug: slug.trim(),
       name: name.trim(),
       address: address.trim() || undefined,
+      ownerEmail: ownerEmail.trim() || undefined,
     });
     setPending(false);
     if (res.ok) {
@@ -112,6 +114,7 @@ function SalonForm({
       setSlug("");
       setName("");
       setAddress("");
+      setOwnerEmail("");
       onCreated();
     } else {
       setError(res.error);
@@ -154,6 +157,18 @@ function SalonForm({
             placeholder="서울 강남구 …"
           />
         </FormField>
+        <FormField
+          label={t("onboarding.ownerEmail")}
+          hint={t("onboarding.ownerEmailHint")}
+        >
+          <Input
+            type="email"
+            value={ownerEmail}
+            onChange={(e) => setOwnerEmail(e.target.value)}
+            placeholder="owner@salon.com"
+            autoComplete="off"
+          />
+        </FormField>
         <Button type="submit" disabled={pending} className="w-full">
           {t("onboarding.createSalon")}
         </Button>
@@ -176,6 +191,12 @@ function SalonForm({
             label={t("onboarding.consoleLink")}
             value={origin ? origin + created.consolePath : created.consolePath}
           />
+          {created.ownerTempPassword ? (
+            <CredRow
+              label={t("onboarding.tempPassword")}
+              value={created.ownerTempPassword}
+            />
+          ) : null}
         </div>
       ) : null}
     </section>
@@ -198,6 +219,7 @@ function DesignerForm({
   );
   const [name, setName] = React.useState("");
   const [rankId, setRankId] = React.useState<string>("");
+  const [email, setEmail] = React.useState("");
   const [error, setError] = React.useState<string | undefined>();
   const [pending, setPending] = React.useState(false);
   const [created, setCreated] = React.useState<CreatedDesignerResult | null>(
@@ -231,6 +253,7 @@ function DesignerForm({
       salonSlug,
       name: name.trim(),
       rankId: rankId || undefined,
+      email: email.trim() || undefined,
     });
     setPending(false);
     if (res.ok) {
@@ -238,6 +261,7 @@ function DesignerForm({
       toast.success(t("onboarding.designerCreated"));
       setName("");
       setRankId("");
+      setEmail("");
       onCreated();
     } else {
       setError(res.error);
@@ -301,6 +325,18 @@ function DesignerForm({
             options={rankOptions}
           />
         </div>
+        <FormField
+          label={t("onboarding.designerEmail")}
+          hint={t("onboarding.designerEmailHint")}
+        >
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="designer@salon.com"
+            autoComplete="off"
+          />
+        </FormField>
         <Button type="submit" disabled={pending} className="w-full">
           {t("onboarding.createDesigner")}
         </Button>
@@ -327,6 +363,12 @@ function DesignerForm({
             label={t("onboarding.qrLink")}
             value={origin ? origin + created.entryPath : created.entryPath}
           />
+          {created.tempPassword ? (
+            <CredRow
+              label={t("onboarding.tempPassword")}
+              value={created.tempPassword}
+            />
+          ) : null}
         </div>
       ) : null}
     </section>

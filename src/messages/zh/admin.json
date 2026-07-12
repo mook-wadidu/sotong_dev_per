@@ -283,7 +283,12 @@
     "consoleLink": "店主控制台链接",
     "staffToken": "设计师收件箱令牌",
     "inboxLink": "收件箱链接",
-    "qrLink": "设计师二维码链接"
+    "qrLink": "设计师二维码链接",
+    "ownerEmail": "店主邮箱 (登录账号)",
+    "ownerEmailHint": "填写后将创建登录账号（可选）。",
+    "designerEmail": "设计师邮箱 (登录账号)",
+    "designerEmailHint": "填写后将创建登录账号（可选）。",
+    "tempPassword": "初始密码 (用于转达)"
   },
   "console": {
     "title": "沙龙控制台",
@@ -390,5 +395,10 @@
         "low": "需护理"
       }
     }
+  },
+  "account": {
+    "loginHint": "使用门店或设计师账号登录。",
+    "waitingTitle": "等待归属",
+    "waitingHint": "您还未加入任何门店。请向门店管理员索取邀请。"
   }
 }

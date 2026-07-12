@@ -283,7 +283,12 @@
     "consoleLink": "オーナーコンソールリンク",
     "staffToken": "デザイナー受信箱トークン",
     "inboxLink": "受信箱リンク",
-    "qrLink": "デザイナーQRリンク"
+    "qrLink": "デザイナーQRリンク",
+    "ownerEmail": "オーナーのメール (ログイン)",
+    "ownerEmailHint": "入力するとログイン用アカウントを発行します(任意)。",
+    "designerEmail": "スタイリストのメール (ログイン)",
+    "designerEmailHint": "入力するとログイン用アカウントを発行します(任意)。",
+    "tempPassword": "初期パスワード (共有用)"
   },
   "console": {
     "title": "サロンコンソール",
@@ -390,5 +395,10 @@
         "low": "下"
       }
     }
+  },
+  "account": {
+    "loginHint": "サロン・スタイリストのアカウントでログイン。",
+    "waitingTitle": "所属待ち",
+    "waitingHint": "まだ所属サロンがありません。サロン管理者に招待を依頼してください。"
   }
 }

@@ -74,17 +74,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
     },
 
     /**
-     * 프로덕션에서는 MISSING_MESSAGE 로 화면이 깨지지 않게 무시(폴백으로 처리됨).
-     * 개발 중에는 콘솔에 남겨 누락 키를 발견할 수 있게 한다.
+     * i18n 오류는 폴백(getMessageFallback)으로 화면이 무손상이라 비치명적.
+     * → 프로덕션에선 로그 노이즈를 억제(전부 무시)하고, 개발에서만 콘솔에 남겨
+     *   누락 키/포맷 오류를 발견하게 한다.
      */
     onError(error) {
-      if (
-        process.env.NODE_ENV === "production" &&
-        error.code === "MISSING_MESSAGE"
-      ) {
-        return;
-      }
-      console.error(error);
+      if (process.env.NODE_ENV !== "production") console.error(error);
     },
   };
 });

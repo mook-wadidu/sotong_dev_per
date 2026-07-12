@@ -1623,6 +1623,8 @@ export interface ReportViewData {
   };
   /** 손님이 남긴 만족도(1~5). 디자이너 읽기전용 뷰에서 결과 표시용. 미평가면 undefined. */
   satisfactionScore?: number;
+  /** 리포트 소속 살롱(유입 트래킹 귀속용). */
+  salonSlug?: string;
 }
 
 export async function getReportView(
@@ -1642,6 +1644,7 @@ export async function getReportView(
   let lastVisitDate: string | undefined;
   let hair: ReportViewData["hair"];
   let satisfactionScore: number | undefined;
+  let salonSlug: string | undefined;
   try {
     const tr = await repo.getTreatmentByConsultation(report.consultationId);
     satisfactionScore = tr?.satisfactionScore;
@@ -1654,6 +1657,7 @@ export async function getReportView(
       customerLocale = c.customerLocale;
       gender = c.intake.gender;
       age = c.intake.age;
+      salonSlug = c.salonSlug;
       // DNA 시각화: 디자이너 전문 판단 우선, 없으면 손님 인테이크.
       const b = c.designerInput ?? c.intake;
       hair = {
@@ -1684,6 +1688,7 @@ export async function getReportView(
     lastVisitDate,
     hair,
     satisfactionScore,
+    salonSlug,
   };
 }
 

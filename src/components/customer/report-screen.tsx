@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { getReportView } from "@/lib/service";
+import { trackEvent } from "@/lib/track";
 import { formatDate } from "@/lib/catalog";
 import type { ThreeLevel } from "@/lib/domain/types";
 import { InvalidEntry } from "@/components/customer/invalid-entry";
@@ -25,6 +26,14 @@ export async function ReportScreen({
 }) {
   const data = await getReportView(token);
   if (!data) return <InvalidEntry kind="report" />;
+
+  // 손님 리포트 열람만 유입 트래킹(디자이너 읽기전용 뷰 canRate=false 는 제외).
+  if (canRate) {
+    await trackEvent("report_view", {
+      locale: data.report.locale,
+      salonSlug: data.salonSlug,
+    });
+  }
 
   const {
     report,

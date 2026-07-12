@@ -21,7 +21,7 @@ export interface AdminAnalytics {
   avgSatisfaction: number | null; // 1~5
   demoViews: number;
   scans: number; // QR 진입(유효 살롱)
-  reportViews: number; // 리포트 열람(플랫폼 전역 — report_view 는 salon 미부착)
+  reportViews: number; // 리포트 열람(살롱 귀속; 구 이벤트는 전역 필터 시만 집계)
   byDay: {
     day: string; // YYYY-MM-DD
     consults: number;
@@ -92,8 +92,12 @@ export async function getAdminAnalytics(opts: {
     if (b) b.scans += 1;
   }
 
-  // report_view 는 salon 미부착 → 전역 지표(살롱 스코프에서도 플랫폼 전체).
-  const reportViewEvents = events.filter((e) => e.eventType === "report_view");
+  // report_view 는 이제 salonSlug 귀속 → 살롱 스코프 반영(구 이벤트는 slug 없어 전역 필터 시만 집계).
+  const reportViewEvents = events.filter(
+    (e) =>
+      e.eventType === "report_view" &&
+      (!opts.salonSlug || e.salonSlug === opts.salonSlug),
+  );
 
   const total = inRange.length;
   const completed = inRange.filter((c) => c.status === "completed").length;

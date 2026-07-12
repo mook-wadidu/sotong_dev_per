@@ -49,13 +49,23 @@ export function AdminReports({ rows }: { rows: AdminReportRow[] }) {
             {t("reports.hint")}
           </p>
         </div>
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={t("reports.search")}
-          className="h-9 w-full max-w-xs rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-foreground sm:w-64"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t("reports.search")}
+            className="h-9 w-full max-w-xs rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-foreground sm:w-64"
+          />
+          {/* API 다운로드(페이지 아님) — Link 아닌 a 로 파일 응답을 받는다. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
+            href="/api/admin/export?type=reports"
+            className="inline-flex h-9 shrink-0 items-center rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            {t("reports.exportCsv")}
+          </a>
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground">

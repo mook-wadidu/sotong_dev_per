@@ -93,7 +93,13 @@
       "completed": "Completed"
     },
     "byLocale": "By language",
-    "bySalon": "By salon"
+    "bySalon": "By salon",
+    "notif": {
+      "title": "Notifications",
+      "sent": "Sent",
+      "failed": "Failed",
+      "noSub": "No subscription"
+    }
   },
   "reports": {
     "title": "Report collection",
@@ -110,7 +116,8 @@
       "lang": "Lang",
       "score": "Hair score",
       "nextVisit": "Next visit"
-    }
+    },
+    "exportCsv": "Export CSV"
   },
   "dataset": {
     "title": "AI training dataset status",

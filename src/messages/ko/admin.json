@@ -93,7 +93,13 @@
       "completed": "완료"
     },
     "byLocale": "언어별 유입",
-    "bySalon": "지점별 상담"
+    "bySalon": "지점별 상담",
+    "notif": {
+      "title": "알림 발송 현황",
+      "sent": "발송",
+      "failed": "실패",
+      "noSub": "구독없음"
+    }
   },
   "reports": {
     "title": "리포트 모음",
@@ -110,7 +116,8 @@
       "lang": "언어",
       "score": "모발점수",
       "nextVisit": "다음 방문"
-    }
+    },
+    "exportCsv": "CSV 내보내기"
   },
   "dataset": {
     "title": "AI 학습 데이터셋 현황",

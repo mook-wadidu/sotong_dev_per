@@ -124,6 +124,33 @@ export async function AdminAnalyticsView({
         ))}
       </div>
 
+      {/* 알림 발송 현황 */}
+      <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
+        <h3 className="mb-3 text-sm font-semibold">
+          {t("analytics.notif.title")}
+        </h3>
+        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+          <span className="text-muted-foreground">
+            {t("analytics.notif.sent")}{" "}
+            <b className="text-foreground tabular-nums">
+              {data.notifications.sent}
+            </b>
+          </span>
+          <span className="text-muted-foreground">
+            {t("analytics.notif.failed")}{" "}
+            <b className="text-foreground tabular-nums">
+              {data.notifications.failed}
+            </b>
+          </span>
+          <span className="text-muted-foreground">
+            {t("analytics.notif.noSub")}{" "}
+            <b className="text-foreground tabular-nums">
+              {data.notifications.noSubscription}
+            </b>
+          </span>
+        </div>
+      </section>
+
       {/* 일자별 추이 */}
       <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
         <div className="mb-3 flex items-center gap-4">

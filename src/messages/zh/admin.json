@@ -93,7 +93,13 @@
       "completed": "完成"
     },
     "byLocale": "按语言",
-    "bySalon": "按门店"
+    "bySalon": "按门店",
+    "notif": {
+      "title": "通知发送情况",
+      "sent": "已发送",
+      "failed": "失败",
+      "noSub": "未订阅"
+    }
   },
   "reports": {
     "title": "报告集",
@@ -110,7 +116,8 @@
       "lang": "语言",
       "score": "头发评分",
       "nextVisit": "下次到店"
-    }
+    },
+    "exportCsv": "导出 CSV"
   },
   "dataset": {
     "title": "AI训练数据集状况",

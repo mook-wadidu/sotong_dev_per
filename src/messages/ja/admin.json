@@ -93,7 +93,13 @@
       "completed": "完了"
     },
     "byLocale": "言語別の流入",
-    "bySalon": "店舗別の相談"
+    "bySalon": "店舗別の相談",
+    "notif": {
+      "title": "通知送信状況",
+      "sent": "送信",
+      "failed": "失敗",
+      "noSub": "未購読"
+    }
   },
   "reports": {
     "title": "レポート集",
@@ -110,7 +116,8 @@
       "lang": "言語",
       "score": "髪スコア",
       "nextVisit": "次回来店"
-    }
+    },
+    "exportCsv": "CSV出力"
   },
   "dataset": {
     "title": "AI学習データセットの状況",

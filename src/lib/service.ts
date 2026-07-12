@@ -262,10 +262,13 @@ export async function saveDesignerPush(
 export async function notifyDesigner(
   designerId: string,
   payload: { title: string; body: string; url: string },
+  ctx?: { salonSlug?: string; consultationId?: string; kind?: string },
 ): Promise<void> {
+  let status = "no_subscription";
   try {
     const repo = getRepo();
     const subs = await repo.listPushSubscriptions(designerId);
+    let sent = 0;
     for (const sub of subs) {
       const res = await sendWebPush(
         { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
@@ -273,14 +276,30 @@ export async function notifyDesigner(
       );
       if (res.gone) {
         await repo.deletePushSubscription(sub.endpoint);
+      } else {
+        sent += 1;
       }
     }
+    status = subs.length === 0 ? "no_subscription" : sent > 0 ? "sent" : "failed";
   } catch (e) {
+    status = "failed";
     await logIssue({
       source: "push",
       message: "디자이너 알림 발송 실패",
       detail: e instanceof Error ? e.message : String(e),
     });
+  }
+  // 발송 현황 로그(best-effort — 실패해도 무시).
+  try {
+    await getRepo().logNotification({
+      salonSlug: ctx?.salonSlug,
+      designerId,
+      consultationId: ctx?.consultationId,
+      kind: ctx?.kind ?? "new_consultation",
+      status,
+    });
+  } catch {
+    /* 로그 실패 무시 */
   }
 }
 
@@ -676,11 +695,15 @@ export async function startConsultation(input: {
     // 디자이너 웹푸시 알림 — notifyDesigner 는 throw 하지 않으므로 await 해도 안전.
     if (designerId) {
       // 디자이너 QR 직접 배정 → 그 디자이너에게 새 손님 알림(요약 화면으로).
-      await notifyDesigner(designerId, {
-        title: "새 손님 접수",
-        body: summary.headline ?? "새 상담",
-        url: designerSummaryPath(consultation.designerToken),
-      });
+      await notifyDesigner(
+        designerId,
+        {
+          title: "새 손님 접수",
+          body: summary.headline ?? "새 상담",
+          url: designerSummaryPath(consultation.designerToken),
+        },
+        { salonSlug, consultationId: consultation.id, kind: "new_consultation" },
+      );
     } else {
       // 살롱 공용(미배정) — 단골 자동 라우팅을 우선 시도한다(best-effort).
       const designers = await repo.listDesigners(salonSlug);
@@ -711,20 +734,32 @@ export async function startConsultation(input: {
             consultationId: consultation.id,
           });
         }
-        await notifyDesigner(preferred.id, {
-          title: isReturning ? "단골 손님 재방문" : "새 손님 접수",
-          body: summary.headline ?? "새 상담",
-          url: designerSummaryPath(consultation.designerToken),
-        });
+        await notifyDesigner(
+          preferred.id,
+          {
+            title: isReturning ? "단골 손님 재방문" : "새 손님 접수",
+            body: summary.headline ?? "새 상담",
+            url: designerSummaryPath(consultation.designerToken),
+          },
+          { salonSlug, consultationId: consultation.id, kind: "new_consultation" },
+        );
       } else {
         // 폴백: 그 살롱 디자이너 전원에게 미배정 손님 알림(인박스로).
         await Promise.all(
           designers.map((d) =>
-            notifyDesigner(d.id, {
-              title: "새 미배정 손님",
-              body: summary.headline ?? "",
-              url: designerInboxPath(d.staffToken),
-            }),
+            notifyDesigner(
+              d.id,
+              {
+                title: "새 미배정 손님",
+                body: summary.headline ?? "",
+                url: designerInboxPath(d.staffToken),
+              },
+              {
+                salonSlug,
+                consultationId: consultation.id,
+                kind: "new_consultation",
+              },
+            ),
           ),
         );
       }
@@ -2464,6 +2499,13 @@ export async function salonUpsertDesigner(input: {
       await repo.setStaffEmail(designer.id, email);
       designer = { ...designer, email };
       tempPassword = res.tempPassword;
+      await logIssue({
+        salonSlug: salon.slug,
+        severity: "info",
+        source: "audit",
+        message: "디자이너 계정 발급",
+        detail: email,
+      });
     } catch (e) {
       await logIssue({
         salonSlug: salon.slug,
@@ -2497,6 +2539,13 @@ export async function adminProvisionOwner(
       displayName: salon.name,
     });
     await getRepo().setSalonOwnerEmail(salon.slug, e);
+    await logIssue({
+      salonSlug: salon.slug,
+      severity: "info",
+      source: "audit",
+      message: "오너 계정 발급",
+      detail: e,
+    });
     return { ok: true, tempPassword: res.tempPassword };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "발급 실패" };
@@ -2922,6 +2971,13 @@ export async function salonRevokeInvite(
   const inv = await getRepo().getSalonInvite(token);
   if (!inv || inv.salonSlug !== salon.slug) return { ok: false };
   await getRepo().revokeSalonInvite(token);
+  await logIssue({
+    salonSlug: salon.slug,
+    severity: "info",
+    source: "audit",
+    message: "초대 취소",
+    detail: token.slice(-8),
+  });
   return { ok: true };
 }
 
@@ -2976,6 +3032,13 @@ export async function acceptSalonInvite(input: {
   const designer = await repo.createDesigner({ salonSlug: salon.slug, name });
   await repo.setStaffEmail(designer.id, email);
   await repo.markSalonInviteUsed(input.token);
+  await logIssue({
+    salonSlug: salon.slug,
+    severity: "info",
+    source: "audit",
+    message: "초대 수락 — 디자이너 가입/소속",
+    detail: email,
+  });
   return { ok: true, email };
 }
 
@@ -3099,5 +3162,12 @@ export async function respondMembership(
   });
   await repo.setStaffEmail(designer.id, acc.email);
   await repo.setMembershipRequestStatus(requestId, "accepted");
+  await logIssue({
+    salonSlug: salon.slug,
+    severity: "info",
+    source: "audit",
+    message: "소속 요청 수락 — 디자이너 합류",
+    detail: acc.email,
+  });
   return { ok: true };
 }

@@ -22,6 +22,7 @@ export interface AdminAnalytics {
   demoViews: number;
   scans: number; // QR 진입(유효 살롱)
   reportViews: number; // 리포트 열람(살롱 귀속; 구 이벤트는 전역 필터 시만 집계)
+  notifications: { sent: number; failed: number; noSubscription: number };
   byDay: {
     day: string; // YYYY-MM-DD
     consults: number;
@@ -42,12 +43,13 @@ export async function getAdminAnalytics(opts: {
   const now = Date.now();
   const sinceIso = new Date(now - opts.range * DAY_MS).toISOString();
 
-  const [consultations, events, treatments] = await Promise.all([
+  const [consultations, events, treatments, notifications] = await Promise.all([
     repo.listConsultations({ salonSlug: opts.salonSlug, limit: 5000 }),
     // analytics_events 미적용(migration 0014) 상태에서도 대시보드가 죽지 않도록 방어 —
     // 실패 시 이벤트 0(데모 조회수만 비고, 상담 지표는 유지).
     repo.listEventsSince(sinceIso).catch(() => []),
     repo.listTreatmentsSince(sinceIso).catch(() => []),
+    repo.listNotificationsSince(sinceIso).catch(() => []),
   ]);
 
   const inRange = consultations.filter((c) => c.createdAt >= sinceIso);
@@ -140,6 +142,17 @@ export async function getAdminAnalytics(opts: {
     .map(([salonSlug, v]) => ({ salonSlug, ...v }))
     .sort((a, b) => b.consults - a.consults);
 
+  // 알림 발송 현황(살롱 스코프 반영).
+  const scopedNotifs = notifications.filter(
+    (n) => !opts.salonSlug || n.salonSlug === opts.salonSlug,
+  );
+  const notifStats = {
+    sent: scopedNotifs.filter((n) => n.status === "sent").length,
+    failed: scopedNotifs.filter((n) => n.status === "failed").length,
+    noSubscription: scopedNotifs.filter((n) => n.status === "no_subscription")
+      .length,
+  };
+
   // 만족도 — 기간 내 시술기록 satisfactionScore 평균(살롱 스코프 반영, 값 있는 건만).
   const satScores = treatments
     .filter((t) => !opts.salonSlug || t.salonSlug === opts.salonSlug)
@@ -160,6 +173,7 @@ export async function getAdminAnalytics(opts: {
     demoViews: demoEvents.length,
     scans: scanEvents.length,
     reportViews: reportViewEvents.length,
+    notifications: notifStats,
     byDay: days.map((d) => dayMap.get(d)!),
     funnel,
     byLocale,

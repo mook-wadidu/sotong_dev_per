@@ -301,6 +301,22 @@ export interface NewAnalyticsEvent {
   actor?: string;
 }
 
+/** 알림 발송 로그 — notifyDesigner 결과 기록(어드민 현황). */
+export interface NewNotificationLog {
+  salonSlug?: string;
+  designerId?: string;
+  consultationId?: string;
+  kind: string; // 'new_consultation' | 'report_ready' ...
+  status: string; // 'sent' | 'failed' | 'no_subscription'
+}
+export interface NotificationLog {
+  id: string;
+  salonSlug?: string;
+  kind: string;
+  status: string;
+  createdAt: string;
+}
+
 export type AnnouncementAudience = "platform" | "salon" | "customer";
 
 /** 공지 — 플랫폼→살롱/디자이너 또는 손님 대상. title/body 는 로케일별(ko 필수, 나머지 폴백). */
@@ -577,6 +593,9 @@ export interface Repo {
   saveEvent(e: NewAnalyticsEvent): Promise<void>;
   /** 기준 시각 이후 이벤트 목록(분석용, created_at asc). */
   listEventsSince(sinceIso: string): Promise<AnalyticsEvent[]>;
+  /** 알림 발송 로그 기록(best-effort) / 기간 조회(현황). */
+  logNotification(input: NewNotificationLog): Promise<void>;
+  listNotificationsSince(sinceIso: string): Promise<NotificationLog[]>;
   /** 공지 — 어드민 CRUD(최신순). */
   listAnnouncements(): Promise<Announcement[]>;
   createAnnouncement(input: NewAnnouncement): Promise<Announcement>;

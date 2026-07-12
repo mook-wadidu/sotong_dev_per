@@ -24,8 +24,10 @@ import type {
   NewAnnouncement,
   MembershipRequest,
   MembershipStatus,
+  NewNotificationLog,
   NewSalonInvite,
   NewSupportNote,
+  NotificationLog,
   Profile,
   SalonInvite,
   SupportNote,
@@ -79,6 +81,7 @@ interface Store {
   profiles: Profile[]; // 계정 레지스트리(email→role)
   salonInvites: SalonInvite[]; // 디자이너 초대(단일사용/만료)
   membershipRequests: MembershipRequest[]; // 소속 요청(오너→디자이너)
+  notificationLogs: NotificationLog[]; // 알림 발송 로그(현황)
 }
 
 /** last_seen write-on-read 스로틀(10분) — supabase 드라이버와 동일. */
@@ -311,6 +314,7 @@ function freshStore(): Store {
     profiles: [],
     salonInvites: [],
     membershipRequests: [],
+    notificationLogs: [],
     revokedOwnerTokens: new Set(),
     revokedStaffTokens: new Set(),
     ownerTokenSeen: new Map(),
@@ -332,6 +336,7 @@ store.supportNotes ??= [];
 store.profiles ??= [];
 store.salonInvites ??= [];
 store.membershipRequests ??= [];
+store.notificationLogs ??= [];
 
 /** 무인증 접근 토큰 — 절단 없이 192bit 랜덤(base64url). 추측/열거 차단(P0/P1-36). */
 const token = () => randomBytes(24).toString("base64url");
@@ -807,6 +812,22 @@ export class MemoryRepo implements Repo {
 
   async listEventsSince(sinceIso: string): Promise<AnalyticsEvent[]> {
     return store.events
+      .filter((x) => x.createdAt >= sinceIso)
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  }
+
+  async logNotification(input: NewNotificationLog): Promise<void> {
+    store.notificationLogs.push({
+      id: randomUUID(),
+      salonSlug: input.salonSlug,
+      kind: input.kind,
+      status: input.status,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  async listNotificationsSince(sinceIso: string): Promise<NotificationLog[]> {
+    return store.notificationLogs
       .filter((x) => x.createdAt >= sinceIso)
       .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
   }

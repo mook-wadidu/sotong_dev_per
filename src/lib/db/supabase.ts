@@ -35,8 +35,10 @@ import type {
   MembershipStatus,
   NewAnalyticsEvent,
   NewAnnouncement,
+  NewNotificationLog,
   NewSalonInvite,
   NewSupportNote,
+  NotificationLog,
   Profile,
   SalonInvite,
   SupportNote,
@@ -1347,6 +1349,34 @@ export class SupabaseRepo implements Repo {
       salonSlug: (r.salon_slug as string) ?? undefined,
       locale: (r.locale as string) ?? undefined,
       actor: (r.actor as string) ?? undefined,
+      createdAt: r.created_at as string,
+    }));
+  }
+
+  async logNotification(input: NewNotificationLog): Promise<void> {
+    const { error } = await this.client.from("notification_logs").insert({
+      salon_slug: input.salonSlug ?? null,
+      designer_id: input.designerId ?? null,
+      consultation_id: input.consultationId ?? null,
+      kind: input.kind,
+      status: input.status,
+    });
+    if (error) fail("logNotification", error);
+  }
+
+  async listNotificationsSince(sinceIso: string): Promise<NotificationLog[]> {
+    const { data, error } = await this.client
+      .from("notification_logs")
+      .select("id,salon_slug,kind,status,created_at")
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: true })
+      .limit(20000);
+    if (error) fail("listNotificationsSince", error);
+    return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+      id: r.id as string,
+      salonSlug: (r.salon_slug as string) ?? undefined,
+      kind: r.kind as string,
+      status: r.status as string,
       createdAt: r.created_at as string,
     }));
   }

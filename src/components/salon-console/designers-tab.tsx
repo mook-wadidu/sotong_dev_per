@@ -17,7 +17,7 @@ import {
 } from "@/components/ui";
 import { SalonQR } from "@/components/admin/salon-qr";
 import { CopyButton } from "@/components/admin/copy-button";
-import { salonUpsertDesigner } from "@/lib/actions";
+import { salonUpsertDesigner, createSalonInvite } from "@/lib/actions";
 import type { Designer, DesignerRank } from "@/lib/db/types";
 import type { SalonConsole as SalonConsoleData } from "@/lib/actions";
 import { RanksEditor } from "./ranks-editor";
@@ -45,6 +45,20 @@ export function DesignersTab({
   const [form, setForm] = React.useState<{ open: boolean; edit?: Designer }>({
     open: false,
   });
+  const [inviteUrl, setInviteUrl] = React.useState<string | null>(null);
+  const [inviting, setInviting] = React.useState(false);
+
+  const onInvite = async () => {
+    setInviting(true);
+    const res = await createSalonInvite(ownerToken);
+    setInviting(false);
+    if (res.ok) {
+      setInviteUrl(origin ? origin + res.path : res.path);
+      toast.success(t("console.invite.created"));
+    } else {
+      toast.error(res.error);
+    }
+  };
 
   const entryById = React.useMemo(() => {
     const m = new Map<string, DesignerEntry>();
@@ -74,10 +88,34 @@ export function DesignersTab({
         <p className="text-sm text-muted-foreground">
           {t("console.designers.hint")}
         </p>
-        <Button size="sm" onClick={() => setForm({ open: true })}>
-          {t("console.designers.add")}
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onInvite}
+            disabled={inviting}
+          >
+            {t("console.invite.button")}
+          </Button>
+          <Button size="sm" onClick={() => setForm({ open: true })}>
+            {t("console.designers.add")}
+          </Button>
+        </div>
       </div>
+
+      {inviteUrl ? (
+        <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t("console.invite.hint")}
+          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate font-mono text-xs text-foreground">
+              {inviteUrl}
+            </p>
+            <CopyButton value={inviteUrl} label={qrLabels.copy} />
+          </div>
+        </div>
+      ) : null}
 
       {designers.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">

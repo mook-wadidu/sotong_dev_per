@@ -50,6 +50,7 @@ import {
   customerEntryPath,
   designerInboxPath,
   designerSummaryPath,
+  invitePath,
   salonConsolePath,
 } from "@/lib/links";
 import { sendWebPush } from "@/lib/push";
@@ -2808,4 +2809,78 @@ export async function adminCreateDesigner(
     inboxPath: designerInboxPath(designer.staffToken),
     tempPassword,
   };
+}
+
+/* ── 디자이너 초대 링크 (Phase 0b) ─────────────────────────── */
+
+const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 14일
+
+/** 오너 콘솔에서 초대 링크 발급(ownerToken 게이트). 단일사용/만료. */
+export async function salonCreateInvite(
+  ownerToken: string,
+): Promise<{ ok: boolean; path?: string }> {
+  const salon = await authorizeConsole(ownerToken, "console");
+  if (!salon) return { ok: false };
+  const token = cryptoToken();
+  await getRepo().createSalonInvite({
+    token,
+    salonSlug: salon.slug,
+    createdBy: "owner",
+    expiresAt: new Date(Date.now() + INVITE_TTL_MS).toISOString(),
+  });
+  return { ok: true, path: invitePath(token) };
+}
+
+/** 초대 유효성 + 대상 살롱명(가입 화면 표시용). 무효면 null. */
+export async function getInviteView(
+  token: string,
+): Promise<{ salonName: string } | null> {
+  const inv = await getRepo().getSalonInvite(token);
+  if (!inv || inv.revoked || inv.usedAt) return null;
+  if (inv.expiresAt && inv.expiresAt < new Date().toISOString()) return null;
+  const salon = await getRepo().getSalon(inv.salonSlug);
+  return salon ? { salonName: salon.name } : null;
+}
+
+/**
+ * 초대 수락 = 디자이너 가입 + 소속 확정.
+ * 초대가 오너 보증이므로 계정은 자동확인(email_confirm). 단일사용 마킹.
+ * 인증 없음(공개) — 유효 초대 토큰이 게이트.
+ */
+export async function acceptSalonInvite(input: {
+  token: string;
+  email: string;
+  password: string;
+  name: string;
+}): Promise<{ ok: boolean; email?: string; error?: string }> {
+  const repo = getRepo();
+  const inv = await repo.getSalonInvite(input.token);
+  if (!inv || inv.revoked || inv.usedAt) {
+    return { ok: false, error: "유효하지 않은 초대입니다." };
+  }
+  if (inv.expiresAt && inv.expiresAt < new Date().toISOString()) {
+    return { ok: false, error: "만료된 초대입니다." };
+  }
+  const salon = await repo.getSalon(inv.salonSlug);
+  if (!salon) return { ok: false, error: "살롱을 찾을 수 없습니다." };
+
+  const name = input.name?.trim();
+  const email = input.email?.trim();
+  if (!name || !email) return { ok: false, error: "이름·이메일은 필수입니다." };
+
+  try {
+    await provisionAccount({
+      email,
+      role: "designer",
+      displayName: name,
+      password: input.password,
+    });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "가입 실패" };
+  }
+
+  const designer = await repo.createDesigner({ salonSlug: salon.slug, name });
+  await repo.setStaffEmail(designer.id, email);
+  await repo.markSalonInviteUsed(input.token);
+  return { ok: true, email };
 }

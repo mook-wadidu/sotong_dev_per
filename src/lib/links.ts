@@ -34,6 +34,11 @@ export function designerInboxPath(staffToken: string) {
   return `/ko/d/inbox/${staffToken}`;
 }
 
+/** 디자이너 초대 링크(단일사용) — 열면 가입→소속 확정. */
+export function invitePath(token: string) {
+  return `/ko/invite/${token}`;
+}
+
 /** 디자이너 요약/스레드/리포트 경로 (카톡 링크 진입, consultation 별 designerToken) */
 export function designerSummaryPath(token: string) {
   return `/ko/d/summary/${token}`;

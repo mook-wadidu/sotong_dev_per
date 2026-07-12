@@ -33,8 +33,10 @@ import type {
   CreateTreatmentRecordInput,
   NewAnalyticsEvent,
   NewAnnouncement,
+  NewSalonInvite,
   NewSupportNote,
   Profile,
+  SalonInvite,
   SupportNote,
   UpsertProfileInput,
   TrainingPhotosInput,
@@ -496,6 +498,18 @@ function toHairReport(r: HairReportRow): HairReport {
     styleRequest: r.style_request ?? undefined,
     concerns: r.concerns ?? undefined,
     cautions: r.cautions ?? undefined,
+  };
+}
+
+function toSalonInvite(r: Record<string, unknown>): SalonInvite {
+  return {
+    token: r.token as string,
+    salonSlug: r.salon_slug as string,
+    createdBy: (r.created_by as string) ?? undefined,
+    expiresAt: (r.expires_at as string) ?? undefined,
+    usedAt: (r.used_at as string) ?? undefined,
+    revoked: !!r.revoked,
+    createdAt: r.created_at as string,
   };
 }
 
@@ -1482,6 +1496,40 @@ export class SupabaseRepo implements Repo {
       .update({ email })
       .eq("id", designerId);
     if (error) fail("setStaffEmail", error);
+  }
+
+  async createSalonInvite(input: NewSalonInvite): Promise<SalonInvite> {
+    const { data, error } = await this.client
+      .from("salon_invites")
+      .insert({
+        token: input.token,
+        salon_slug: input.salonSlug,
+        created_by: input.createdBy ?? null,
+        expires_at: input.expiresAt ?? null,
+      })
+      .select("token,salon_slug,created_by,expires_at,used_at,revoked,created_at")
+      .single();
+    if (error) fail("createSalonInvite", error);
+    return toSalonInvite(data as Record<string, unknown>);
+  }
+
+  async getSalonInvite(token: string): Promise<SalonInvite | null> {
+    if (!token) return null;
+    const { data, error } = await this.client
+      .from("salon_invites")
+      .select("token,salon_slug,created_by,expires_at,used_at,revoked,created_at")
+      .eq("token", token)
+      .maybeSingle();
+    if (error) fail("getSalonInvite", error);
+    return data ? toSalonInvite(data as Record<string, unknown>) : null;
+  }
+
+  async markSalonInviteUsed(token: string): Promise<void> {
+    const { error } = await this.client
+      .from("salon_invites")
+      .update({ used_at: new Date().toISOString() })
+      .eq("token", token);
+    if (error) fail("markSalonInviteUsed", error);
   }
 
   async updateTrainingSampleSatisfaction(

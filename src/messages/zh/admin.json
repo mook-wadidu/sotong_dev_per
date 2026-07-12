@@ -394,11 +394,25 @@
         "mid": "一般",
         "low": "需护理"
       }
+    },
+    "invite": {
+      "button": "邀请链接",
+      "created": "已生成邀请链接。",
+      "hint": "把此链接发给设计师（一次性，14天后失效）。"
     }
   },
   "account": {
     "loginHint": "使用门店或设计师账号登录。",
     "waitingTitle": "等待归属",
     "waitingHint": "您还未加入任何门店。请向门店管理员索取邀请。"
+  },
+  "invite": {
+    "joinTitle": "加入 {salon}",
+    "joinHint": "创建账号即可作为该门店的设计师加入。",
+    "name": "姓名",
+    "email": "邮箱",
+    "password": "密码 (8位以上)",
+    "submit": "注册并加入",
+    "pending": "处理中…"
   }
 }

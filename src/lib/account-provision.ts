@@ -23,12 +23,15 @@ export async function provisionAccount(input: {
   email: string;
   role: AccountRole;
   displayName?: string;
+  /** 지정 시 이 비밀번호로 생성(초대 가입 — 디자이너가 직접 설정). 없으면 임시 발급. */
+  password?: string;
 }): Promise<ProvisionResult> {
   const email = input.email.trim();
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     throw new Error("올바른 이메일이 필요합니다.");
   }
-  const password = tempPassword();
+  const password = input.password?.trim() || tempPassword();
+  if (password.length < 8) throw new Error("비밀번호는 8자 이상이어야 합니다.");
 
   const admin = getSupabaseAdmin();
   let userId: string;

@@ -22,8 +22,10 @@ import type {
   CustomerHairProfileInput,
   NewAnalyticsEvent,
   NewAnnouncement,
+  NewSalonInvite,
   NewSupportNote,
   Profile,
+  SalonInvite,
   SupportNote,
   UpsertProfileInput,
   TrainingPhotosInput,
@@ -73,6 +75,7 @@ interface Store {
   announcements: Announcement[]; // 공지(최신순으로 unshift)
   supportNotes: SupportNote[]; // 고객센터 상담별 메모(append)
   profiles: Profile[]; // 계정 레지스트리(email→role)
+  salonInvites: SalonInvite[]; // 디자이너 초대(단일사용/만료)
 }
 
 /** last_seen write-on-read 스로틀(10분) — supabase 드라이버와 동일. */
@@ -303,6 +306,7 @@ function freshStore(): Store {
     announcements: [],
     supportNotes: [],
     profiles: [],
+    salonInvites: [],
     revokedOwnerTokens: new Set(),
     revokedStaffTokens: new Set(),
     ownerTokenSeen: new Map(),
@@ -322,6 +326,7 @@ store.events ??= [];
 store.announcements ??= [];
 store.supportNotes ??= [];
 store.profiles ??= [];
+store.salonInvites ??= [];
 
 /** 무인증 접근 토큰 — 절단 없이 192bit 랜덤(base64url). 추측/열거 차단(P0/P1-36). */
 const token = () => randomBytes(24).toString("base64url");
@@ -904,6 +909,29 @@ export class MemoryRepo implements Repo {
   async setStaffEmail(designerId: string, email: string): Promise<void> {
     const d = store.designers.get(designerId);
     if (d) store.designers.set(designerId, { ...d, email });
+  }
+
+  async createSalonInvite(input: NewSalonInvite): Promise<SalonInvite> {
+    const inv: SalonInvite = {
+      token: input.token,
+      salonSlug: input.salonSlug,
+      createdBy: input.createdBy,
+      expiresAt: input.expiresAt,
+      revoked: false,
+      createdAt: new Date().toISOString(),
+    };
+    store.salonInvites.push(inv);
+    return inv;
+  }
+
+  async getSalonInvite(token: string): Promise<SalonInvite | null> {
+    if (!token) return null;
+    return store.salonInvites.find((i) => i.token === token) ?? null;
+  }
+
+  async markSalonInviteUsed(token: string): Promise<void> {
+    const inv = store.salonInvites.find((i) => i.token === token);
+    if (inv) inv.usedAt = new Date().toISOString();
   }
 
   async updateTrainingSampleSatisfaction(

@@ -325,6 +325,23 @@ export interface NewAnnouncement {
 
 export type AccountRole = "owner" | "designer" | "admin";
 
+/** 디자이너 초대(단일사용/만료) — 소속을 이 링크가 결정. */
+export interface SalonInvite {
+  token: string;
+  salonSlug: string;
+  createdBy?: string;
+  expiresAt?: string;
+  usedAt?: string;
+  revoked: boolean;
+  createdAt: string;
+}
+export interface NewSalonInvite {
+  token: string;
+  salonSlug: string;
+  createdBy?: string;
+  expiresAt?: string;
+}
+
 /** 계정 레지스트리 — Supabase Auth 유저 미러(역할·검색·표시명). */
 export interface Profile {
   id: string; // auth.users.id
@@ -564,6 +581,10 @@ export interface Repo {
   /** 계정↔레코드 매핑 기록(프로비저닝). */
   setSalonOwnerEmail(slug: string, email: string): Promise<void>;
   setStaffEmail(designerId: string, email: string): Promise<void>;
+  /** 디자이너 초대 링크(단일사용/만료). */
+  createSalonInvite(input: NewSalonInvite): Promise<SalonInvite>;
+  getSalonInvite(token: string): Promise<SalonInvite | null>;
+  markSalonInviteUsed(token: string): Promise<void>;
   /** 학습 샘플 만족도 갱신 — 완결 후 도착한 손님 별점을 consultationId 로 찾아 반영. */
   updateTrainingSampleSatisfaction(
     consultationId: string,

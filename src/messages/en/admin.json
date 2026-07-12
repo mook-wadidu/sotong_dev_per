@@ -394,11 +394,25 @@
         "mid": "Mid",
         "low": "Low"
       }
+    },
+    "invite": {
+      "button": "Invite link",
+      "created": "Invite link created.",
+      "hint": "Send this link to your designer (single-use, expires in 14 days)."
     }
   },
   "account": {
     "loginHint": "Log in with your salon or designer account.",
     "waitingTitle": "Awaiting salon",
     "waitingHint": "You're not part of a salon yet. Ask your salon admin for an invite."
+  },
+  "invite": {
+    "joinTitle": "Join {salon}",
+    "joinHint": "Create an account to join this salon as a designer.",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password (8+ chars)",
+    "submit": "Sign up & join",
+    "pending": "Working…"
   }
 }

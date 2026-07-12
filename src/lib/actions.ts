@@ -1,6 +1,8 @@
 "use server";
 
 import {
+  acceptSalonInvite as acceptSalonInviteSvc,
+  salonCreateInvite as salonCreateInviteSvc,
   adminAddSupportNote as adminAddSupportNoteSvc,
   adminCreateAnnouncement as adminCreateAnnouncementSvc,
   adminCreateDesigner as adminCreateDesignerSvc,
@@ -399,6 +401,32 @@ export async function setDesignerActive(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "변경 실패" };
   }
+}
+
+/** 오너 콘솔: 디자이너 초대 링크 발급. */
+export async function createSalonInvite(
+  ownerToken: string,
+): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
+  try {
+    const res = await salonCreateInviteSvc(ownerToken);
+    if (!res.ok || !res.path) return { ok: false, error: "발급 실패" };
+    return { ok: true, path: res.path };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "발급 실패" };
+  }
+}
+
+/** 초대 수락(공개) — 디자이너 가입 + 소속 확정. */
+export async function acceptSalonInvite(input: {
+  token: string;
+  email: string;
+  password: string;
+  name: string;
+}): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
+  const res = await acceptSalonInviteSvc(input);
+  return res.ok && res.email
+    ? { ok: true, email: res.email }
+    : { ok: false, error: res.error ?? "실패" };
 }
 
 export async function listSupportNotes(

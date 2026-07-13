@@ -1394,17 +1394,39 @@ export async function completeConsultation(input: {
     const salon = await repo.getSalon(c.salonSlug);
     const ai = getAi();
     const threadMessages = await repo.listMessages(c.id);
+    // 리포트 시술 서술의 권위 소스 — 디자이너가 실제 기록한 serviceIds 를 ko 라벨로.
+    // 미기록이면 undefined → 프롬프트가 summary.services(손님 인테이크 희망)로 폴백(S2/F1).
+    const reportServiceIds = input.record?.serviceIds ?? [];
+    const salonServicesForLabels = reportServiceIds.length
+      ? await repo.listServices(c.salonSlug)
+      : [];
+    const actualServiceLabelsKo = reportServiceIds.length
+      ? reportServiceIds
+          .map((id) => salonServicesForLabels.find((s) => s.id === id)?.label.ko)
+          .filter((x): x is string => !!x)
+      : undefined;
     const draft = await ai.draftReport({
       customerLocale: c.customerLocale,
       summary: c.summary,
       threadHighlightsKo: threadMessages
         .map((m) => m.translations.ko ?? m.sourceText)
         .slice(-8),
+      actualServiceLabelsKo,
       record: input.record,
     });
 
-    // products 라벨을 손님 로케일로(카탈로그 id → label[locale], 미스는 원문 유지, P1-18/27)
-    const localizedProducts = localizeProducts(draft.products, c.customerLocale);
+    // 제품은 **카탈로그에서 확정**(LLM 발명 차단, S2/F2) — 디자이너 기록 제품 id → 손님 로케일 라벨.
+    // 기록 없으면 빈 배열(없는 제품 추천 금지). draft.products(모델 생성)는 쓰지 않는다.
+    const localizedProducts = localizeProducts(
+      input.record?.products ?? [],
+      c.customerLocale,
+    );
+    // 모발 상태 등급/점수는 **디자이너 입력에서 결정론적**으로(LLM 조작 차단, S2/F3).
+    // 미기록이면 stateEstimated=true 로 표시(리포트가 "측정값"으로 단정하지 않게).
+    const designerGrade = input.record?.stateGrade;
+    const stateEstimated = designerGrade == null;
+    const finalGrade = designerGrade ?? "mid";
+    const finalScore = scoreFromGrade(finalGrade);
 
     // 리포트 보강(신규 optional) — 손님 요청 스타일/고민/주의는 요약(ko)에서, 없으면 인테이크 폴백.
     // 빈 문자열은 넣지 않는다(undefined 유지 → 리포트에서 해당 섹션 미노출).
@@ -1455,6 +1477,10 @@ export async function completeConsultation(input: {
     const report: HairReport = {
       ...draft,
       products: localizedProducts,
+      // 등급/점수는 디자이너 입력 기반 결정론값으로 override(모델 값 무시).
+      hairStateGrade: finalGrade,
+      hairStateScore: finalScore,
+      stateEstimated,
       styleRequest,
       concerns,
       cautions,
@@ -1498,12 +1524,14 @@ export async function completeConsultation(input: {
           threadHighlightsKo: threadMessages
             .map((m) => m.translations.ko ?? m.sourceText)
             .slice(-8),
+          actualServiceLabelsKo,
           record: input.record,
         });
         const koToken = cryptoToken();
         const koReport: HairReport = {
           ...koDraft,
-          products: localizeProducts(koDraft.products, "ko"),
+          // 제품은 손님 리포트와 동일하게 카탈로그 확정(ko 라벨), 모델 값 무시.
+          products: localizeProducts(input.record?.products ?? [], "ko"),
           // ko 리포트는 요약(ko) 원문 그대로(번역 불필요).
           styleRequest: styleRequestKo,
           concerns: concernsKo,
@@ -1516,6 +1544,7 @@ export async function completeConsultation(input: {
           // before/after/점수/등급/다음 방문은 손님 리포트와 공유(같은 시술 결과).
           hairStateGrade: report.hairStateGrade,
           hairStateScore: report.hairStateScore,
+          stateEstimated: report.stateEstimated,
           nextVisitWeeks: report.nextVisitWeeks,
           date: report.date,
           beforePhotoUrl: beforeUrl,
@@ -1614,8 +1643,11 @@ export async function completeConsultation(input: {
       const pseudonym = c.customerId
         ? pseudonymize(c.customerId)
         : `anon-${cryptoToken()}`;
-      try {
-        const sample: TrainingSample = {
+      // 데이터 학습 샘플은 **데이터 학습 동의**가 있을 때만 — 사진-only 동의로는 생성 금지
+      // (동의 세분성, S2/F4). 아래 사진 블록은 photoTrainingConsentedAt 로 별도 게이트.
+      if (c.intake.trainingConsentedAt)
+        try {
+          const sample: TrainingSample = {
           id: cryptoToken(),
           salonSlug: c.salonSlug,
           customerPseudonym: pseudonym,
@@ -1630,7 +1662,8 @@ export async function completeConsultation(input: {
           concernIds: c.intake.concernIds ?? [],
           allergy: !!c.intake.allergy,
           serviceIds: recordServiceIds,
-          products: input.record?.products ?? report.products ?? [],
+          // 카탈로그 id 만(모델 생성 라벨 폴백 제거 — 데이터셋 오염 방지, F10).
+          products: input.record?.products ?? [],
           stateGrade: input.record?.stateGrade ?? report.hairStateGrade,
           hairStateScore: report.hairStateScore,
           satisfactionScore: input.record?.satisfactionScore,
@@ -1668,8 +1701,9 @@ export async function completeConsultation(input: {
           }[] = [];
           for (const url of c.intake.stylePhotoUrls ?? [])
             photos.push({ kind: "style", dataUrl: url });
-          if (c.beforePhotoUrl)
-            photos.push({ kind: "before", dataUrl: c.beforePhotoUrl });
+          // 리포트·hasBeforePhoto 플래그와 같은 소스(beforeUrl)로 — 디자이너가 기록폼에서
+          // 새 before 를 올린 경우 stale 한 c.beforePhotoUrl 이 저장되던 불일치 수정(F7).
+          if (beforeUrl) photos.push({ kind: "before", dataUrl: beforeUrl });
           if (report.afterPhotoUrl)
             photos.push({ kind: "after", dataUrl: report.afterPhotoUrl });
           if (photos.length > 0) {
@@ -1954,6 +1988,11 @@ export function customerPrice(won: number, locale: Locale): string {
 }
 
 const PRODUCT_MAP = new Map(PRODUCTS.map((p) => [p.id, p]));
+
+/** 모발 상태 등급 → 결정론적 점수(LLM 조작 대신). 등급-점수 일관성 보장. */
+function scoreFromGrade(grade: ThreeLevel): number {
+  return grade === "high" ? 88 : grade === "low" ? 45 : 68;
+}
 
 /** 디자이너 기록 product(카탈로그 id 또는 자유 문자열)를 손님 로케일 라벨로. */
 function localizeProducts(products: string[], locale: Locale): string[] {

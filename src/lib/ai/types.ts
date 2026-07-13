@@ -44,8 +44,13 @@ export interface TranslateInput {
 export interface ReportInput {
   customerLocale: Locale;
   summary: DesignerSummary;
-  /** 상담 스레드에서 합의된 핵심 (한국어) */
+  /** 상담 스레드 최근 대화(한국어) — "합의"가 아니라 참고 맥락(거절/가정 포함 가능). */
   threadHighlightsKo: string[];
+  /**
+   * 디자이너가 **실제로 한** 시술의 ko 라벨 — 리포트 시술 서술의 권위 소스.
+   * 없으면(디자이너 미기록) summary.services(손님 인테이크 희망)로 폴백.
+   */
+  actualServiceLabelsKo?: string[];
   record?: {
     products: string[];
     stateGrade?: ThreeLevel;

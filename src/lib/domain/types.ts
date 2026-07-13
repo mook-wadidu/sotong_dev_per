@@ -278,6 +278,11 @@ export interface HairReport extends HairReportDraft {
   date: string; // ISO date
   beforePhotoUrl?: string;
   afterPhotoUrl?: string;
+  /**
+   * 모발 상태 점수/등급이 디자이너 실측이 아닌 기본 추정치인지(디자이너 미기록).
+   * true 면 리포트가 점수를 "측정값"으로 단정하지 않고 정직하게 degrade 한다.
+   */
+  stateEstimated?: boolean;
   /** 리포트를 렌더하는 손님 언어 */
   locale: Locale;
 }

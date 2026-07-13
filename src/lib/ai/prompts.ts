@@ -179,15 +179,19 @@ export function buildReportPrompt(input: ReportInput): string {
   const s = input.summary;
   const grade = input.record?.stateGrade ?? "mid";
   const products = input.record?.products ?? [];
+  // 실제 시술(디자이너 기록) 우선, 없으면 손님 인테이크 희망(summary.services)로 폴백.
+  const serviceLabels = input.actualServiceLabelsKo?.length
+    ? input.actualServiceLabelsKo
+    : s.services;
 
   const lines: string[] = [
     `Customer language: ${lang}`,
-    `Services (Korean pivot): ${fmtListEn(s.services)}`,
+    `Services actually performed (Korean): ${fmtListEn(serviceLabels)}`,
     `Style detail (Korean): ${s.styleDetail || "(none)"}`,
     `Hair cautions (Korean): ${s.hairCautions || "(none)"}`,
     `Hair state grade: ${grade} (high=excellent / mid=normal / low=needs care)`,
-    `Products used (Korean): ${fmtListEn(products)}`,
-    `Agreed highlights from consultation (Korean): ${fmtListEn(
+    `Products used (Korean labels): ${fmtListEn(products)}`,
+    `Recent conversation notes (Korean, context only — may include declined/hypothetical items): ${fmtListEn(
       input.threadHighlightsKo,
     )}`,
   ];
@@ -198,8 +202,8 @@ export function buildReportPrompt(input: ReportInput): string {
     "",
     "[Rules]",
     `- Write ALL text fields in ${lang}.`,
-    "- serviceSummary: ONE warm, concise sentence (max ~20 words) summarizing today's service — scannable, not a paragraph.",
-    "- products: array of product names the customer can recognize (translate/localize the Korean product names naturally; if none given, suggest 1-2 suitable aftercare products).",
+    "- serviceSummary: ONE warm, concise sentence (max ~20 words) summarizing ONLY the services actually performed above — never mention services not listed.",
+    "- products: translate ONLY the given Korean product labels naturally into the customer language. If none are given, return an EMPTY array — NEVER invent, suggest, or add products that were not recorded.",
     "- hairStateGrade: must be exactly one of 'high' | 'mid' | 'low', matching the given grade.",
     "- hairStateScore: integer 0-100 consistent with the grade (high ~80-95, mid ~60-75, low ~40-55).",
     "- homeCare: 2-4 short, actionable aftercare tips tailored to the services (e.g. color-care shampoo, no-wash window for color, treatment frequency). Each item a single clear sentence.",

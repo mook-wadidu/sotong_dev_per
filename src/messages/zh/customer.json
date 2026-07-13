@@ -148,7 +148,8 @@
       "question": "有过敏吗？",
       "has": "有",
       "none": "没有",
-      "notePlaceholder": "请填写是哪种过敏（选填）"
+      "notePlaceholder": "请填写是哪种过敏（选填）",
+      "needAnswer": "请选择是否有过敏"
     },
     "phone": {
       "hint": "如果没有韩国联系方式，可以留空",

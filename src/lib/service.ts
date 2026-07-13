@@ -391,7 +391,8 @@ function intakeToHairProfile(intake: IntakeDraft): Omit<
     concernIds: intake.concernIds,
     styleNote: intake.styleNote,
     concernNote: intake.concernNote,
-    allergy: intake.allergy,
+    // 인테이크에서 명시 답변을 강제하므로 여기 도달 시 정의됨. 방어적으로 false 폴백.
+    allergy: intake.allergy ?? false,
     allergyNote: intake.allergyNote,
   };
 }

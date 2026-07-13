@@ -148,7 +148,8 @@
       "question": "Do you have any allergies?",
       "has": "Yes",
       "none": "No",
-      "notePlaceholder": "Tell us which allergy (optional)"
+      "notePlaceholder": "Tell us which allergy (optional)",
+      "needAnswer": "Please tell us whether you have allergies"
     },
     "phone": {
       "hint": "Leave blank if you have no Korean number",

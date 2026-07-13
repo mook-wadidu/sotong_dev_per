@@ -148,7 +148,8 @@
       "question": "알레르기가 있나요?",
       "has": "있어요",
       "none": "없어요",
-      "notePlaceholder": "어떤 알레르기인지 적어주세요 (선택)"
+      "notePlaceholder": "어떤 알레르기인지 적어주세요 (선택)",
+      "needAnswer": "알레르기 여부를 선택해 주세요"
     },
     "phone": {
       "hint": "한국 연락처가 없으면 비워두셔도 돼요",

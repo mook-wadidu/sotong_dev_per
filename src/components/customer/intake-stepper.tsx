@@ -116,8 +116,8 @@ function prefilledDraft(
     cowlickSticking: p?.cowlickSticking ?? base.cowlickSticking,
     treatmentHistory: p?.treatmentHistory ?? base.treatmentHistory,
     concernIds: p?.concernIds ?? base.concernIds,
-    allergy: p?.allergy ?? base.allergy,
-    allergyNote: p?.allergyNote ?? base.allergyNote,
+    // 알레르기는 절대 프리필하지 않는다 — 공유기기/가족폰에서 타인의 값이 실려
+    // 실제 알레르기가 은폐되던 안전 결함(A4). 재방문이어도 매번 다시 묻는다.
   };
 }
 
@@ -264,11 +264,19 @@ export function IntakeStepper({
     titleRef.current?.focus();
   }, [step, phase]);
 
-  const canSubmit = draft.serviceCategoryIds.length >= 1 && consent;
+  const canSubmit =
+    draft.serviceCategoryIds.length >= 1 &&
+    consent &&
+    draft.allergy !== undefined;
 
   const goNext = () => {
     if (step === 1 && draft.serviceCategoryIds.length < 1) {
       toast.error(t("intake.needService"));
+      return;
+    }
+    // 알레르기(5단계)는 명시 답변 강제 — 미응답을 "없음"으로 넘기지 않는다(A4 안전).
+    if (step === 5 && draft.allergy === undefined) {
+      toast.error(t("intake.allergy.needAnswer"));
       return;
     }
     if (step < TOTAL_STEPS) {
@@ -283,6 +291,11 @@ export function IntakeStepper({
     if (draft.serviceCategoryIds.length < 1) {
       setStep(1);
       toast.error(t("intake.needService"));
+      return;
+    }
+    if (draft.allergy === undefined) {
+      setStep(5);
+      toast.error(t("intake.allergy.needAnswer"));
       return;
     }
     if (!consent) {
@@ -819,7 +832,8 @@ function AllergyStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Pat
           { value: "yes", label: t("intake.allergy.has") },
           { value: "no", label: t("intake.allergy.none") },
         ]}
-        value={draft.allergy ? "yes" : "no"}
+        // 미응답이면 선택 없음(빈 값) — "없음" 기본선택 금지(A4 안전).
+        value={draft.allergy === undefined ? "" : draft.allergy ? "yes" : "no"}
         onValueChange={(v) =>
           patch({
             allergy: v === "yes",

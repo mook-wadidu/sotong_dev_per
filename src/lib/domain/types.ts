@@ -114,7 +114,11 @@ export interface IntakeDraft {
   concernIds: string[];
   /** 손님 언어 자유 텍스트 — 평소 고민 메모 (요약에 번역·반영) */
   concernNote?: string;
-  allergy: boolean;
+  /**
+   * 알레르기 여부. **undefined = 미응답**(안전상 "없음"으로 단정 금지 — 화학시술 게이팅).
+   * 인테이크에서 명시 답변을 강제하며, 재방문 프리필로 채우지 않는다(타인 오염 방지).
+   */
+  allergy?: boolean;
   allergyNote?: string;
   /** 개인정보·사진 수집 동의 시각 (ISO). 없으면 제출 차단 */
   consentedAt?: string;
@@ -197,7 +201,7 @@ export function emptyIntake(): IntakeDraft {
     stylePhotoUrls: [],
     treatmentHistory: [],
     concernIds: [],
-    allergy: false,
+    // allergy 는 의도적으로 미설정(undefined=미응답) — 인테이크에서 명시 답변 강제.
   };
 }
 

@@ -277,6 +277,7 @@
     "ageValue": "{age}세",
     "visitHistory": "방문 이력",
     "totalVisits": "총 {count}회",
-    "lastVisit": "최근 방문 {date}"
+    "lastVisit": "최근 방문 {date}",
+    "stateNotMeasured": "이번 방문은 모발 상태를 측정하지 않았어요"
   }
 }

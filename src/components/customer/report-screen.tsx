@@ -86,6 +86,7 @@ export async function ReportScreen({
     shareToast: t("report.shareToast"),
     scoreLabel: t("report.scoreLabel", { score: report.hairStateScore }),
     grade: gradeLabel(t, report.hairStateGrade),
+    stateNote: t("report.stateNotMeasured"),
     nationality: t("report.nationality"),
     gender: t("report.gender"),
     age: t("report.age"),

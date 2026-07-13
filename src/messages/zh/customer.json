@@ -277,6 +277,7 @@
     "ageValue": "{age}岁",
     "visitHistory": "到店记录",
     "totalVisits": "共{count}次",
-    "lastVisit": "最近到店 {date}"
+    "lastVisit": "最近到店 {date}",
+    "stateNotMeasured": "本次未测量发质状态"
   }
 }

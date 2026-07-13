@@ -277,6 +277,7 @@
     "ageValue": "{age}歳",
     "visitHistory": "来店履歴",
     "totalVisits": "計{count}回",
-    "lastVisit": "最終来店 {date}"
+    "lastVisit": "最終来店 {date}",
+    "stateNotMeasured": "今回は髪の状態を測定していません"
   }
 }

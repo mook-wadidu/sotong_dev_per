@@ -77,6 +77,8 @@ export interface ReportLabels {
   shareToast: string;
   scoreLabel: string;
   grade: string;
+  /** 디자이너가 모발 상태를 기록하지 않은 경우(stateEstimated) 점수 대신 표시할 정직 문구 */
+  stateNote?: string;
   /** 프로필·방문이력(목업② 보강) 라벨 */
   nationality: string;
   gender: string;
@@ -325,11 +327,16 @@ export function ReportView({
     ...(hair?.hairDensity
       ? [{ label: labels.dna.density, level: hair.hairDensity }]
       : []),
-    {
-      label: labels.hairState,
-      level: report.hairStateGrade,
-      valueText: labels.scoreLabel,
-    },
+    // 모발 상태 행 — 디자이너 미기록(stateEstimated)이면 조작 점수를 빼고 생략.
+    ...(report.stateEstimated
+      ? []
+      : [
+          {
+            label: labels.hairState,
+            level: report.hairStateGrade,
+            valueText: labels.scoreLabel,
+          },
+        ]),
   ];
   // 캡처 대상 — 리포트 카드 본문(저장/공유 버튼 영역은 제외).
   const captureRef = React.useRef<HTMLDivElement>(null);
@@ -446,23 +453,41 @@ export function ReportView({
           </div>
 
           <div className="relative mt-5 flex items-center gap-4">
-            <ScoreRing
-              score={score}
-              label={labels.hairState}
-              valueText={`${labels.scoreLabel} · ${labels.grade}`}
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-white/70">
-                {labels.hairState}
-              </p>
-              <span className="mt-1 inline-flex items-center rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white ring-1 ring-inset ring-white/30">
-                {labels.grade}
-              </span>
-              <p className="mt-2 flex items-center gap-1 text-xs text-white/70">
-                <CalendarIcon className="size-3.5" />
-                {dateLabel}
-              </p>
-            </div>
+            {report.stateEstimated ? (
+              // 디자이너 미기록 → 조작된 점수/등급 대신 정직 문구(측정 안 함).
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-white/70">
+                  {labels.hairState}
+                </p>
+                <p className="mt-1 text-sm font-medium text-white/90">
+                  {labels.stateNote ?? "—"}
+                </p>
+                <p className="mt-2 flex items-center gap-1 text-xs text-white/70">
+                  <CalendarIcon className="size-3.5" />
+                  {dateLabel}
+                </p>
+              </div>
+            ) : (
+              <>
+                <ScoreRing
+                  score={score}
+                  label={labels.hairState}
+                  valueText={`${labels.scoreLabel} · ${labels.grade}`}
+                />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-white/70">
+                    {labels.hairState}
+                  </p>
+                  <span className="mt-1 inline-flex items-center rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white ring-1 ring-inset ring-white/30">
+                    {labels.grade}
+                  </span>
+                  <p className="mt-2 flex items-center gap-1 text-xs text-white/70">
+                    <CalendarIcon className="size-3.5" />
+                    {dateLabel}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -554,17 +579,19 @@ export function ReportView({
           <HairDna hair={hair} locale={report.locale} labels={labels.dna} />
         ) : null}
 
-        {/* 항목별 상세 분석 — InBody 골격근-지방분석 analog(범위 막대) */}
-        <Card>
-          <CardContent className="space-y-4 p-5">
-            <SectionLabel className="mb-0">{aLabels.title}</SectionLabel>
-            <div className="space-y-4">
-              {rangeRows.map((row) => (
-                <RangeBar key={row.label} row={row} labels={aLabels} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* 항목별 상세 분석 — InBody 골격근-지방분석 analog(범위 막대). 행 없으면 생략. */}
+        {rangeRows.length > 0 ? (
+          <Card>
+            <CardContent className="space-y-4 p-5">
+              <SectionLabel className="mb-0">{aLabels.title}</SectionLabel>
+              <div className="space-y-4">
+                {rangeRows.map((row) => (
+                  <RangeBar key={row.label} row={row} labels={aLabels} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* 모발 유형 — InBody CID 유형 analog(유형 레터) */}
         {hasDna ? (

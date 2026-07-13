@@ -277,6 +277,7 @@
     "ageValue": "{age}",
     "visitHistory": "Visit history",
     "totalVisits": "{count} visits",
-    "lastVisit": "Last visit {date}"
+    "lastVisit": "Last visit {date}",
+    "stateNotMeasured": "Hair condition wasn't measured this visit"
   }
 }

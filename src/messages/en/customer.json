@@ -280,7 +280,14 @@
     "visitHistory": "Visit history",
     "totalVisits": "{count} visits",
     "lastVisit": "Last visit {date}",
-    "stateNotMeasured": "Hair condition wasn't measured this visit"
+    "stateNotMeasured": "Hair condition wasn't measured this visit",
+    "language": "Language",
+    "languageNames": {
+      "ko": "한국어",
+      "ja": "日本語",
+      "en": "English",
+      "zh": "中文"
+    }
   },
   "privacy": {
     "title": "Privacy Policy",

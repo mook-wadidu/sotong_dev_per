@@ -1172,10 +1172,15 @@ export class MemoryRepo implements Repo {
     return store.reports.get(reportToken) ?? null;
   }
 
-  async listReports(opts?: { limit?: number }): Promise<HairReport[]> {
-    const all = [...store.reports.values()].sort((a, b) =>
+  async listReports(opts?: {
+    limit?: number;
+    salonSlug?: string;
+  }): Promise<HairReport[]> {
+    let all = [...store.reports.values()].sort((a, b) =>
       a.date < b.date ? 1 : a.date > b.date ? -1 : 0,
     );
+    if (opts?.salonSlug)
+      all = all.filter((r) => r.salonSlug === opts.salonSlug);
     return opts?.limit ? all.slice(0, opts.limit) : all;
   }
 

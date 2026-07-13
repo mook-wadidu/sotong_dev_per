@@ -426,7 +426,8 @@ export function ReportView({
         {/* 캡처 영역 — 저장/공유/예약 버튼 제외한 리포트 본문 */}
         <div ref={captureRef} className="space-y-4 bg-background">
         {/* 그라데이션 히어로 — 살롱/디자이너/날짜 + 큰 모발 점수 */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-accent to-brand-500 p-5 text-white shadow-lg shadow-accent/25">
+        {/* 히어로 그라디언트 — 데모전용 인디고(brand) 대신 앱 액센트(violet)로 통일(H). */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-strong via-accent to-accent-strong p-5 text-white shadow-lg shadow-accent/25">
           {/* 은은한 광택(캡처 안전 — blur 대신 반투명 원) */}
           <div
             aria-hidden="true"

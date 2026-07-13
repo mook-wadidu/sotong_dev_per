@@ -731,7 +731,10 @@ export interface Repo {
   saveReport(report: HairReport): Promise<void>;
   getReport(reportToken: string): Promise<HairReport | null>;
   /** 어드민 리포트 모음 — 전 살롱 발급 리포트를 최신순으로(파일럿 규모용). */
-  listReports(opts?: { limit?: number }): Promise<HairReport[]>;
+  listReports(opts?: {
+    limit?: number;
+    salonSlug?: string;
+  }): Promise<HairReport[]>;
 
   /** 디자이너 웹푸시 구독 (PWA Push/VAPID) */
   savePushSubscription(input: NewPushSub): Promise<void>;

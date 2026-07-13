@@ -1904,12 +1904,18 @@ export class SupabaseRepo implements Repo {
     return data ? toHairReport(data as HairReportRow) : null;
   }
 
-  async listReports(opts?: { limit?: number }): Promise<HairReport[]> {
-    const { data, error } = await this.client
+  async listReports(opts?: {
+    limit?: number;
+    salonSlug?: string;
+  }): Promise<HairReport[]> {
+    let q = this.client
       .from("hair_reports")
       .select(REPORT_COLS)
-      .order("report_date", { ascending: false })
-      .limit(opts?.limit ?? 500);
+      .order("report_date", { ascending: false });
+    // 테넌트 스코프 — 오너 콘솔은 본인 slug 만(전역 fetch 후 JS 필터 = 크로스테넌트+truncation, F).
+    if (opts?.salonSlug) q = q.eq("salon_slug", opts.salonSlug);
+    q = q.limit(opts?.limit ?? 500);
+    const { data, error } = await q;
     if (error) fail("listReports", error);
     return ((data ?? []) as HairReportRow[]).map(toHairReport);
   }

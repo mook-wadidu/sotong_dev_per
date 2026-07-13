@@ -29,8 +29,13 @@ export interface AdminReports {
 
 export async function getAdminReports(opts?: {
   limit?: number;
+  /** 지정 시 해당 살롱 리포트만(오너 콘솔 테넌트 스코프). */
+  salonSlug?: string;
 }): Promise<AdminReports> {
-  const reports = await getRepo().listReports({ limit: opts?.limit ?? 500 });
+  const reports = await getRepo().listReports({
+    limit: opts?.limit ?? 500,
+    salonSlug: opts?.salonSlug,
+  });
   const rows: AdminReportRow[] = reports.map((r) => ({
     reportToken: r.reportToken,
     consultationId: r.consultationId,

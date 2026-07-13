@@ -280,7 +280,14 @@
     "visitHistory": "来店履歴",
     "totalVisits": "計{count}回",
     "lastVisit": "最終来店 {date}",
-    "stateNotMeasured": "今回は髪の状態を測定していません"
+    "stateNotMeasured": "今回は髪の状態を測定していません",
+    "language": "言語",
+    "languageNames": {
+      "ko": "한국어",
+      "ja": "日本語",
+      "en": "English",
+      "zh": "中文"
+    }
   },
   "privacy": {
     "title": "プライバシーポリシー",

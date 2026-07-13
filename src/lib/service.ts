@@ -3148,19 +3148,20 @@ export async function salonOwnerDesigners(
 ): Promise<AdminDesignerStats[]> {
   const salon = await authorizeConsole(ownerToken, "console");
   if (!salon) return [];
-  const all = await getAdminDesigners();
-  return all.filter((d) => d.salonSlug === salon.slug);
+  // DB 에서 본인 살롱만 스코프(전역 5000건 fetch 후 JS 필터 제거, F).
+  return getAdminDesigners({ salonSlug: salon.slug });
 }
 
-/** 오너: 내 살롱 발급 리포트(살롱명 매칭). */
+/** 오너: 내 살롱 발급 리포트(DB 에서 slug 로 스코프 — 전역 fetch 금지, F). */
 export async function salonOwnerReports(
   ownerToken: string,
 ): Promise<AdminReportRow[]> {
   const salon = await authorizeConsole(ownerToken, "console");
   if (!salon) return [];
-  const { rows } = await getAdminReports({ limit: 2000 });
-  // 테넌트 격리는 unique **slug** 로(name 은 non-unique → 동명 살롱 유출). slug 있는 행만 노출.
-  return rows.filter((r) => r.salonSlug === salon.slug);
+  // salonSlug 를 쿼리에 넣어 본인 살롱만 — 전역 2000건 fetch 후 JS 필터하던 것(크로스테넌트
+  // 사진 경유 + 최신 cap 에 본인 오래된 건 truncation) 제거.
+  const { rows } = await getAdminReports({ limit: 2000, salonSlug: salon.slug });
+  return rows;
 }
 
 /** 초대 유효성 + 대상 살롱명(가입 화면 표시용). 무효면 null. */

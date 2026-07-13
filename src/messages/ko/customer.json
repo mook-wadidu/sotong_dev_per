@@ -280,7 +280,14 @@
     "visitHistory": "방문 이력",
     "totalVisits": "총 {count}회",
     "lastVisit": "최근 방문 {date}",
-    "stateNotMeasured": "이번 방문은 모발 상태를 측정하지 않았어요"
+    "stateNotMeasured": "이번 방문은 모발 상태를 측정하지 않았어요",
+    "language": "언어",
+    "languageNames": {
+      "ko": "한국어",
+      "ja": "日本語",
+      "en": "English",
+      "zh": "中文"
+    }
   },
   "privacy": {
     "title": "개인정보 처리방침",

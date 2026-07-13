@@ -21,11 +21,16 @@ export interface AdminDesignerStats {
   active: boolean;
 }
 
-export async function getAdminDesigners(): Promise<AdminDesignerStats[]> {
+export async function getAdminDesigners(opts?: {
+  /** 지정 시 해당 살롱만(오너 콘솔 스코프 — 전역 5000건 fetch 금지, F). */
+  salonSlug?: string;
+}): Promise<AdminDesignerStats[]> {
   const repo = getRepo();
   const [salons, consultations, treatments] = await Promise.all([
-    repo.listSalons(),
-    repo.listConsultations({ limit: 5000 }),
+    opts?.salonSlug
+      ? repo.getSalon(opts.salonSlug).then((s) => (s ? [s] : []))
+      : repo.listSalons(),
+    repo.listConsultations({ limit: 5000, salonSlug: opts?.salonSlug }),
     repo.listTreatmentsSince(new Date(0).toISOString()).catch(() => []),
   ]);
   const rosters = await Promise.all(

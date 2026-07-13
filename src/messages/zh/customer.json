@@ -280,7 +280,14 @@
     "visitHistory": "到店记录",
     "totalVisits": "共{count}次",
     "lastVisit": "最近到店 {date}",
-    "stateNotMeasured": "本次未测量发质状态"
+    "stateNotMeasured": "本次未测量发质状态",
+    "language": "语言",
+    "languageNames": {
+      "ko": "한국어",
+      "ja": "日本語",
+      "en": "English",
+      "zh": "中文"
+    }
   },
   "privacy": {
     "title": "隐私政策",

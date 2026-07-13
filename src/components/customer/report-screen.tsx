@@ -87,7 +87,7 @@ export async function ReportScreen({
     scoreLabel: t("report.scoreLabel", { score: report.hairStateScore }),
     grade: gradeLabel(t, report.hairStateGrade),
     stateNote: t("report.stateNotMeasured"),
-    nationality: t("report.nationality"),
+    nationality: t("report.language"),
     gender: t("report.gender"),
     age: t("report.age"),
     visitHistory: t("report.visitHistory"),
@@ -108,7 +108,9 @@ export async function ReportScreen({
   };
 
   const profile = {
-    nationality: t(`report.nationalityNames.${customerLocale}`),
+    // 언어→국가 파생은 미국인="영어권"·대만/홍콩="중국" 같은 오표기·무례 리스크(journey-7).
+    // "국적" 대신 손님이 고른 **언어**(endonym)를 표기.
+    nationality: t(`report.languageNames.${customerLocale}`),
     gender: gender ? t(`intake.about.genderOpt.${gender}`) : undefined,
     ageText:
       typeof age === "number" ? t("report.ageValue", { age }) : undefined,

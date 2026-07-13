@@ -966,6 +966,37 @@ export class SupabaseRepo implements Repo {
     return ((data ?? []) as ConsultationRow[]).map(toConsultation);
   }
 
+  async listConsultationsForPurge(opts: {
+    before: string;
+    limit: number;
+    salonSlug?: string;
+  }): Promise<Consultation[]> {
+    let q = this.client
+      .from("consultations")
+      .select(CONSULTATION_COLS)
+      .is("pii_purged_at", null)
+      .lt("created_at", opts.before)
+      .order("created_at", { ascending: true }) // 오래된순 — 만료건 먼저
+      .limit(opts.limit);
+    if (opts.salonSlug) q = q.eq("salon_slug", opts.salonSlug);
+    const { data, error } = await q;
+    if (error) fail("listConsultationsForPurge", error);
+    return ((data ?? []) as ConsultationRow[]).map(toConsultation);
+  }
+
+  async scrubExpiredHairProfiles(before: string): Promise<number> {
+    // 자유텍스트만 비운다(비식별 통계 필드는 보존). 이미 빈 행은 건드릴 필요 없으나
+    // 멱등하므로 created_at 기준으로 일괄 UPDATE. 파기 행 수 반환.
+    const { data, error } = await this.client
+      .from("customer_hair_profiles")
+      .update({ style_note: null, concern_note: null, allergy_note: null })
+      .lt("created_at", before)
+      .or("style_note.not.is.null,concern_note.not.is.null,allergy_note.not.is.null")
+      .select("customer_id");
+    if (error) fail("scrubExpiredHairProfiles", error);
+    return (data ?? []).length;
+  }
+
   private async getByToken(
     column: "consultation_token" | "designer_token" | "report_token",
     value: string,
@@ -1077,12 +1108,17 @@ export class SupabaseRepo implements Repo {
     if (e2) fail("scrubConsultationPii(training link)", e2);
     // 전화 컬럼 + intake JSONB + 시술전 사진 컬럼을 마스킹된 값으로 덮어쓴다
     // (사진·셀카·자유텍스트 원본 dataURL 제거).
+    const terminal = redacted.status === "completed" || redacted.status === "cancelled";
     const { error } = await this.client
       .from("consultations")
       .update({
         phone: redacted.phone ?? null,
         intake: redacted.intake,
         before_photo_url: redacted.beforePhotoUrl ?? null,
+        // 파기 마커 — 선정 쿼리가 재선정하지 않도록(drain).
+        pii_purged_at: new Date().toISOString(),
+        // 방치된 non-terminal 은 파기와 함께 cancelled 로(콘솔에 영구 진행중 잔류 방지).
+        ...(terminal ? {} : { status: "cancelled" }),
       })
       .eq("id", redacted.id);
     if (error) fail("scrubConsultationPii", error);

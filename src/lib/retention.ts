@@ -58,9 +58,9 @@ export function isPiiExpired(
   now: number = Date.now(),
   retentionDays: number = PII_RETENTION_DAYS,
 ): boolean {
-  if (!TERMINAL_STATUSES.includes(c.status as (typeof TERMINAL_STATUSES)[number])) {
-    return false;
-  }
+  // 상태 무관 — 방치된 non-terminal(intake/consulting/in_service)도 retention 지나면 파기.
+  // 상담은 방문 1회(수 시간)라 age > retention 이면 완료됐거나 방치된 것(정상 진행 아님).
+  // 기존엔 terminal-only 게이트라 대다수 레코드의 PII 가 영영 안 지워지던 결함(A5).
   const created = Date.parse(c.createdAt);
   if (Number.isNaN(created)) return false;
   return now - created > retentionDays * DAY_MS;
@@ -174,37 +174,50 @@ export async function cleanupExpiredPII(
   } = opts;
 
   const repo = getRepo();
-  const all = await repo.listConsultations({ salonSlug, limit: batchLimit });
-  const terminal = all.filter((c) =>
-    TERMINAL_STATUSES.includes(
-      c.status as (typeof TERMINAL_STATUSES)[number],
-    ),
-  );
-  const expired = terminal.filter((c) => isPiiExpired(c, now, retentionDays));
-
-  // 리포트(hair_reports)에 고객 PII 가 남은 상담 — consultation 이 이미 마스킹돼도
-  // 리포트 사진/자유텍스트가 남으면 파기 대상(hasPii 는 consultation 필드만 봐서 놓친다).
-  // 배치 1쿼리로 조회 → 선정에 반영.
-  const reportPii = await repo.reportsWithPii(expired.map((c) => c.id));
-
+  const before = new Date(now - retentionDays * DAY_MS).toISOString();
   const result: CleanupResult = {
-    scanned: terminal.length,
+    scanned: 0,
     expired: 0,
     redacted: 0,
     failures: [],
   };
 
-  for (const c of expired) {
-    // consultation PII 또는 리포트 PII 중 하나라도 남으면 파기(scrub 이 둘 다 처리).
-    // 둘 다 비면 skip(이미 전부 파기됨) — 부분실패 시엔 남은 쪽이 잡혀 다음 런에 재시도된다.
-    if (!hasPii(c) && !reportPii.has(c.id)) continue;
-    result.expired += 1;
-    if (!scrub) continue; // dry-run
+  // 오래된순·미파기(pii_purged_at IS NULL)건만 배치로 집어 drain.
+  // 마커 덕에 scrub 한 건은 재선정 안 됨 → 배치가 비면 종료. 단일 런 상한(부하 제어)은 MAX_BATCHES.
+  const MAX_BATCHES = scrub ? 50 : 1; // dry-run 은 1배치만(마킹 없어 무한루프 방지).
+  for (let i = 0; i < MAX_BATCHES; i++) {
+    const batch = await repo.listConsultationsForPurge({
+      before,
+      limit: batchLimit,
+      salonSlug,
+    });
+    if (batch.length === 0) break;
+    result.scanned += batch.length;
+
+    // 리포트 PII 잔존 여부(consultation 이 마스킹돼도 리포트가 남을 수 있음).
+    const reportPii = await repo.reportsWithPii(batch.map((c) => c.id));
+
+    for (const c of batch) {
+      const hadPii = hasPii(c) || reportPii.has(c.id);
+      if (hadPii) result.expired += 1;
+      if (!scrub) continue; // dry-run — 선정만
+      try {
+        // PII 없어도 scrub 호출(마커를 남겨 재선정 중단). redact 는 멱등.
+        await scrub(redactConsultationPii(c));
+        if (hadPii) result.redacted += 1;
+      } catch {
+        result.failures.push(c.id);
+      }
+    }
+    if (batch.length < batchLimit) break; // 마지막 배치
+  }
+
+  // customer_hair_profiles 자유텍스트 파기 — 방문마다 INSERT 되며 위 경로가 못 건드리던 PII.
+  if (scrub) {
     try {
-      await scrub(redactConsultationPii(c));
-      result.redacted += 1;
+      result.redacted += await repo.scrubExpiredHairProfiles(before);
     } catch {
-      result.failures.push(c.id);
+      // best-effort — 다음 런 재시도.
     }
   }
 

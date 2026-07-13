@@ -59,6 +59,7 @@ interface Store {
   serviceCategories: Map<string, SalonServiceCategory>; // categoryId -> cat
   services: Map<string, SalonService>; // serviceId -> service
   consultations: Map<string, Consultation>;
+  purgedConsultationIds: Set<string>; // PII 파기 완료 마커(재선정 방지 — pii_purged_at analog)
   byConsultationToken: Map<string, string>;
   byDesignerToken: Map<string, string>;
   byReportToken: Map<string, string>;
@@ -296,6 +297,7 @@ function freshStore(): Store {
     serviceCategories,
     services,
     consultations: new Map(),
+    purgedConsultationIds: new Set(),
     byConsultationToken: new Map(),
     byDesignerToken: new Map(),
     byReportToken: new Map(),
@@ -328,6 +330,7 @@ const store: Store = (g.__sotongStore ??= freshStore());
 store.pushSubs ??= new Map();
 store.customers ??= new Map();
 store.hairProfiles ??= new Map();
+store.purgedConsultationIds ??= new Set();
 store.treatmentRecords ??= new Map();
 store.trainingSamples ??= [];
 store.events ??= [];
@@ -590,6 +593,40 @@ export class MemoryRepo implements Repo {
     return opts?.limit ? list.slice(0, opts.limit) : list;
   }
 
+  async listConsultationsForPurge(opts: {
+    before: string;
+    limit: number;
+    salonSlug?: string;
+  }): Promise<Consultation[]> {
+    let list = [...store.consultations.values()].filter(
+      (c) =>
+        !store.purgedConsultationIds.has(c.id) && c.createdAt < opts.before,
+    );
+    if (opts.salonSlug)
+      list = list.filter((c) => c.salonSlug === opts.salonSlug);
+    list.sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1)); // 오래된순
+    return list.slice(0, opts.limit);
+  }
+
+  async scrubExpiredHairProfiles(before: string): Promise<number> {
+    let n = 0;
+    for (const [id, p] of store.hairProfiles) {
+      if (
+        p.createdAt < before &&
+        (p.styleNote || p.concernNote || p.allergyNote)
+      ) {
+        store.hairProfiles.set(id, {
+          ...p,
+          styleNote: undefined,
+          concernNote: undefined,
+          allergyNote: undefined,
+        });
+        n += 1;
+      }
+    }
+    return n;
+  }
+
   async getByConsultationToken(t: string): Promise<Consultation | null> {
     const id = store.byConsultationToken.get(t);
     return id ? (store.consultations.get(id) ?? null) : null;
@@ -663,8 +700,15 @@ export class MemoryRepo implements Repo {
       if (s.consultationId === redacted.id) s.consultationId = undefined;
     }
     // 마스킹된 상담으로 store 항목을 교체(전화·사진·자유텍스트 제거 영속화).
+    // 방치된 non-terminal 은 cancelled 로 전이 + 파기 마커(재선정 방지).
     if (store.consultations.has(redacted.id)) {
-      store.consultations.set(redacted.id, redacted);
+      const terminal =
+        redacted.status === "completed" || redacted.status === "cancelled";
+      store.consultations.set(redacted.id, {
+        ...redacted,
+        status: terminal ? redacted.status : "cancelled",
+      });
+      store.purgedConsultationIds.add(redacted.id);
     }
     // 리포트(hair_reports)의 고객 유래 PII 도 파기(consultationId 매칭 — 리포트 여러 개 가능).
     for (const [tok, rep] of store.reports) {

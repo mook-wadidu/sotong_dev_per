@@ -698,6 +698,21 @@ export interface Repo {
    */
   scrubConsultationPii(redacted: Consultation): Promise<void>;
   /**
+   * 파기 대상 선정 — pii_purged_at IS NULL AND created_at < before, **오래된순** limit 건.
+   * 상태 무관(방치된 non-terminal 도 retention 지나면 대상). drain 을 위해 마커로 재선정 방지.
+   */
+  listConsultationsForPurge(opts: {
+    before: string;
+    limit: number;
+    salonSlug?: string;
+  }): Promise<Consultation[]>;
+  /**
+   * retention 지난 customer_hair_profiles 자유텍스트(style_note/concern_note/allergy_note)
+   * 파기 — 방문마다 INSERT 되며 scrubConsultationPii 가 건드리지 않던 PII. created_at 기준.
+   * 파기한 행 수 반환(멱등 — 이미 빈 행은 재파기 안 함).
+   */
+  scrubExpiredHairProfiles(before: string): Promise<number>;
+  /**
    * 주어진 상담들 중 hair_reports 에 고객 유래 PII(사진·style_request·concerns)가
    * **아직 남은** 상담 id 집합. cleanupExpiredPII 선정용 — consultation 이 이미 마스킹돼도
    * 리포트가 남으면 파기 대상으로 잡기 위함(hasPii 는 consultation 필드만 봐서 놓친다).

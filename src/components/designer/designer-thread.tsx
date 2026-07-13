@@ -234,17 +234,16 @@ export function DesignerThread({
             );
           }
           const side = messageSide(m, "designer");
+          // 서버가 번역을 채워 내려주므로 보통 false. 드물게 실패 시 원문 노출(영구 스피너 방지).
           const translating = isAwaitingTranslation(m, VIEWER);
           return (
             <MessageBubble
               key={m.id}
               side={side}
-              text={translating ? labels.translating : messageMainText(m, VIEWER)}
-              original={
-                translating ? undefined : messageOriginalText(m, VIEWER)
-              }
+              text={messageMainText(m, VIEWER)}
+              original={messageOriginalText(m, VIEWER)}
               translating={translating}
-              textLang={VIEWER}
+              textLang={translating ? m.sourceLocale : VIEWER}
               originalLang={m.sourceLocale}
             />
           );

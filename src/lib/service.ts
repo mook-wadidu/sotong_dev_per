@@ -906,7 +906,7 @@ export async function getCustomerView(
     consultation: stripPhone(c),
     // 초기 메시지도 viewer(손님 언어) 번역을 채워 반환 — 번역이 send 경로에서 빠졌으므로
     // SSR 초기 렌더에서 미번역 노출 방지(폴은 초기셋 이후만 가져오므로 여기서 채워야 함).
-    messages: fillViewerTranslations(
+    messages: await fillViewerTranslations(
       c.id,
       await repo.listMessages(c.id),
       c.customerLocale,
@@ -1012,7 +1012,7 @@ export async function getDesignerView(
     salon: salon ? toPublicSalon(salon) : null,
     consultation: c,
     // 디자이너 뷰(ko)도 초기 메시지 번역을 채워 반환(SSR 미번역 방지, 위와 동일 이유).
-    messages: fillViewerTranslations(
+    messages: await fillViewerTranslations(
       c.id,
       await repo.listMessages(c.id),
       "ko",
@@ -1030,47 +1030,75 @@ export async function getDesignerView(
  * 수신자가 폴(getMessagesSince)할 때, viewer 로케일이 비어있는 메시지만 그때 번역해
  * 캐시(updateMessageTranslations)한다 → "sending" 지연 제거(라이브 latency 버그). */
 // 같은 (메시지,대상로케일) 번역이 여러 폴에서 중복 발사되지 않게(인스턴스 내 best-effort).
-const inFlightTranslate = new Set<string>();
+// 값(Promise)을 공유해 동시 폴이 같은 번역을 재사용한다.
+const inFlightTranslate = new Map<string, Promise<string | null>>();
 
-/** 백그라운드 번역+캐시 — after() 로 응답 뒤에 실행. 실패는 삼키고 다음 폴에서 재시도. */
+/** 메시지를 to 로케일로 번역(실패 시 null). 동시 호출은 같은 Promise 를 공유. */
+async function translateFor(m: Message, to: Locale): Promise<string | null> {
+  if (m.sourceLocale === to) return m.sourceText;
+  if (m.translations[to] != null) return m.translations[to] ?? null;
+  const key = `${m.id}:${to}`;
+  let p = inFlightTranslate.get(key);
+  if (!p) {
+    p = (async () => {
+      try {
+        return await getAi().translate({
+          text: m.sourceText,
+          from: m.sourceLocale,
+          to,
+          domain: "salon",
+        });
+      } catch {
+        return null;
+      } finally {
+        inFlightTranslate.delete(key);
+      }
+    })();
+    inFlightTranslate.set(key, p);
+  }
+  return p;
+}
+
+/** 백그라운드 번역+캐시 — postMessage 의 선번역(after) 용. 캐시를 데워 폴이 즉답하게. */
 async function translateAndCache(
   consultationId: string,
   m: Message,
   to: Locale,
 ): Promise<void> {
   if (m.sourceLocale === to || m.translations[to] != null) return;
-  const key = `${m.id}:${to}`;
-  if (inFlightTranslate.has(key)) return;
-  inFlightTranslate.add(key);
-  try {
-    const translated = await getAi().translate({
-      text: m.sourceText,
-      from: m.sourceLocale,
-      to,
-      domain: "salon",
-    });
-    await getRepo().updateMessageTranslations(consultationId, m.id, {
+  const translated = await translateFor(m, to);
+  if (translated == null) return;
+  await getRepo()
+    .updateMessageTranslations(consultationId, m.id, {
       ...m.translations,
       [to]: translated,
-    });
-  } catch {
-    // 다음 폴에서 재시도
-  } finally {
-    inFlightTranslate.delete(key);
-  }
+    })
+    .catch(() => {});
 }
 
-function fillViewerTranslations(
+/**
+ * viewer 로케일 번역을 **동기 보장**하고 채운 메시지를 반환(초기로드·폴 공용).
+ * 과거엔 after() 로 예약만 하고 미번역 상태로 내려보냈는데, 클라 폴 커서가 그 메시지를
+ * 지나쳐 뒤늦은 번역을 영영 못 받는 freeze 버그가 있었다 → 여기서 채워 내려보낸다.
+ * 이미 캐시된 메시지는 즉시 통과(추가 지연 없음), 새 메시지만 번역(≤2.5s, mock 폴백)한다.
+ */
+async function fillViewerTranslations(
   consultationId: string,
   messages: Message[],
   viewer: Locale,
-): Message[] {
-  for (const m of messages) {
-    if (m.sourceLocale === viewer || m.translations[viewer] != null) continue;
-    // 번역은 응답 뒤(after) 백그라운드로 — 폴은 즉시 반환, 다음 폴이 캐시를 픽업.
-    after(() => translateAndCache(consultationId, m, viewer));
-  }
-  return messages;
+): Promise<Message[]> {
+  return Promise.all(
+    messages.map(async (m) => {
+      if (m.sourceLocale === viewer || m.translations[viewer] != null) return m;
+      const translated = await translateFor(m, viewer);
+      if (translated == null) return m; // 실패 시 원문 유지(클라가 원문 렌더)
+      const translations = { ...m.translations, [viewer]: translated };
+      await getRepo()
+        .updateMessageTranslations(consultationId, m.id, translations)
+        .catch(() => {});
+      return { ...m, translations };
+    }),
+  );
 }
 
 export async function postMessage(input: {
@@ -1202,11 +1230,10 @@ export async function getMessagesSince(input: {
       : await repo.getByDesignerToken(input.token);
   if (!c) return [];
   const msgs = await repo.listMessages(c.id, input.sinceIso);
-  // viewer 로케일이 빈 메시지만 그때 번역·캐시(send 경로에서 뺀 번역을 읽는 쪽에서 채움).
+  // viewer 로케일이 빈 메시지는 여기서 동기 번역해 채워 반환 — 미번역 상태로 내려가면
+  // 클라 폴 커서가 지나쳐 freeze 되므로. 캐시된 건 즉시 통과, 새 메시지만 번역.
   const viewer: Locale = input.role === "customer" ? c.customerLocale : "ko";
-  // 번역은 after() 로 백그라운드 예약만 — 폴 응답은 현재 캐시 상태 그대로 즉시 반환.
-  const result = fillViewerTranslations(c.id, msgs, viewer);
-  return result;
+  return fillViewerTranslations(c.id, msgs, viewer);
 }
 
 /* ── 시술 전 사진 저장 (요약 단계 촬영) ─────────────────────────

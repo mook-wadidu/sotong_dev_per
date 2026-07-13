@@ -285,21 +285,17 @@ export function CustomerThread({
 
           {/* 초기 로드 메시지 — 정적 영역(aria-live 밖) */}
           {initialMessages.map((m) => {
+            // 서버가 번역을 채워 내려주므로 보통 false. 드물게 번역 실패 시엔
+            // 스피너로 숨기지 않고 원문을 그대로 보여준다(원문+표기, 영구 스피너 방지).
             const translating = isAwaitingTranslation(m, locale);
             return (
               <MessageBubble
                 key={m.id}
                 side={messageSide(m, "customer")}
-                text={
-                  translating
-                    ? t("thread.translating")
-                    : messageMainText(m, locale)
-                }
-                original={
-                  translating ? undefined : messageOriginalText(m, locale)
-                }
+                text={messageMainText(m, locale)}
+                original={messageOriginalText(m, locale)}
                 translating={translating}
-                textLang={locale}
+                textLang={translating ? m.sourceLocale : locale}
                 originalLang={m.sourceLocale}
               />
             );
@@ -317,16 +313,10 @@ export function CustomerThread({
                 <MessageBubble
                   key={m.id}
                   side={messageSide(m, "customer")}
-                  text={
-                    translating
-                      ? t("thread.translating")
-                      : messageMainText(m, locale)
-                  }
-                  original={
-                    translating ? undefined : messageOriginalText(m, locale)
-                  }
+                  text={messageMainText(m, locale)}
+                  original={messageOriginalText(m, locale)}
                   translating={translating}
-                  textLang={locale}
+                  textLang={translating ? m.sourceLocale : locale}
                   originalLang={m.sourceLocale}
                 />
               );

@@ -36,6 +36,14 @@ const CSP = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // 서버액션 바디 상한 — 기본 1MB 라 사진 여러 장(리사이즈 후 ~200-480KB/장) 인테이크가
+  // 조용히 실패했다(B11). dataURL 사진이 서버액션으로 오가므로 넉넉히 8MB.
+  // (근본적으로는 사진→Storage 이관(E)이 해법 — 그때 이 상한을 낮출 것.)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "8mb",
+    },
+  },
   images: {
     // 외부 원격 이미지를 쓰지 않는다(사진은 dataURL). 와일드카드 제거.
     remotePatterns: [],

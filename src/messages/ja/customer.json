@@ -176,7 +176,8 @@
     "stepOf": "ステップ {current} / {total}",
     "needService": "施術を1つ以上選んでください",
     "submitError": "送信できませんでした。しばらくしてからもう一度お試しください。",
-    "submitted": "デザイナーに送りました"
+    "submitted": "デザイナーに送りました",
+    "photosRestoreNotice": "写真は一時保存されません — 参考写真をもう一度添付してください"
   },
   "thread": {
     "title": "デザイナーとのやり取り",

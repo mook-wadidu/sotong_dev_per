@@ -176,7 +176,8 @@
     "stepOf": "Step {current} of {total}",
     "needService": "Please pick at least one service",
     "submitError": "Couldn't send. Please try again in a moment.",
-    "submitted": "Sent to your designer"
+    "submitted": "Sent to your designer",
+    "photosRestoreNotice": "Photos aren't saved between sessions — please re-attach your reference photos"
   },
   "thread": {
     "title": "Chat with your designer",

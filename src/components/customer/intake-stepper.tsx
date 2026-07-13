@@ -206,6 +206,7 @@ export function IntakeStepper({
           consent?: boolean;
           trainingConsent?: boolean;
           photoTrainingConsent?: boolean;
+          photosDropped?: boolean;
           draft?: Partial<IntakeDraft>;
         };
         if (saved.draft) setDraft((d) => ({ ...d, ...saved.draft }));
@@ -215,6 +216,8 @@ export function IntakeStepper({
         if (saved.photoTrainingConsent) setPhotoTrainingConsent(true);
         setPhase("form"); // 진행 중이던 폼으로 복귀(재방문 intro 건너뜀)
         setPrefilled(false);
+        // 사진은 저장 안 되므로, 있었다면 재첨부 안내(무고지 소실 방지, B11).
+        if (saved.photosDropped) toast.info(t("intake.photosRestoreNotice"));
       } catch {
         /* 손상된 저장값 무시 */
       }
@@ -230,8 +233,7 @@ export function IntakeStepper({
     const id = setTimeout(() => {
       try {
         const { stylePhotoUrls: _s, selfiePhotoUrl: _f, ...rest } = draft;
-        void _s;
-        void _f;
+        const photosDropped = (_s?.length ?? 0) > 0 || !!_f;
         sessionStorage.setItem(
           storageKey,
           JSON.stringify({
@@ -239,6 +241,7 @@ export function IntakeStepper({
             consent,
             trainingConsent,
             photoTrainingConsent,
+            photosDropped,
             draft: { ...rest, stylePhotoUrls: [], selfiePhotoUrl: undefined },
           }),
         );

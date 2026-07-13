@@ -176,7 +176,8 @@
     "stepOf": "第 {current} / {total} 步",
     "needService": "请至少选择一个项目",
     "submitError": "发送失败，请稍后重试。",
-    "submitted": "已发送给设计师"
+    "submitted": "已发送给设计师",
+    "photosRestoreNotice": "照片不会被临时保存 — 请重新添加参考照片"
   },
   "thread": {
     "title": "与设计师对话",

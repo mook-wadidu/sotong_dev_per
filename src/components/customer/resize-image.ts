@@ -26,9 +26,11 @@ export async function resizeImageToDataUrl(file: File): Promise<string> {
 async function loadBitmap(file: File): Promise<ImageBitmap | HTMLImageElement> {
   if (typeof createImageBitmap === "function") {
     try {
-      return await createImageBitmap(file);
+      // imageOrientation:"from-image" — EXIF 회전 반영(누락 시 세로 iPhone 사진이 옆으로,
+      // <img> 폴백 경로와도 불일치했다, B11). 아이폰 HEIC 촬영 관광객이 주 대상이라 중요.
+      return await createImageBitmap(file, { imageOrientation: "from-image" });
     } catch {
-      // Safari 등 일부 포맷에서 실패 → <img> 폴백
+      // Safari 등 일부 포맷에서 실패 → <img> 폴백(브라우저 기본으로 EXIF 반영)
     }
   }
   return await new Promise<HTMLImageElement>((resolve, reject) => {

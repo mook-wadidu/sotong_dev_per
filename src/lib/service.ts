@@ -748,9 +748,12 @@ export async function startConsultation(input: {
       );
     } else {
       // 살롱 공용(미배정) — 단골 자동 라우팅을 우선 시도한다(best-effort).
-      const designers = await repo.listDesigners(salonSlug);
+      // **활성 디자이너만** 대상(퇴사/비활성 디자이너로 배정하면 죽은 인박스行 → 손님 유실, B10).
+      const designers = (await repo.listDesigners(salonSlug)).filter(
+        (d) => d.active !== false,
+      );
 
-      // 우선 디자이너 결정: ① 재방문이면 지난 담당(active 한정, 4.6 에서 포착) ② 살롱 디자이너 1명이면 그 1명.
+      // 우선 디자이너 결정: ① 재방문이면 지난 담당(활성 한정) ② 살롱 활성 디자이너 1명이면 그 1명.
       let preferred: Designer | undefined;
       if (priorDesignerId) {
         preferred = designers.find((d) => d.id === priorDesignerId);

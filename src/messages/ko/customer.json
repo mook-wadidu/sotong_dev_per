@@ -176,7 +176,8 @@
     "stepOf": "{current} / {total} 단계",
     "needService": "시술을 하나 이상 골라주세요",
     "submitError": "보내지 못했어요. 잠시 후 다시 시도해주세요.",
-    "submitted": "디자이너에게 전달했어요"
+    "submitted": "디자이너에게 전달했어요",
+    "photosRestoreNotice": "사진은 임시 저장되지 않아요 — 참고 사진을 다시 첨부해 주세요"
   },
   "thread": {
     "title": "디자이너와 대화",

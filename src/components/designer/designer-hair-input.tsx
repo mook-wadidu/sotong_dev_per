@@ -91,10 +91,11 @@ export function DesignerHairInput({
         </p>
       </div>
 
-      {/* 손님 자기보고 알레르기 재확인(안전) */}
+      {/* 손님 자기보고 알레르기 재확인(안전) — 화학시술 게이팅이라 모노크롬 규칙의
+          정당한 유일 예외로 **빨강** 허용(회색 경고는 바쁜 살롱에서 놓치기 쉬움, I). */}
       {customerAllergy ? (
-        <div className="rounded-lg border-2 border-destructive bg-card p-3">
-          <p className="text-sm font-bold text-destructive">
+        <div className="rounded-lg border-2 border-red-600 bg-red-50 p-3 dark:border-red-500 dark:bg-red-950/30">
+          <p className="text-sm font-bold text-red-700 dark:text-red-400">
             ⚠ 손님 알레르기 있음
             {customerAllergyNote ? ` — ${customerAllergyNote}` : ""}
           </p>

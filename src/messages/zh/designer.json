@@ -180,7 +180,9 @@
       "high": "良好",
       "mid": "一般",
       "low": "需护理"
-    }
+    },
+    "reportQrTitle": "请出示给顾客",
+    "reportQrHint": "扫码即可立即保存报告"
   },
   "emr": {
     "title": "综合病历（EMR）",

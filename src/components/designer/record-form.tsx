@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Button,
   Input,
@@ -16,10 +17,10 @@ import {
 } from "@/components/ui";
 import { PRODUCTS } from "@/lib/catalog";
 import { finishAndSendReport } from "@/lib/actions";
-import { designerReportViewPath } from "@/lib/links";
+import { designerReportViewPath, reportPath } from "@/lib/links";
 import { resizeToDataUrl } from "@/lib/image";
 import { cn } from "@/lib/utils";
-import type { ThreeLevel } from "@/lib/domain/types";
+import type { Locale, ThreeLevel } from "@/lib/domain/types";
 
 type Labels = {
   products: string;
@@ -46,6 +47,9 @@ type Labels = {
   gradeHigh: string;
   gradeMid: string;
   gradeLow: string;
+  /** 인체어 손님 리포트 QR 안내(B7). */
+  reportQrTitle: string;
+  reportQrHint: string;
 };
 
 
@@ -55,6 +59,8 @@ export function RecordForm({
   defaultProducts,
   defaultGrade,
   serviceOptions,
+  customerReportOrigin,
+  customerLocale,
   labels,
 }: {
   token: string;
@@ -66,6 +72,10 @@ export function RecordForm({
   defaultGrade?: ThreeLevel;
   /** 실제 시술 선택지(살롱 메뉴 id + ko 라벨) — 디자이너가 실제 한 시술 기록(학습 정답). */
   serviceOptions?: { value: string; label: string }[];
+  /** 손님 리포트 QR 용 절대 origin(서버 Host 기반). */
+  customerReportOrigin: string;
+  /** 손님 언어 — QR 이 가리키는 리포트 URL 로케일. */
+  customerLocale: Locale;
   labels: Labels;
 }) {
   const router = useRouter();
@@ -94,6 +104,10 @@ export function RecordForm({
   const [prefillCleared, setPrefillCleared] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
   const [reportToken, setReportToken] = React.useState<string | undefined>();
+  // 손님용 reportToken(디자이너 링크 토큰과 별개) — 인체어 QR 이 가리키는 손님 리포트.
+  const [customerReportToken, setCustomerReportToken] = React.useState<
+    string | undefined
+  >();
 
   const productOptions = PRODUCTS.map((p) => ({
     value: p.id,
@@ -165,6 +179,7 @@ export function RecordForm({
         }
         // 디자이너는 ko 리포트를 본다 — designerReportToken(비-ko 손님) 우선, 없으면 손님 토큰.
         setReportToken(res.designerReportToken ?? res.reportToken);
+        setCustomerReportToken(res.reportToken); // 손님용 — 인체어 QR
         toast.success(labels.sent);
         router.refresh();
       } catch {
@@ -173,13 +188,35 @@ export function RecordForm({
     });
   };
 
-  // 발송 완료 → 손님 리포트 링크 표시
+  // 발송 완료 → 인체어 손님 리포트 QR + 디자이너 리포트 링크
   if (reportToken) {
+    const customerReportUrl = customerReportToken
+      ? `${customerReportOrigin}${reportPath(customerReportToken, customerLocale)}`
+      : undefined;
     return (
-      <div className="space-y-4 py-6 text-center">
+      <div className="space-y-5 py-6 text-center">
         <p className="text-base font-semibold text-foreground">
           {labels.sent}
         </p>
+        {/* 인체어 전달(B7) — 손님이 폰으로 이 QR 을 스캔하면 리포트가 손님 폰에. 폴링 의존 제거. */}
+        {customerReportUrl ? (
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-sm font-semibold text-foreground">
+              {labels.reportQrTitle}
+            </p>
+            <div className="rounded-xl border border-border bg-white p-3">
+              <QRCodeSVG
+                value={customerReportUrl}
+                size={200}
+                level="M"
+                marginSize={0}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {labels.reportQrHint}
+            </p>
+          </div>
+        ) : null}
         <Link
           href={designerReportViewPath(reportToken)}
           className={cn(

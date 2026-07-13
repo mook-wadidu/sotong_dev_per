@@ -1,5 +1,7 @@
+import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { getDesignerView } from "@/lib/service";
+import { shareOrigin } from "@/lib/origin";
 import {
   MobileFrame,
   ScreenHeader,
@@ -13,6 +15,10 @@ import { BackToInbox } from "@/components/designer/back-to-inbox";
  * 사용 약제(PRODUCTS) / 모발상태(상·중·하) / before·after 사진.
  * 발송 후 손님 locale 의 리포트 링크 노출.
  */
+// 리포트 발송(finishAndSendReport→completeConsultation)은 외국인 손님 시 AI draft 2회 +
+// 번역이 직렬로 돌아 최악 ~20s. 기본 서버리스 타임아웃(504)에 걸리지 않게 상한을 넉넉히(D).
+export const maxDuration = 60;
+
 export default async function DesignerReportPage({
   params,
 }: {
@@ -37,6 +43,12 @@ export default async function DesignerReportPage({
 
   const { consultation, staffToken, customerTreatments, salonServiceOptions } =
     view;
+  // 손님 리포트 절대 URL prefix — 완결 후 손님 reportToken 을 붙여 인체어 QR 로 전달(B7).
+  const h = await headers();
+  const origin = shareOrigin(
+    h.get("host"),
+    h.get("x-forwarded-proto") ?? "http",
+  );
   // 실제 시술 선택지(살롱 메뉴, ko 라벨) — 디자이너가 실제 한 시술 기록.
   const serviceOptions = salonServiceOptions.map((s) => ({
     value: s.id,
@@ -63,7 +75,11 @@ export default async function DesignerReportPage({
           defaultProducts={lastTreatment?.products}
           defaultGrade={lastTreatment?.stateGrade}
           serviceOptions={serviceOptions}
+          customerReportOrigin={origin}
+          customerLocale={consultation.customerLocale}
           labels={{
+            reportQrTitle: t("record.reportQrTitle"),
+            reportQrHint: t("record.reportQrHint"),
             products: t("record.products"),
             productsHint: t("record.productsHint"),
             addProduct: t("record.addProduct"),

@@ -180,7 +180,9 @@
       "high": "上",
       "mid": "中",
       "low": "下"
-    }
+    },
+    "reportQrTitle": "お客様にお見せください",
+    "reportQrHint": "スキャンするとレポートをすぐ保存できます"
   },
   "emr": {
     "title": "総合カルテ (EMR)",

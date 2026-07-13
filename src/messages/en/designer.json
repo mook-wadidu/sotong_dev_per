@@ -180,7 +180,9 @@
       "high": "High",
       "mid": "Mid",
       "low": "Low"
-    }
+    },
+    "reportQrTitle": "Show this to the customer",
+    "reportQrHint": "Scan to save the report right away"
   },
   "emr": {
     "title": "Full chart (EMR)",

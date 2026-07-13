@@ -180,7 +180,9 @@
       "high": "상",
       "mid": "중",
       "low": "하"
-    }
+    },
+    "reportQrTitle": "손님에게 보여주세요",
+    "reportQrHint": "스캔하면 리포트를 바로 저장할 수 있어요"
   },
   "emr": {
     "title": "종합 차트 (EMR)",

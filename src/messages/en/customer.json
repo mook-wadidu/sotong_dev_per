@@ -280,5 +280,24 @@
     "totalVisits": "{count} visits",
     "lastVisit": "Last visit {date}",
     "stateNotMeasured": "Hair condition wasn't measured this visit"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "draftNotice": "* This is a draft. It will be replaced with a final version after legal review and reflects the pilot period's actual processing.",
+    "intro": "Sotong processes personal data to provide salon consultations and reports, as described below.",
+    "collectH": "What we collect",
+    "collectB": "Language preference, hair concerns and requested styles, (optional) hair/style photos, allergy status and notes, (optional) contact number, and consultation messages.",
+    "useH": "Purpose",
+    "useB": "Running the multilingual consultation, creating and delivering your after-service hair report, and recognizing your history on return visits.",
+    "aiH": "Cross-border transfer & AI",
+    "aiB": "For real-time translation and report generation, consultation text is sent to and processed by Google LLC's Gemini AI (USA). Original photos are not sent to the AI, and are only de-identified separately if you opt in to training.",
+    "retentionH": "Retention & deletion",
+    "retentionB": "Personal data such as contact number, original photos, and free-text notes are deleted about 90 days after your visit. De-identified statistics may be retained.",
+    "trainingH": "AI training (optional consent)",
+    "trainingB": "Only with your explicit consent do we use de-identified data — excluding name, contact, face, and free text — to improve the service. You can withdraw consent at any time.",
+    "rightsH": "Your rights",
+    "rightsB": "You may request access to, correction of, or deletion of your data. Please contact the salon you visited or the operator.",
+    "contactH": "Contact",
+    "contactB": "Privacy inquiries: the salon you visited or the operator."
   }
 }

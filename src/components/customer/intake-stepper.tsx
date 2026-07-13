@@ -455,6 +455,7 @@ export function IntakeStepper({
         {step === 6 && (
           <ConsentStep
             t={t}
+            locale={locale}
             consent={consent}
             error={consentError}
             onChange={(v) => {
@@ -856,6 +857,7 @@ function AllergyStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Pat
 /* ── ⑥ 동의 (필수) + 상세 Sheet ──────────────────────── */
 function ConsentStep({
   t,
+  locale,
   consent,
   error,
   onChange,
@@ -865,6 +867,7 @@ function ConsentStep({
   onPhotoTrainingChange,
 }: {
   t: T;
+  locale: string;
   consent: boolean;
   error: boolean;
   onChange: (v: boolean) => void;
@@ -924,9 +927,14 @@ function ConsentStep({
             <p className="text-sm leading-relaxed text-muted-foreground">
               {t("intake.consent.crossBorder")}
             </p>
-            <p className="text-xs font-medium text-muted-foreground">
+            <a
+              href={`/${locale}/privacy`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-xs font-medium text-accent-text underline underline-offset-4"
+            >
               {t("intake.consent.policyLink")}
-            </p>
+            </a>
           </div>
         </SheetContent>
       </Sheet>

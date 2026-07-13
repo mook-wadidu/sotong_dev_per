@@ -599,6 +599,14 @@ export async function startConsultation(input: {
     });
     throw new Error("개인정보·사진 수집 동의가 필요합니다.");
   }
+  // 동의 시각은 **서버 시각**으로 스탬프(클라 시계는 위조·부정확 → 법적 기록 신뢰 불가, A6).
+  // 클라가 보낸 consentedAt 은 "동의했다"는 사실 신호로만 쓰고, 시각은 서버가 확정.
+  const consentIso = new Date().toISOString();
+  input.intake.consentedAt = consentIso;
+  if (input.intake.trainingConsentedAt)
+    input.intake.trainingConsentedAt = consentIso;
+  if (input.intake.photoTrainingConsentedAt)
+    input.intake.photoTrainingConsentedAt = consentIso;
 
   // 4) 전화번호는 옵셔널 — 없거나 contactOptOut 이면 그대로 진행
   const phone =

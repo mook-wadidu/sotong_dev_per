@@ -17,18 +17,19 @@ const withNextIntl = createNextIntlPlugin();
  *   프로덕션은 eval 이 없어 불필요 → 프로덕션 script-src 는 그대로 엄격 유지.
  */
 const IS_DEV = process.env.NODE_ENV !== "production";
-const FONT_STYLE_SRC = "https://cdn.jsdelivr.net https://fonts.googleapis.com";
-const FONT_SRC = "https://fonts.gstatic.com https://cdn.jsdelivr.net";
 
 const CSP = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${IS_DEV ? " 'unsafe-eval'" : ""}`,
-  `style-src 'self' 'unsafe-inline' ${FONT_STYLE_SRC}`,
+  // 폰트는 next/font 로 셀프호스팅 → 외부 style/font 오리진 허용 불필요(전부 'self').
+  // jsdelivr·fonts.googleapis·fonts.gstatic 를 되살리지 말 것: 동의 전 방문자 IP 가
+  // 국외 CDN 으로 새는 GDPR 노출이었고, CSP 로도 재발을 막는다.
+  "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
-  `font-src 'self' data: ${FONT_SRC}`,
-  // connect: 폰트 CSS(jsdelivr) 소스맵 + Supabase(어드민 브라우저 Auth signInWithPassword →
-  // {ref}.supabase.co/auth). 브라우저→외부 연결은 이 둘뿐(손님/디자이너는 서버액션).
-  "connect-src 'self' https://cdn.jsdelivr.net https://*.supabase.co",
+  "font-src 'self' data:",
+  // connect: Supabase(어드민 브라우저 Auth signInWithPassword → {ref}.supabase.co/auth) 뿐.
+  // 손님/디자이너 경로는 서버액션이라 브라우저→외부 연결 없음.
+  "connect-src 'self' https://*.supabase.co",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

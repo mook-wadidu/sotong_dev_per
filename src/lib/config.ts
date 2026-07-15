@@ -87,9 +87,6 @@ export const config = {
   /** 절대 URL 생성용 (QR 등). 비면 클라이언트 origin 사용. */
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL ?? "",
 
-  /** 데모 살롱 slug (시드와 일치) */
-  demoSalonSlug: process.env.DEMO_SALON_SLUG ?? "salon-demo",
-
   /**
    * PII 파기 크론 보호 시크릿(PIPA). Vercel Cron 이 보내는
    * `Authorization: Bearer <CRON_SECRET>` 검증용. 비면 크론 라우트는 무인증

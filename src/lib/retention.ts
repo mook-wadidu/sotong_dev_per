@@ -85,12 +85,15 @@ export function hasPii(c: Consultation): boolean {
  * - intake.stylePhotoUrls / intake.selfiePhotoUrl / beforePhotoUrl: 사진 원본 dataURL 파기
  * - styleNote / concernNote / allergyNote: 자유 텍스트라 PII 우려 → 삭제
  *
- * 비PII(시술 종류·요약 등)는 운영 통계를 위해 남긴다. 요약(summary.raw) 에는
- * 가공된 정보가 들어갈 수 있으나 전화·사진 원본은 아니므로 여기서는 유지한다.
+ * summary 는 **자유텍스트 파생분만** 지운다: hairCautions(알레르기=건강정보가 여기 모인다),
+ * styleDetail·concerns(손님 자유텍스트의 번역본), raw(전문). 원문을 지우면서 그 번역본을
+ * 영구 보존하면 파기가 무의미하고, 건강정보가 무기한 남는다(§23). 통계용 비PII
+ * (headline·nationality·services·estimatedPrice)는 유지.
  *
- * 리포트(hair_reports)의 고객 PII(before/after 사진·style_request·concerns)는 이 도메인
+ * 리포트(hair_reports)의 고객 PII(before/after 사진·style_request·concerns·cautions)는 이 도메인
  * 함수 밖 — repo.scrubConsultationPii 가 consultation_id 로 파기한다(리포트는 consultationId
  * 로만 매칭 가능해 도메인 Consultation 만으론 못 건드림). 선정은 reportsWithPii 가 담당.
+ * 대화(messages)도 동일하게 scrubConsultationPii 가 비운다.
  */
 export function redactConsultationPii(c: Consultation): Consultation {
   return {
@@ -106,6 +109,16 @@ export function redactConsultationPii(c: Consultation): Consultation {
       concernNote: undefined,
       allergyNote: undefined,
     },
+    // AI 요약의 자유텍스트 파생분 파기(건강정보 포함) — 원문만 지우고 번역본을 남기면 무의미.
+    summary: c.summary
+      ? {
+          ...c.summary,
+          hairCautions: "",
+          styleDetail: "",
+          concerns: "",
+          raw: "",
+        }
+      : c.summary,
   };
 }
 

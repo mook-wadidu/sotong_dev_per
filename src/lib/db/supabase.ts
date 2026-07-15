@@ -997,6 +997,20 @@ export class SupabaseRepo implements Repo {
     return (data ?? []).length;
   }
 
+  async scrubExpiredCustomers(before: string): Promise<number> {
+    // customers.phone 은 상담 파기 경로가 못 건드리던 **유일한 잔존 전화번호 사본**이라
+    // "방문 90일 후 연락처 파기" 약속이 거짓이었다. created_at 기준으로 비운다.
+    // deviceToken(재방문 앵커)은 보존 — 연락처가 아니고 지우면 재방문 인식이 끊긴다.
+    const { data, error } = await this.client
+      .from("customers")
+      .update({ phone: null })
+      .lt("created_at", before)
+      .not("phone", "is", null)
+      .select("id");
+    if (error) fail("scrubExpiredCustomers", error);
+    return (data ?? []).length;
+  }
+
   private async getByToken(
     column: "consultation_token" | "designer_token" | "report_token",
     value: string,
@@ -1125,6 +1139,7 @@ export class SupabaseRepo implements Repo {
     // 리포트(hair_reports)의 고객 유래 PII 도 파기 — 리테인션이 못 건드리던 갭 수리.
     // consultation 을 삭제 아닌 마스킹하므로 on-delete-cascade 가 안 터진다 → 명시적 UPDATE.
     // (consultationId 당 리포트 여러 개 가능: report_token + designer_report_token → WHERE 로 전부.)
+    // cautions: 프롬프트가 알레르기(건강정보) 서술을 여기 모으므로(prompts.ts) 반드시 함께 파기.
     const { error: e3 } = await this.client
       .from("hair_reports")
       .update({
@@ -1132,9 +1147,18 @@ export class SupabaseRepo implements Repo {
         after_photo_url: null,
         style_request: null,
         concerns: null,
+        cautions: null,
       })
       .eq("consultation_id", redacted.id);
     if (e3) fail("scrubConsultationPii(report)", e3);
+    // 대화(messages) 원문·번역 파기 — consultation 이 DELETE 아닌 마스킹이라 cascade 가
+    // 안 터져 전 대화가 무기한 남던 갭. 손님/디자이너 자유텍스트라 PII 로 취급해 비운다.
+    // (행은 남기고 본문만 비움 — 통계/감사용 메타는 보존.)
+    const { error: e4 } = await this.client
+      .from("messages")
+      .update({ source_text: "", translations: {} })
+      .eq("consultation_id", redacted.id);
+    if (e4) fail("scrubConsultationPii(messages)", e4);
   }
 
   async reportsWithPii(consultationIds: string[]): Promise<Set<string>> {
@@ -1144,7 +1168,7 @@ export class SupabaseRepo implements Repo {
       .select("consultation_id")
       .in("consultation_id", consultationIds)
       .or(
-        "before_photo_url.not.is.null,after_photo_url.not.is.null,style_request.not.is.null,concerns.not.is.null",
+        "before_photo_url.not.is.null,after_photo_url.not.is.null,style_request.not.is.null,concerns.not.is.null,cautions.not.is.null",
       );
     if (error) fail("reportsWithPii", error);
     return new Set(

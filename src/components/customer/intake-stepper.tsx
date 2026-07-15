@@ -150,6 +150,8 @@ export function IntakeStepper({
   const [step, setStep] = React.useState(1);
   const [draft, setDraft] = React.useState<IntakeDraft>(() => emptyIntake());
   const [consent, setConsent] = React.useState(false);
+  // 만 14세 이상 확인(필수) — PIPA §22-6. 나이를 저장하지 않고 확인 사실만 기록.
+  const [age14, setAge14] = React.useState(false);
   const [consentError, setConsentError] = React.useState(false);
   // (선택) AI 학습 활용 옵트인 — 필수 아님. 동의 시 비식별 학습셋에 적재.
   const [trainingConsent, setTrainingConsent] = React.useState(false);
@@ -204,6 +206,7 @@ export function IntakeStepper({
         const saved = JSON.parse(raw as string) as {
           step?: number;
           consent?: boolean;
+          age14?: boolean;
           trainingConsent?: boolean;
           photoTrainingConsent?: boolean;
           photosDropped?: boolean;
@@ -212,6 +215,7 @@ export function IntakeStepper({
         if (saved.draft) setDraft((d) => ({ ...d, ...saved.draft }));
         if (typeof saved.step === "number") setStep(saved.step);
         if (saved.consent) setConsent(true);
+        if (saved.age14) setAge14(true);
         if (saved.trainingConsent) setTrainingConsent(true);
         if (saved.photoTrainingConsent) setPhotoTrainingConsent(true);
         setPhase("form"); // 진행 중이던 폼으로 복귀(재방문 intro 건너뜀)
@@ -239,6 +243,7 @@ export function IntakeStepper({
           JSON.stringify({
             step,
             consent,
+            age14,
             trainingConsent,
             photoTrainingConsent,
             photosDropped,
@@ -256,6 +261,7 @@ export function IntakeStepper({
     step,
     draft,
     consent,
+    age14,
     trainingConsent,
     photoTrainingConsent,
   ]);
@@ -267,18 +273,23 @@ export function IntakeStepper({
     titleRef.current?.focus();
   }, [step, phase]);
 
+  // 건강정보 동의를 한 경우에만 알레르기 답변을 강제한다(A4 안전).
+  // 미동의는 진짜 선택지 — 그 경우 항목을 수집하지 않으므로 답변도 요구하지 않는다(PIPA §23/§22⑤).
+  const allergyAnswerNeeded =
+    !!draft.sensitiveConsentedAt && draft.allergy === undefined;
   const canSubmit =
     draft.serviceCategoryIds.length >= 1 &&
     consent &&
-    draft.allergy !== undefined;
+    age14 &&
+    !allergyAnswerNeeded;
 
   const goNext = () => {
     if (step === 1 && draft.serviceCategoryIds.length < 1) {
       toast.error(t("intake.needService"));
       return;
     }
-    // 알레르기(5단계)는 명시 답변 강제 — 미응답을 "없음"으로 넘기지 않는다(A4 안전).
-    if (step === 5 && draft.allergy === undefined) {
+    // 알레르기(5단계): 건강정보 동의 시에만 명시 답변 강제 — 미응답을 "없음"으로 넘기지 않는다.
+    if (step === 5 && allergyAnswerNeeded) {
       toast.error(t("intake.allergy.needAnswer"));
       return;
     }
@@ -296,13 +307,20 @@ export function IntakeStepper({
       toast.error(t("intake.needService"));
       return;
     }
-    if (draft.allergy === undefined) {
+    if (allergyAnswerNeeded) {
       setStep(5);
       toast.error(t("intake.allergy.needAnswer"));
       return;
     }
     if (!consent) {
       setConsentError(true);
+      return;
+    }
+    // 만 14세 미만은 법정대리인 동의가 필요 → 온라인 접수 차단(PIPA §22-6). 서버도 동일 강제.
+    if (!age14) {
+      setStep(TOTAL_STEPS);
+      setConsentError(true);
+      toast.error(t("intake.consent.age14Required"));
       return;
     }
     setSubmitting(true);
@@ -316,6 +334,7 @@ export function IntakeStepper({
         intake: {
           ...draft,
           consentedAt: new Date().toISOString(),
+          age14ConfirmedAt: new Date().toISOString(),
           trainingConsentedAt: trainingConsent
             ? new Date().toISOString()
             : undefined,
@@ -463,6 +482,11 @@ export function IntakeStepper({
             error={consentError}
             onChange={(v) => {
               setConsent(v);
+              if (v) setConsentError(false);
+            }}
+            age14={age14}
+            onAge14Change={(v) => {
+              setAge14(v);
               if (v) setConsentError(false);
             }}
             trainingConsent={trainingConsent}
@@ -826,32 +850,67 @@ function ConcernStep({
   );
 }
 
-/* ── ⑥ 알레르기 (예/아니오 + 메모) ─────────────────────── */
+/* ── ⑤ 알레르기 (민감정보 — 별도 동의 후에만 수집) ─────────
+ * PIPA §23: 건강정보는 **다른 개인정보 동의와 별도로** 받아야 한다(일반 동의에 묶으면 위법).
+ * 미동의도 진짜 선택지가 되도록(§22⑤ 동의의 자유성) 미동의 시 항목 자체를 수집하지 않고,
+ * 안전은 "디자이너가 대면 확인"으로 보전한다(서버도 동일하게 강제 — service.ts).
+ */
 function AllergyStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patch }) {
+  const consented = !!draft.sensitiveConsentedAt;
   return (
     <div className="space-y-5">
-      <RadioGroup
-        label={t("intake.allergy.question")}
-        options={[
-          { value: "yes", label: t("intake.allergy.has") },
-          { value: "no", label: t("intake.allergy.none") },
-        ]}
-        // 미응답이면 선택 없음(빈 값) — "없음" 기본선택 금지(A4 안전).
-        value={draft.allergy === undefined ? "" : draft.allergy ? "yes" : "no"}
-        onValueChange={(v) =>
-          patch({
-            allergy: v === "yes",
-            allergyNote: v === "yes" ? draft.allergyNote : undefined,
-          })
-        }
-      />
-      {draft.allergy && (
-        <Textarea
-          value={draft.allergyNote ?? ""}
-          onChange={(e) => patch({ allergyNote: e.target.value })}
-          placeholder={t("intake.allergy.notePlaceholder")}
-          aria-label={t("intake.allergy.notePlaceholder")}
+      <div className="space-y-2 rounded-lg border border-border bg-card p-3">
+        <Checkbox
+          checked={consented}
+          onChange={(e) =>
+            patch(
+              e.target.checked
+                ? { sensitiveConsentedAt: new Date().toISOString() }
+                : {
+                    // 동의 철회 시 이미 입력한 건강정보도 즉시 폐기.
+                    sensitiveConsentedAt: undefined,
+                    allergy: undefined,
+                    allergyNote: undefined,
+                  },
+            )
+          }
+          label={t("intake.allergy.sensitiveLabel")}
         />
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {t("intake.allergy.sensitiveHint")}
+        </p>
+      </div>
+
+      {consented ? (
+        <>
+          <RadioGroup
+            label={t("intake.allergy.question")}
+            options={[
+              { value: "yes", label: t("intake.allergy.has") },
+              { value: "no", label: t("intake.allergy.none") },
+            ]}
+            // 미응답이면 선택 없음(빈 값) — "없음" 기본선택 금지(A4 안전).
+            value={draft.allergy === undefined ? "" : draft.allergy ? "yes" : "no"}
+            onValueChange={(v) =>
+              patch({
+                allergy: v === "yes",
+                allergyNote: v === "yes" ? draft.allergyNote : undefined,
+              })
+            }
+          />
+          {draft.allergy && (
+            <Textarea
+              value={draft.allergyNote ?? ""}
+              onChange={(e) => patch({ allergyNote: e.target.value })}
+              placeholder={t("intake.allergy.notePlaceholder")}
+              aria-label={t("intake.allergy.notePlaceholder")}
+            />
+          )}
+        </>
+      ) : (
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {t("intake.allergy.sensitiveSkipped")}
+        </p>
       )}
     </div>
   );
@@ -864,6 +923,8 @@ function ConsentStep({
   consent,
   error,
   onChange,
+  age14,
+  onAge14Change,
   trainingConsent,
   onTrainingChange,
   photoTrainingConsent,
@@ -874,6 +935,8 @@ function ConsentStep({
   consent: boolean;
   error: boolean;
   onChange: (v: boolean) => void;
+  age14: boolean;
+  onAge14Change: (v: boolean) => void;
   trainingConsent: boolean;
   onTrainingChange: (v: boolean) => void;
   photoTrainingConsent: boolean;
@@ -889,6 +952,19 @@ function ConsentStep({
         aria-invalid={error ? true : undefined}
         label={t("intake.consent.label")}
       />
+
+      {/* 만 14세 이상 확인(필수) — PIPA §22-6. 생년월일·나이를 저장하지 않고 자기확인만 기록. */}
+      <div className="space-y-1.5">
+        <Checkbox
+          checked={age14}
+          onChange={(e) => onAge14Change(e.target.checked)}
+          aria-invalid={error && !age14 ? true : undefined}
+          label={t("intake.consent.age14Label")}
+        />
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {t("intake.consent.age14Hint")}
+        </p>
+      </div>
 
       {/* (선택) AI 학습 활용 — 필수 아님. 가명처리·통계 목적. */}
       <Checkbox

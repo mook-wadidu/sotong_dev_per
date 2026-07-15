@@ -599,14 +599,36 @@ export async function startConsultation(input: {
     });
     throw new Error("개인정보·사진 수집 동의가 필요합니다.");
   }
+  // 만 14세 이상 확인 게이트(PIPA §22-6) — 만 14세 미만 아동은 법정대리인 동의가 있어야
+  // 처리 가능. 나이를 저장하지 않고 자기확인만 요구(최소수집). 클라 가드는 우회 가능하므로 서버가 최종.
+  if (!input.intake.age14ConfirmedAt) {
+    await logIssue({
+      salonSlug,
+      severity: "warning",
+      source: "intake",
+      message: "만 14세 이상 확인 없이 제출 차단",
+    });
+    throw new Error("만 14세 이상만 온라인 접수를 이용할 수 있습니다.");
+  }
   // 동의 시각은 **서버 시각**으로 스탬프(클라 시계는 위조·부정확 → 법적 기록 신뢰 불가, A6).
   // 클라가 보낸 consentedAt 은 "동의했다"는 사실 신호로만 쓰고, 시각은 서버가 확정.
   const consentIso = new Date().toISOString();
   input.intake.consentedAt = consentIso;
+  input.intake.age14ConfirmedAt = consentIso;
   if (input.intake.trainingConsentedAt)
     input.intake.trainingConsentedAt = consentIso;
   if (input.intake.photoTrainingConsentedAt)
     input.intake.photoTrainingConsentedAt = consentIso;
+
+  // 민감정보(건강 — 알레르기) 게이트: PIPA §23 은 **별도 동의**를 요구한다.
+  // 별도 동의가 없으면 알레르기 항목을 아예 수집하지 않는다(서버가 강제로 제거) →
+  // 동의가 진짜 '선택'이 되어 동의의 자유성(§22⑤)도 충족. 미수집 시 디자이너가 대면 확인.
+  if (input.intake.sensitiveConsentedAt) {
+    input.intake.sensitiveConsentedAt = consentIso;
+  } else {
+    input.intake.allergy = undefined;
+    input.intake.allergyNote = undefined;
+  }
 
   // 4) 전화번호는 옵셔널 — 없거나 contactOptOut 이면 그대로 진행
   const phone =

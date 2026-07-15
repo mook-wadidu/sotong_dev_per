@@ -149,7 +149,10 @@
       "has": "Yes",
       "none": "No",
       "notePlaceholder": "Tell us which allergy (optional)",
-      "needAnswer": "Please tell us whether you have allergies"
+      "needAnswer": "Please tell us whether you have allergies",
+      "sensitiveLabel": "(Optional) I consent to the collection and use of health information such as allergies.",
+      "sensitiveHint": "Health data is sensitive information, so we ask for separate consent. Declining won't affect your service — we simply won't collect allergy details, and your stylist will ask you in person before any chemical treatment.",
+      "sensitiveSkipped": "Allergy information will not be collected. Your stylist will confirm with you in person before any chemical treatment."
     },
     "phone": {
       "hint": "Leave blank if you have no Korean number",
@@ -166,7 +169,10 @@
       "trainingLabel": "(Optional) I agree to let my info and results be pseudonymized and used to improve the AI service and train models.",
       "trainingHint": "Photos, contact, and name are excluded. Declining won’t affect your service, and you can withdraw anytime.",
       "photoTrainingLabel": "(Optional) I agree to let my photos (before/after & style references) be used for AI training.",
-      "photoTrainingHint": "Selfies/face photos are excluded. Stored separately from your identity (pseudonymized); withdraw anytime."
+      "photoTrainingHint": "Selfies/face photos are excluded. Stored separately from your identity (pseudonymized); withdraw anytime.",
+      "age14Label": "I am 14 years of age or older. (Required)",
+      "age14Hint": "Guests under 14 need a legal guardian's consent and cannot use online check-in. Please speak to the front desk.",
+      "age14Required": "Please confirm you are 14 or older"
     },
     "back": "Back",
     "next": "Next",

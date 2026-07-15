@@ -219,6 +219,13 @@ export async function cleanupExpiredPII(
     } catch {
       // best-effort — 다음 런 재시도.
     }
+    // customers.phone 파기 — 상담 파기 경로가 못 건드리던 **유일한 잔존 전화번호 사본**.
+    // 이게 없어서 동의문의 "방문 90일 후 연락처 파기" 가 사실이 아니었다.
+    try {
+      result.redacted += await repo.scrubExpiredCustomers(before);
+    } catch {
+      // best-effort — 다음 런 재시도.
+    }
   }
 
   return result;

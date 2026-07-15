@@ -713,6 +713,12 @@ export interface Repo {
    */
   scrubExpiredHairProfiles(before: string): Promise<number>;
   /**
+   * retention 지난 customers.phone 파기 — 상담 파기 경로가 못 건드리던 **유일한 잔존
+   * 전화번호 사본**(동의문의 "90일 후 연락처 파기" 를 거짓으로 만들던 갭). created_at 기준.
+   * deviceToken 은 보존(연락처 아님 · 재방문 앵커). 파기한 행 수 반환.
+   */
+  scrubExpiredCustomers(before: string): Promise<number>;
+  /**
    * 주어진 상담들 중 hair_reports 에 고객 유래 PII(사진·style_request·concerns)가
    * **아직 남은** 상담 id 집합. cleanupExpiredPII 선정용 — consultation 이 이미 마스킹돼도
    * 리포트가 남으면 파기 대상으로 잡기 위함(hasPii 는 consultation 필드만 봐서 놓친다).

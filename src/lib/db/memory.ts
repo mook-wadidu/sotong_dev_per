@@ -627,6 +627,19 @@ export class MemoryRepo implements Repo {
     return n;
   }
 
+  async scrubExpiredCustomers(before: string): Promise<number> {
+    // customers.phone — 상담 파기 경로가 못 건드리던 유일한 잔존 전화번호 사본.
+    // deviceToken 은 보존(연락처 아님 · 재방문 앵커). supabase 와 동일 semantics.
+    let n = 0;
+    for (const [id, c] of store.customers) {
+      if (c.createdAt < before && c.phone) {
+        store.customers.set(id, { ...c, phone: undefined });
+        n += 1;
+      }
+    }
+    return n;
+  }
+
   async getByConsultationToken(t: string): Promise<Consultation | null> {
     const id = store.byConsultationToken.get(t);
     return id ? (store.consultations.get(id) ?? null) : null;
@@ -711,6 +724,7 @@ export class MemoryRepo implements Repo {
       store.purgedConsultationIds.add(redacted.id);
     }
     // 리포트(hair_reports)의 고객 유래 PII 도 파기(consultationId 매칭 — 리포트 여러 개 가능).
+    // cautions: 알레르기(건강정보) 서술이 모이는 필드라 반드시 함께(supabase 와 동일).
     for (const [tok, rep] of store.reports) {
       if (rep.consultationId === redacted.id) {
         store.reports.set(tok, {
@@ -719,8 +733,17 @@ export class MemoryRepo implements Repo {
           afterPhotoUrl: undefined,
           styleRequest: undefined,
           concerns: undefined,
+          cautions: undefined,
         });
       }
+    }
+    // 대화 원문·번역 파기 — 마스킹이라 cascade 가 없어 전 대화가 무기한 남던 갭(supabase 와 동일).
+    const msgs = store.messages.get(redacted.id);
+    if (msgs) {
+      store.messages.set(
+        redacted.id,
+        msgs.map((m) => ({ ...m, sourceText: "", translations: {} })),
+      );
     }
   }
 
@@ -733,7 +756,8 @@ export class MemoryRepo implements Repo {
         (rep.beforePhotoUrl ||
           rep.afterPhotoUrl ||
           rep.styleRequest ||
-          rep.concerns)
+          rep.concerns ||
+          rep.cautions)
       ) {
         out.add(rep.consultationId);
       }

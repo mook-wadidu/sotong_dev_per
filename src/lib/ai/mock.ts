@@ -132,13 +132,6 @@ export class MockProvider implements AiProvider {
     const grade = input.record?.stateGrade ?? "mid";
     const score = grade === "high" ? 86 : grade === "mid" ? 68 : 52;
 
-    // 디자이너가 기록한 product 는 service 단계에서 카탈로그 라벨로 로컬라이즈된다.
-    // 기록이 없을 때만 mock 이 손님 로케일 기본 제품을 채운다(P1-27 손님 언어 생성).
-    const products =
-      input.record?.products && input.record.products.length
-        ? input.record.products
-        : DEFAULT_PRODUCTS[isColor ? "color" : "base"][locale];
-
     const homeCare: string[] = [];
     if (isColor) {
       homeCare.push(HOMECARE.colorNoWash[locale]);
@@ -155,7 +148,6 @@ export class MockProvider implements AiProvider {
       // serviceSummary 본문을 손님 로케일로(시술명 자체는 카탈로그 피벗 한국어 유지;
       // 라벨 로컬라이즈는 service 레이어가 보강한다).
       serviceSummary: serviceSummaryLine(services, locale),
-      products,
       hairStateGrade: grade,
       hairStateScore: score,
       homeCare,
@@ -182,19 +174,6 @@ function serviceSummaryLine(services: string[], locale: "ko" | "ja" | "en"): str
       return `오늘 시술: ${joined}`;
   }
 }
-
-const DEFAULT_PRODUCTS: Record<"color" | "base", Record<"ko" | "ja" | "en", string[]>> = {
-  color: {
-    ko: ["컬러 트리트먼트", "약산성 중화 트리트먼트"],
-    ja: ["カラートリートメント", "弱酸性中和トリートメント"],
-    en: ["Color treatment", "Acidic neutralizing treatment"],
-  },
-  base: {
-    ko: ["모이스처 트리트먼트"],
-    ja: ["モイスチャートリートメント"],
-    en: ["Moisture treatment"],
-  },
-};
 
 const HOMECARE: Record<string, LText> = {
   colorNoWash: {

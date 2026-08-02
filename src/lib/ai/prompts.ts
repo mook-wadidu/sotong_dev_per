@@ -178,7 +178,6 @@ export function buildReportPrompt(input: ReportInput): string {
   const lang = LOCALE_LANGUAGE[input.customerLocale];
   const s = input.summary;
   const grade = input.record?.stateGrade ?? "mid";
-  const products = input.record?.products ?? [];
   // 실제 시술(디자이너 기록) 우선, 없으면 손님 인테이크 희망(summary.services)로 폴백.
   const serviceLabels = input.actualServiceLabelsKo?.length
     ? input.actualServiceLabelsKo
@@ -190,7 +189,6 @@ export function buildReportPrompt(input: ReportInput): string {
     `Style detail (Korean): ${s.styleDetail || "(none)"}`,
     `Hair cautions (Korean): ${s.hairCautions || "(none)"}`,
     `Hair state grade: ${grade} (high=excellent / mid=normal / low=needs care)`,
-    `Products used (Korean labels): ${fmtListEn(products)}`,
     `Recent conversation notes (Korean, context only — may include declined/hypothetical items): ${fmtListEn(
       input.threadHighlightsKo,
     )}`,
@@ -203,7 +201,6 @@ export function buildReportPrompt(input: ReportInput): string {
     "[Rules]",
     `- Write ALL text fields in ${lang}.`,
     "- serviceSummary: ONE warm, concise sentence (max ~20 words) summarizing ONLY the services actually performed above — never mention services not listed.",
-    "- products: translate ONLY the given Korean product labels naturally into the customer language. If none are given, return an EMPTY array — NEVER invent, suggest, or add products that were not recorded.",
     "- hairStateGrade: must be exactly one of 'high' | 'mid' | 'low', matching the given grade.",
     "- hairStateScore: integer 0-100 consistent with the grade (high ~80-95, mid ~60-75, low ~40-55).",
     "- homeCare: 2-4 short, actionable aftercare tips tailored to the services (e.g. color-care shampoo, no-wash window for color, treatment frequency). Each item a single clear sentence.",
@@ -222,11 +219,6 @@ export const REPORT_SCHEMA: GeminiSchema = {
     serviceSummary: {
       type: "STRING",
       description: "손님 언어로 된 오늘 시술 요약 한 문장",
-    },
-    products: {
-      type: "ARRAY",
-      description: "손님 언어로 된 사용/추천 제품명 배열",
-      items: { type: "STRING" },
     },
     hairStateGrade: {
       type: "STRING",
@@ -249,7 +241,6 @@ export const REPORT_SCHEMA: GeminiSchema = {
   },
   required: [
     "serviceSummary",
-    "products",
     "hairStateGrade",
     "hairStateScore",
     "homeCare",

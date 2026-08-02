@@ -42,7 +42,6 @@ interface Pending {
 export function CustomerThread({
   token,
   locale,
-  salonName,
   initialMessages,
   initialStatus,
   initialReportToken,
@@ -50,7 +49,6 @@ export function CustomerThread({
 }: {
   token: string;
   locale: Locale;
-  salonName: string;
   initialMessages: Message[];
   /** 진입 시점 상담 상태 — 이미 완료라면 첫 렌더부터 리포트 CTA 노출. */
   initialStatus?: ConsultationStatus;
@@ -218,7 +216,7 @@ export function CustomerThread({
     return (
       <MobileFrame tone="muted">
         <ScreenHeader
-          title={salonName || t("thread.title")}
+          title={t("thread.title")}
           subtitle={t("thread.translatedNote")}
         />
         <ScreenBody className="space-y-4 pb-4">
@@ -261,7 +259,7 @@ export function CustomerThread({
   return (
     <MobileFrame tone="muted">
       <ScreenHeader
-        title={salonName || t("thread.title")}
+        title={t("thread.title")}
         subtitle={t("thread.translatedNote")}
       />
 

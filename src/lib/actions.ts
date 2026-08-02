@@ -175,8 +175,11 @@ export async function startService(
 export async function finishAndSendReport(input: {
   designerToken: string;
   record?: {
-    products: string[];
     stateGrade?: ThreeLevel;
+    /** 디자이너가 기록하는 결과 색감(예: "애쉬, 브라운") — 손님 리포트 표기. */
+    colorResult?: string;
+    /** 실매장명 수동입력 — 있으면 DB 살롱명 대신 손님 리포트에 표기. */
+    salonDisplayName?: string;
     /** 실제 캡처한 만족도/결과 점수(AI 추론값 아님) — 카르테에 영속 */
     satisfactionScore?: number;
     /** 디자이너가 실제로 한 시술(살롱 메뉴 id) — 없으면 손님 분류 폴백(태그 구분). */

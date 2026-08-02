@@ -191,6 +191,14 @@ export default async function DesignerSummaryPage({
           labels={summaryCardLabels}
         />
 
+        {/* 손님 희망 색감(A3) — 읽기전용 참고. 디자이너 뷰 ko 고정이라 라벨 한국어.
+            결과 색감은 디자이너가 기록폼에서 따로 남긴다(A2, 이 값과 별개). */}
+        {intake.desiredColor ? (
+          <p className="px-1 text-xs text-muted-foreground">
+            손님 희망 색감: {intake.desiredColor}
+          </p>
+        ) : null}
+
         {/* AI 요약 본문 */}
         {s?.raw?.trim() ? (
           <Card>
@@ -210,7 +218,22 @@ export default async function DesignerSummaryPage({
         {!isCompleted ? (
           <DesignerHairInput
             designerToken={token}
-            initial={consultation.designerInput}
+            // 손님 인테이크 신체정보를 프리로드 → 디자이너는 처음부터 입력이 아니라
+            // 검토·수정만(A3). designer_input 이 이미 있으면 그 값이 우선.
+            initial={{
+              faceShape:
+                consultation.designerInput?.faceShape ?? intake.faceShape,
+              crownVolume:
+                consultation.designerInput?.crownVolume ?? intake.crownVolume,
+              hairDensity:
+                consultation.designerInput?.hairDensity ?? intake.hairDensity,
+              hairType: consultation.designerInput?.hairType ?? intake.hairType,
+              cowlickWhorl:
+                consultation.designerInput?.cowlickWhorl ?? intake.cowlickWhorl,
+              gender: consultation.designerInput?.gender ?? intake.gender,
+              allergyConfirmedByDesigner:
+                consultation.designerInput?.allergyConfirmedByDesigner,
+            }}
             customerAllergy={intake.allergy}
             customerAllergyNote={intake.allergyNote}
           />

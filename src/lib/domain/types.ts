@@ -101,6 +101,8 @@ export interface IntakeDraft {
   selfiePhotoUrl?: string;
   /** 손님 언어 자유 텍스트 — 원하는 스타일 메모 (요약에 번역·반영) */
   styleNote?: string;
+  /** 손님이 원하는 색감(A3, COLOR_TONES ko 라벨). 손님의 WISH — 리포트의 colorResult(달성 결과)와 구별. */
+  desiredColor?: string;
   faceShape?: FaceShape;
   crownVolume?: ThreeLevel;
   hairDensity?: ThreeLevel;
@@ -268,7 +270,8 @@ export interface Message {
 /* ── 헤어 인바디 리포트 (F11 / §10.2) ───────────────────── */
 export interface HairReportDraft {
   serviceSummary: string;
-  products: string[];
+  /** 디자이너가 기록하는 결과 색감(예: "애쉬, 브라운"). 신규 optional — 구 리포트 안전. */
+  colorResult?: string;
   hairStateGrade: ThreeLevel; // 상/중/하
   hairStateScore: number; // 0-100
   homeCare: string[];
@@ -288,6 +291,11 @@ export interface HairReport extends HairReportDraft {
   consultationId: string;
   reportToken: string;
   salonName: string;
+  /**
+   * 실매장명 수동입력 — 있으면 DB 살롱명(salonName) 대신 손님 리포트에 표기.
+   * 파일럿은 DB 살롱=단일 계정이라 실제 시술 매장이 달라 필요.
+   */
+  salonDisplayName?: string;
   /** 살롱 slug(unique) — 오너 콘솔 리포트 필터의 테넌트 키(name 은 non-unique). */
   salonSlug?: string;
   designerName: string;

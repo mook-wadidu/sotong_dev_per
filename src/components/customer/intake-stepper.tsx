@@ -24,7 +24,13 @@ import {
   type RadioOption,
   type ToggleOption,
 } from "@/components/ui";
-import { CONCERNS, INTAKE_CATEGORIES } from "@/lib/catalog";
+import {
+  COLOR_TONES,
+  CONCERNS,
+  CROWN_VOLUME,
+  FACE_SHAPES,
+  INTAKE_CATEGORIES,
+} from "@/lib/catalog";
 import { submitIntake } from "@/lib/actions";
 import {
   getServiceCategoryIcon,
@@ -32,19 +38,21 @@ import {
   getTreatmentTypeIcon,
   SpinnerIcon,
 } from "@/components/icons";
-import { customerThreadPath } from "@/lib/links";
+import { customerPresentPath } from "@/lib/links";
 import {
   emptyIntake,
   type CustomerHairProfile,
+  type FaceShape,
   type IntakeDraft,
   type Locale,
   type LocalizedText,
+  type ThreeLevel,
   type TreatmentType,
   type TreatmentRecency,
 } from "@/lib/domain/types";
 import { resizeImageToDataUrl } from "./resize-image";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 const MAX_PHOTOS = 5;
 
 /** 살롱별 메뉴(서버에서 해석한 가격 포함) — 전역 catalog 대체 */
@@ -124,13 +132,11 @@ function prefilledDraft(
 export function IntakeStepper({
   entryToken,
   locale,
-  salonName,
   services,
   returning,
 }: {
   entryToken: string;
   locale: Locale;
-  salonName: string;
   categories: IntakeMenuCategory[];
   services: IntakeMenuService[];
   returning?: ReturningContext;
@@ -350,7 +356,8 @@ export function IntakeStepper({
       } catch {
         /* 무시 */
       }
-      router.replace(customerThreadPath(res.consultationToken, locale));
+      // 제출 후 제시(present) 화면으로 — QR + 디자이너용 안내. 스레드는 /c/t/[token] 로 여전히 도달 가능.
+      router.replace(customerPresentPath(res.consultationToken, locale));
     } catch {
       setSubmitting(false);
       toast.error(t("intake.submitError"));
@@ -366,7 +373,9 @@ export function IntakeStepper({
       : undefined;
     return (
       <MobileFrame tone="muted">
-        <ScreenHeader title={salonName} />
+        {/* 지점명 없음(의도) — 파일럿은 살롱을 정해놓고 시작하지 않는다(손님이 먼저 작성→
+            디자이너에게 제시하는 흐름 검증). 손님 화면에 소속 지점을 단정하지 않는다. */}
+        <ScreenHeader />
         <ScreenBody className="flex flex-1 flex-col justify-center space-y-5 pb-6">
           <div className="space-y-1.5">
             <h1
@@ -420,7 +429,6 @@ export function IntakeStepper({
   return (
     <MobileFrame tone="muted">
       <ScreenHeader
-        title={salonName}
         leading={
           step > 1 ? (
             <button
@@ -475,6 +483,9 @@ export function IntakeStepper({
         )}
         {step === 5 && <AllergyStep t={t} draft={draft} patch={patch} />}
         {step === 6 && (
+          <BodyStyleStep t={t} locale={locale} draft={draft} patch={patch} />
+        )}
+        {step === 7 && (
           <ConsentStep
             t={t}
             locale={locale}
@@ -560,6 +571,7 @@ const STEP_TITLE_KEYS = [
   "intake.step.history",
   "intake.concern.title",
   "intake.step.allergy",
+  "intake.bodyStyle.title",
   "intake.step.consent",
 ] as const;
 
@@ -916,7 +928,86 @@ function AllergyStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Pat
   );
 }
 
-/* ── ⑥ 동의 (필수) + 상세 Sheet ──────────────────────── */
+/* ── ⑥ 스타일(얼굴형·두상·색감) — 손님 자기입력(선택, 게이트 없음) ────────
+ * 손님이 아는 만큼만 고른다. 디자이너 입력 카드가 얼굴형/두상을 프리로드해 검토·수정한다(A3).
+ * 색감은 손님 '희망' — 디자이너는 결과 색감을 기록폼에서 따로 남긴다(A2, 이 값과 별개).
+ * desiredColor 는 선택 톤의 ko 라벨로 저장 → ko 고정 디자이너 뷰가 바로 읽는다.
+ */
+function BodyStyleStep({
+  t,
+  locale,
+  draft,
+  patch,
+}: {
+  t: T;
+  locale: Locale;
+  draft: IntakeDraft;
+  patch: Patch;
+}) {
+  const selectedColorId =
+    COLOR_TONES.find((c) => c.label.ko === draft.desiredColor)?.id ?? null;
+  return (
+    <div className="space-y-5">
+      <p className="-mt-2 text-sm text-muted-foreground">
+        {t("intake.bodyStyle.hint")}
+      </p>
+
+      <div className="space-y-2">
+        <SectionLabel className="mb-1.5">
+          {t("intake.bodyStyle.faceShape")}
+        </SectionLabel>
+        <RadioGroup
+          variant="grid"
+          label={t("intake.bodyStyle.faceShape")}
+          options={FACE_SHAPES.map<RadioOption<string>>((f) => ({
+            value: f.id,
+            label: f.label[locale] ?? f.label.ko,
+          }))}
+          value={draft.faceShape ?? null}
+          onValueChange={(x) => patch({ faceShape: x as FaceShape })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <SectionLabel className="mb-1.5">
+          {t("intake.bodyStyle.crown")}
+        </SectionLabel>
+        <RadioGroup
+          variant="grid"
+          label={t("intake.bodyStyle.crown")}
+          options={CROWN_VOLUME.map<RadioOption<string>>((c) => ({
+            value: c.id,
+            label: c.label[locale] ?? c.label.ko,
+          }))}
+          value={draft.crownVolume ?? null}
+          onValueChange={(x) => patch({ crownVolume: x as ThreeLevel })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <SectionLabel className="mb-1.5">
+          {t("intake.bodyStyle.color")}
+        </SectionLabel>
+        <RadioGroup
+          variant="grid"
+          label={t("intake.bodyStyle.color")}
+          options={COLOR_TONES.map<RadioOption<string>>((c) => ({
+            value: c.id,
+            label: c.label[locale] ?? c.label.ko,
+          }))}
+          value={selectedColorId}
+          onValueChange={(x) =>
+            patch({
+              desiredColor: COLOR_TONES.find((c) => c.id === x)?.label.ko,
+            })
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ── ⑦ 동의 (필수) + 상세 Sheet ──────────────────────── */
 function ConsentStep({
   t,
   locale,

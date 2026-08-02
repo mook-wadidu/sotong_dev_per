@@ -57,7 +57,7 @@ export async function ReportScreen({
     designer: t("report.designer"),
     date: t("report.date"),
     service: t("report.service"),
-    products: t("report.products"),
+    colorResult: t("report.colorResult"),
     hairState: t("report.hairState"),
     homeCare: t("report.homeCare"),
     before: t("report.before"),

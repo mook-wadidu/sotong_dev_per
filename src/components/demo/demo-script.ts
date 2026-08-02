@@ -277,7 +277,7 @@ const GRADE: ThreeLevel = "high";
 export const DEMO_REPORT_KO: HairReport = {
   serviceSummary:
     "롱 레이어드 컷으로 움직임을 주고, 부드러운 애쉬 브라운 풀 컬러 + 윤기를 위한 수분 트리트먼트를 진행했어요.",
-  products: ["모로칸오일 트리트먼트", "볼륨 미스트", "열보호제"],
+  colorResult: "애쉬, 브라운",
   hairStateGrade: GRADE,
   hairStateScore: 86,
   homeCare: [
@@ -306,7 +306,7 @@ export const DEMO_REPORT_LABELS_KO: ReportLabels = {
   designer: "담당 디자이너",
   date: "시술일",
   service: "받은 시술",
-  products: "사용한 제품",
+  colorResult: "컬러 색감",
   hairState: "모발 상태",
   homeCare: "홈케어 가이드",
   before: "시술 전",

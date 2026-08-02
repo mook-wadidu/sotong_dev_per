@@ -15,7 +15,7 @@ import {
   toast,
   buttonVariants,
 } from "@/components/ui";
-import { PRODUCTS } from "@/lib/catalog";
+import { COLOR_TONES } from "@/lib/catalog";
 import { finishAndSendReport } from "@/lib/actions";
 import { designerReportViewPath, reportPath } from "@/lib/links";
 import { resizeToDataUrl } from "@/lib/image";
@@ -23,10 +23,10 @@ import { cn } from "@/lib/utils";
 import type { Locale, ThreeLevel } from "@/lib/domain/types";
 
 type Labels = {
-  products: string;
-  productsHint: string;
-  addProduct: string;
-  addProductPlaceholder: string;
+  colorResult: string;
+  colorResultHint: string;
+  salonName: string;
+  salonNameHint: string;
   stateGrade: string;
   beforePhoto: string;
   afterPhoto: string;
@@ -56,7 +56,6 @@ type Labels = {
 export function RecordForm({
   token,
   beforeUrl,
-  defaultProducts,
   defaultGrade,
   serviceOptions,
   customerReportOrigin,
@@ -66,8 +65,6 @@ export function RecordForm({
   token: string;
   /** 요약 단계에서 미리 촬영한 비포 사진(있으면 프리필, 교체 가능). */
   beforeUrl?: string;
-  /** 재방문 손님의 지난 시술 약제·제품(카탈로그 id + 커스텀 혼재). */
-  defaultProducts?: string[];
   /** 재방문 손님의 지난 모발 상태 등급. */
   defaultGrade?: ThreeLevel;
   /** 실제 시술 선택지(살롱 메뉴 id + ko 라벨) — 디자이너가 실제 한 시술 기록(학습 정답). */
@@ -80,15 +77,10 @@ export function RecordForm({
 }) {
   const router = useRouter();
   const [serviceIds, setServiceIds] = React.useState<string[]>([]);
-  // 재방문 프리필 — 지난 시술 약제를 카탈로그 id / 커스텀 문자열로 분리해 초기값.
-  const catalogIds = React.useMemo(() => new Set(PRODUCTS.map((p) => p.id)), []);
-  const [productIds, setProductIds] = React.useState<string[]>(() =>
-    (defaultProducts ?? []).filter((p) => catalogIds.has(p)),
-  );
-  const [customProducts, setCustomProducts] = React.useState<string[]>(() =>
-    (defaultProducts ?? []).filter((p) => !catalogIds.has(p)),
-  );
-  const [customInput, setCustomInput] = React.useState("");
+  // 색감(컬러 결과) — 다중 선택 톤. 손님 리포트에 ko 라벨을 ", "로 이어 표기.
+  const [colorTones, setColorTones] = React.useState<string[]>([]);
+  // 실매장명 — 있으면 DB 살롱명 대신 손님 리포트에 표기(수동 입력).
+  const [salonDisplayName, setSalonDisplayName] = React.useState("");
   const [grade, setGrade] = React.useState<ThreeLevel | null>(
     defaultGrade ?? null,
   );
@@ -100,7 +92,7 @@ export function RecordForm({
   // 사진 2장 미만이어도 "사진 없이 기록"을 명시 선택하면 발송 가능(무심코 스킵 방지 — #5 의도적 선택).
   const [skipPhotosAck, setSkipPhotosAck] = React.useState(false);
   // 재방문 프리필 안내 — 프리필이 있을 때만 노출, '비우기'로 초기화.
-  const hasPrefill = (defaultProducts?.length ?? 0) > 0 || defaultGrade != null;
+  const hasPrefill = defaultGrade != null;
   const [prefillCleared, setPrefillCleared] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
   const [reportToken, setReportToken] = React.useState<string | undefined>();
@@ -109,9 +101,9 @@ export function RecordForm({
     string | undefined
   >();
 
-  const productOptions = PRODUCTS.map((p) => ({
-    value: p.id,
-    label: p.label.ko,
+  const colorToneOptions = COLOR_TONES.map((c) => ({
+    value: c.id,
+    label: c.label.ko,
   }));
 
   const gradeOptions = [
@@ -119,13 +111,6 @@ export function RecordForm({
     { value: "mid" as const, label: labels.gradeMid },
     { value: "low" as const, label: labels.gradeLow },
   ];
-
-  const addCustomProduct = () => {
-    const v = customInput.trim();
-    if (!v) return;
-    setCustomProducts((p) => (p.includes(v) ? p : [...p, v]));
-    setCustomInput("");
-  };
 
   const onPhoto = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -142,8 +127,6 @@ export function RecordForm({
   };
 
   const clearPrefill = () => {
-    setProductIds([]);
-    setCustomProducts([]);
     setGrade(null);
     setPrefillCleared(true);
   };
@@ -163,7 +146,15 @@ export function RecordForm({
         const res = await finishAndSendReport({
           designerToken: token,
           record: {
-            products: [...productIds, ...customProducts],
+            // 색감 — 선택 톤의 ko 라벨을 ", "로 이어 손님 리포트에 표기(없으면 미표기).
+            colorResult: colorTones.length
+              ? colorTones
+                  .map((id) => COLOR_TONES.find((c) => c.id === id)?.label.ko)
+                  .filter((l): l is string => Boolean(l))
+                  .join(", ")
+              : undefined,
+            // 실매장명 — 비면 미전송(리포트가 DB 살롱명으로 폴백).
+            salonDisplayName: salonDisplayName.trim() || undefined,
             stateGrade: grade ?? undefined,
             // 만족도는 디자이너가 추정하지 않는다 — 손님이 리포트에서 별점으로 직접 입력(#4b).
             // 실제 한 시술(있으면) → 학습 'actual'. 없으면 서버가 손님 분류로 폴백(intent 태그).
@@ -262,64 +253,31 @@ export function RecordForm({
         </section>
       ) : null}
 
-      {/* 사용 약제·제품 (다중 + 직접추가) */}
+      {/* 색감 (컬러 결과, 다중) — 손님 리포트에 표기 */}
       <section>
-        <SectionLabel>{labels.products}</SectionLabel>
+        <SectionLabel>{labels.colorResult}</SectionLabel>
         <p className="mb-2.5 text-xs text-muted-foreground">
-          {labels.productsHint}
+          {labels.colorResultHint}
         </p>
         <ToggleGroup
-          options={productOptions}
-          value={productIds}
-          onValueChange={setProductIds}
-          label={labels.products}
+          options={colorToneOptions}
+          value={colorTones}
+          onValueChange={setColorTones}
+          label={labels.colorResult}
         />
+      </section>
 
-        {customProducts.length > 0 ? (
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {customProducts.map((p) => (
-              <span
-                key={p}
-                className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-3 py-1.5 text-sm text-accent-text"
-              >
-                {p}
-                <button
-                  type="button"
-                  aria-label={labels.removePhoto}
-                  onClick={() =>
-                    setCustomProducts((arr) => arr.filter((x) => x !== p))
-                  }
-                  className="rounded-full px-1 text-base font-semibold leading-none outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <span aria-hidden="true">×</span>
-                </button>
-              </span>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="mt-2.5 flex gap-2">
-          <Input
-            value={customInput}
-            onChange={(e) => setCustomInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addCustomProduct();
-              }
-            }}
-            placeholder={labels.addProductPlaceholder}
-            className="h-11 flex-1"
-          />
-          <Button
-            variant="outline"
-            size="default"
-            onClick={addCustomProduct}
-            disabled={!customInput.trim()}
-          >
-            {labels.addProduct}
-          </Button>
-        </div>
+      {/* 실매장명 (수동입력) — 있으면 DB 살롱명 대신 손님 리포트에 표기 */}
+      <section>
+        <SectionLabel>{labels.salonName}</SectionLabel>
+        <p className="mb-2.5 text-xs text-muted-foreground">
+          {labels.salonNameHint}
+        </p>
+        <Input
+          value={salonDisplayName}
+          onChange={(e) => setSalonDisplayName(e.target.value)}
+          className="h-11"
+        />
       </section>
 
       {/* 모발 상태 (단일: 상/중/하) */}

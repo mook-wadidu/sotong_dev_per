@@ -1,13 +1,13 @@
 import type { Locale } from "@/lib/domain/types";
 import {
   ALL_SERVICES,
+  COLOR_TONES,
   CONCERNS,
   CROWN_VOLUME,
   FACE_SHAPES,
   HAIR_DENSITY,
   HAIR_HISTORY,
   HAIR_TYPE,
-  PRODUCTS,
   QUICK_REPLIES,
   SERVICE_CATEGORIES,
   TIME_PRESETS,
@@ -125,13 +125,13 @@ export function formatDate(iso: string, locale: Locale): string {
 
 export {
   ALL_SERVICES,
+  COLOR_TONES,
   CONCERNS,
   CROWN_VOLUME,
   FACE_SHAPES,
   HAIR_DENSITY,
   HAIR_HISTORY,
   HAIR_TYPE,
-  PRODUCTS,
   QUICK_REPLIES,
   SERVICE_CATEGORIES,
   TIME_PRESETS,

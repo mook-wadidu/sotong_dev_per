@@ -12,7 +12,7 @@ import { BackToInbox } from "@/components/designer/back-to-inbox";
 
 /**
  * D5 — 30초 기록 → 리포트 발송(ko 고정).
- * 사용 약제(PRODUCTS) / 모발상태(상·중·하) / before·after 사진.
+ * 색감(COLOR_TONES) / 실매장명 / 모발상태(상·중·하) / before·after 사진.
  * 발송 후 손님 locale 의 리포트 링크 노출.
  */
 // 리포트 발송(finishAndSendReport→completeConsultation)은 외국인 손님 시 AI draft 2회 +
@@ -54,7 +54,7 @@ export default async function DesignerReportPage({
     value: s.id,
     label: s.label.ko,
   }));
-  // 재방문 프리필(PRD NOW #5) — 가장 최근 지난 시술의 약제·상태를 기록폼 기본값으로.
+  // 재방문 프리필(PRD NOW #5) — 가장 최근 지난 시술의 모발 상태를 기록폼 기본값으로.
   const lastTreatment = consultation.isReturning
     ? customerTreatments[0]
     : undefined;
@@ -72,7 +72,6 @@ export default async function DesignerReportPage({
         <RecordForm
           token={token}
           beforeUrl={consultation.beforePhotoUrl}
-          defaultProducts={lastTreatment?.products}
           defaultGrade={lastTreatment?.stateGrade}
           serviceOptions={serviceOptions}
           customerReportOrigin={origin}
@@ -80,10 +79,10 @@ export default async function DesignerReportPage({
           labels={{
             reportQrTitle: t("record.reportQrTitle"),
             reportQrHint: t("record.reportQrHint"),
-            products: t("record.products"),
-            productsHint: t("record.productsHint"),
-            addProduct: t("record.addProduct"),
-            addProductPlaceholder: t("record.addProductPlaceholder"),
+            colorResult: t("record.colorResult"),
+            colorResultHint: t("record.colorResultHint"),
+            salonName: t("record.salonName"),
+            salonNameHint: t("record.salonNameHint"),
             stateGrade: t("record.stateGrade"),
             beforePhoto: t("record.beforePhoto"),
             afterPhoto: t("record.afterPhoto"),

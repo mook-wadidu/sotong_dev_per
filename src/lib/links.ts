@@ -24,6 +24,23 @@ export function customerThreadPath(token: string, locale: Locale) {
   return `/${locale}/c/t/${token}`;
 }
 
+/**
+ * 손님 제시(present) 화면 — 인테이크 제출 후 랜딩 겸 재진입점.
+ * 손님이 이 URL 을 저장했다가 매장에서 다시 열어 QR 을 보여준다.
+ */
+export function customerPresentPath(token: string, locale: Locale) {
+  return `/${locale}/c/t/${token}/present`;
+}
+
+/**
+ * 핸드오프(제시-QR) 경로 — 로케일리스. 유효·미만료 토큰이면 디자이너 요약으로 인도.
+ * 토큰에 점(.)이 포함돼 proxy 의 dot 제외 규칙에 걸려 next-intl 미들웨어를 자연히 우회한다
+ * (라우트 핸들러가 직접 리다이렉트하므로 로케일 프리픽스가 붙으면 안 됨).
+ */
+export function handoffPath(token: string) {
+  return `/h/${token}`;
+}
+
 /** 손님 리포트 경로 (1회용 토큰) */
 export function reportPath(token: string, locale: Locale) {
   return `/${locale}/c/r/${token}`;

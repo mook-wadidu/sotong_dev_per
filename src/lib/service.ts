@@ -34,7 +34,6 @@ import {
   faceShapeLabel,
   formatKRW,
   formatPrice,
-  PRODUCTS,
   QUICK_REPLIES,
   TIME_PRESETS,
   CROWN_VOLUME,
@@ -1367,8 +1366,11 @@ export async function recordDesignerIntake(
 export async function completeConsultation(input: {
   designerToken: string;
   record?: {
-    products: string[];
     stateGrade?: ThreeLevel;
+    /** 디자이너가 기록하는 결과 색감(예: "애쉬, 브라운") — 손님 리포트 표기. */
+    colorResult?: string;
+    /** 실매장명 수동입력 — 있으면 DB 살롱명 대신 손님 리포트에 표기. */
+    salonDisplayName?: string;
     /** 실제 캡처한 만족도/결과 점수(AI 추론값 아님) — 카르테에 영속. */
     satisfactionScore?: number;
     /** 디자이너가 실제로 한 시술(살롱 메뉴 id). 미입력 시 손님 분류로 폴백(태그 구분). */
@@ -1449,12 +1451,6 @@ export async function completeConsultation(input: {
       record: input.record,
     });
 
-    // 제품은 **카탈로그에서 확정**(LLM 발명 차단, S2/F2) — 디자이너 기록 제품 id → 손님 로케일 라벨.
-    // 기록 없으면 빈 배열(없는 제품 추천 금지). draft.products(모델 생성)는 쓰지 않는다.
-    const localizedProducts = localizeProducts(
-      input.record?.products ?? [],
-      c.customerLocale,
-    );
     // 모발 상태 등급/점수는 **디자이너 입력에서 결정론적**으로(LLM 조작 차단, S2/F3).
     // 미기록이면 stateEstimated=true 로 표시(리포트가 "측정값"으로 단정하지 않게).
     const designerGrade = input.record?.stateGrade;
@@ -1510,7 +1506,9 @@ export async function completeConsultation(input: {
     let designerReportToken = reportToken;
     const report: HairReport = {
       ...draft,
-      products: localizedProducts,
+      // 색감은 디자이너가 직접 기록(AI 발명 금지, 결정론). 실매장명도 수동입력값 그대로.
+      colorResult: input.record?.colorResult,
+      salonDisplayName: input.record?.salonDisplayName,
       // 등급/점수는 디자이너 입력 기반 결정론값으로 override(모델 값 무시).
       hairStateGrade: finalGrade,
       hairStateScore: finalScore,
@@ -1564,8 +1562,9 @@ export async function completeConsultation(input: {
         const koToken = cryptoToken();
         const koReport: HairReport = {
           ...koDraft,
-          // 제품은 손님 리포트와 동일하게 카탈로그 확정(ko 라벨), 모델 값 무시.
-          products: localizeProducts(input.record?.products ?? [], "ko"),
+          // 색감·실매장명은 손님 리포트와 동일한 디자이너 입력값(결정론).
+          colorResult: input.record?.colorResult,
+          salonDisplayName: input.record?.salonDisplayName,
           // ko 리포트는 요약(ko) 원문 그대로(번역 불필요).
           styleRequest: styleRequestKo,
           concerns: concernsKo,
@@ -1643,7 +1642,8 @@ export async function completeConsultation(input: {
         designerId: c.designerId,
         designerName: c.designerName,
         serviceIds: recordServiceIds,
-        products: input.record?.products ?? [],
+        // 약제는 손님 리포트 경로에서 제거됨 — 카르테 컬럼은 유지하되 더는 채우지 않는다([]).
+        products: [],
         stateGrade: input.record?.stateGrade,
         satisfactionScore: input.record?.satisfactionScore,
         note: undefined,
@@ -1696,8 +1696,8 @@ export async function completeConsultation(input: {
           concernIds: c.intake.concernIds ?? [],
           allergy: !!c.intake.allergy,
           serviceIds: recordServiceIds,
-          // 카탈로그 id 만(모델 생성 라벨 폴백 제거 — 데이터셋 오염 방지, F10).
-          products: input.record?.products ?? [],
+          // 약제는 손님 리포트 경로에서 제거됨 — 학습셋 컬럼은 유지하되 더는 채우지 않는다([]).
+          products: [],
           stateGrade: input.record?.stateGrade ?? report.hairStateGrade,
           hairStateScore: report.hairStateScore,
           satisfactionScore: input.record?.satisfactionScore,
@@ -2021,19 +2021,9 @@ export function customerPrice(won: number, locale: Locale): string {
   return formatPrice(won, locale);
 }
 
-const PRODUCT_MAP = new Map(PRODUCTS.map((p) => [p.id, p]));
-
 /** 모발 상태 등급 → 결정론적 점수(LLM 조작 대신). 등급-점수 일관성 보장. */
 function scoreFromGrade(grade: ThreeLevel): number {
   return grade === "high" ? 88 : grade === "low" ? 45 : 68;
-}
-
-/** 디자이너 기록 product(카탈로그 id 또는 자유 문자열)를 손님 로케일 라벨로. */
-function localizeProducts(products: string[], locale: Locale): string[] {
-  return products.map((p) => {
-    const item = PRODUCT_MAP.get(p);
-    return item ? (item.label[locale] ?? item.label.ko) : p;
-  });
 }
 
 /** 무인증 토큰 — 절단 없이 192bit 랜덤(base64url). 다른 토큰과 엔트로피 통일(스캔/열거 차단). */

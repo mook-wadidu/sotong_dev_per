@@ -41,7 +41,8 @@ export interface ReportLabels {
   designer: string;
   date: string;
   service: string;
-  products: string;
+  /** 색감(컬러 결과) 섹션 라벨. */
+  colorResult: string;
   hairState: string;
   homeCare: string;
   before: string;
@@ -443,13 +444,14 @@ export function ReportView({
               <p className="text-[0.7rem] font-medium uppercase tracking-wide text-white/70">
                 {labels.salon}
               </p>
-              <p className="truncate text-base font-bold">{report.salonName}</p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="text-[0.7rem] font-medium uppercase tracking-wide text-white/70">
-                {labels.designer}
+              {/* 실매장명(수동입력) 우선, 없으면 DB 살롱명. */}
+              <p className="truncate text-base font-bold">
+                {report.salonDisplayName ?? report.salonName}
               </p>
-              <p className="text-sm font-semibold">{report.designerName}</p>
+            </div>
+            {/* 손님 리포트에는 디자이너 실명을 노출하지 않는다 — 일반 라벨만 표기. */}
+            <div className="shrink-0 text-right">
+              <p className="text-sm font-semibold">{labels.designer}</p>
             </div>
           </div>
 
@@ -639,22 +641,16 @@ export function ReportView({
           </div>
         )}
 
-        {/* 사용한 제품 */}
-        {report.products.length > 0 && (
+        {/* 색감 (컬러 결과) — 있을 때만 */}
+        {report.colorResult ? (
           <section>
             <SectionLabel className="flex items-center gap-1.5">
               <ClinicIcon className="size-4" />
-              {labels.products}
+              {labels.colorResult}
             </SectionLabel>
-            <div className="flex flex-wrap gap-1.5">
-              {report.products.map((p, i) => (
-                <Badge key={i} variant="accent">
-                  {p}
-                </Badge>
-              ))}
-            </div>
+            <Badge variant="accent">{report.colorResult}</Badge>
           </section>
-        )}
+        ) : null}
 
         {/* 홈케어 가이드 */}
         {report.homeCare.length > 0 && (

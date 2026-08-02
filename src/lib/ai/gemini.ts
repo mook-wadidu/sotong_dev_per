@@ -235,7 +235,6 @@ export class GeminiProvider implements AiProvider {
 
     return {
       serviceSummary: str(raw.serviceSummary) || mock.serviceSummary,
-      products: strArr(raw.products, mock.products),
       hairStateGrade: grade,
       hairStateScore: score,
       homeCare: strArr(raw.homeCare, mock.homeCare),

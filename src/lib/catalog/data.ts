@@ -489,47 +489,16 @@ export const TIME_PRESETS: TimePreset[] = [
   { minutes: 120, label: L("2시간", "2時間", "2 hours", "2小时") },
 ];
 
-/* ── 약제·제품 카탈로그 (P1, '30초 기록' 칩화) ─────────── */
+/* ── 색감(컬러 결과) 카탈로그 (손님 리포트 색감 칩) ─────────── */
 /**
- * 디자이너가 시술 기록 시 탭으로 고르는 흔한 약제/제품.
- * HairReport.products(string[]) 에 들어갈 라벨의 소스.
+ * 디자이너가 시술 기록 시 탭으로 고르는 결과 색감(톤).
+ * HairReport.colorResult 에 들어갈 라벨(ko)의 소스 — 손님 리포트에 표기.
  */
-export const PRODUCTS: CatalogItem[] = [
-  {
-    id: "color_dye",
-    label: L("컬러제(염모제)", "カラー剤", "Color dye", "染发剂"),
-  },
-  { id: "bleach", label: L("블리치(탈색제)", "ブリーチ剤", "Bleach", "漂发剂") },
-  {
-    id: "perm_lotion_1",
-    label: L("펌 1제", "パーマ1剤", "Perm lotion (1st)", "烫发剂(一剂)"),
-  },
-  {
-    id: "perm_lotion_2",
-    label: L("펌 2제", "パーマ2剤", "Perm lotion (2nd)", "烫发剂(二剂)"),
-  },
-  {
-    id: "neutralizer",
-    label: L("중화제", "中和剤", "Neutralizer", "中和剂"),
-  },
-  {
-    id: "treatment",
-    label: L("트리트먼트", "トリートメント", "Treatment", "护理剂"),
-  },
-  {
-    id: "scalp_tonic",
-    label: L("두피 토닉", "頭皮トニック", "Scalp tonic", "头皮养护液"),
-  },
-  {
-    id: "straightener",
-    label: L("매직약(연화제)", "縮毛矯正剤", "Straightening agent", "软化剂"),
-  },
-  {
-    id: "protein",
-    label: L("단백질 보충제(PPT)", "プロテイン剤", "Protein (PPT)", "蛋白补充剂(PPT)"),
-  },
-  {
-    id: "scalp_protector",
-    label: L("두피 보호제", "頭皮保護剤", "Scalp protector", "头皮保护剂"),
-  },
+export const COLOR_TONES: CatalogItem[] = [
+  { id: "ash", label: L("애쉬", "アッシュ", "Ash", "亚麻灰") },
+  { id: "brown", label: L("브라운", "ブラウン", "Brown", "棕色") },
+  { id: "black", label: L("블랙", "ブラック", "Black", "黑色") },
+  { id: "blonde", label: L("블론드", "ブロンド", "Blonde", "金色") },
+  { id: "red", label: L("레드", "レッド", "Red", "红色") },
+  { id: "natural", label: L("내추럴", "ナチュラル", "Natural", "自然色") },
 ];

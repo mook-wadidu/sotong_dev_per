@@ -20,9 +20,6 @@ export default async function CustomerThreadPage({
   }
 
   const loc = locale as Locale;
-  const salonName = view.salon
-    ? (view.salon.nameTranslations?.[loc] ?? view.salon.name)
-    : "";
 
   // 시술중 화면용 요약 — 시술 라벨은 손님 언어로 resolve, 나머지는 인테이크 원본(손님 언어).
   const intake = view.consultation.intake;
@@ -42,7 +39,6 @@ export default async function CustomerThreadPage({
     <CustomerThread
       token={token}
       locale={loc}
-      salonName={salonName}
       initialMessages={view.messages}
       initialStatus={view.consultation.status}
       initialReportToken={view.consultation.reportToken}

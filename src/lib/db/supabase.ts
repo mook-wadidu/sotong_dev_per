@@ -229,7 +229,8 @@ interface HairReportRow {
   designer_name: string;
   locale: Locale;
   service_summary: string;
-  products: string[] | null;
+  color_result: string | null;
+  salon_display_name: string | null;
   hair_state_grade: HairReport["hairStateGrade"];
   hair_state_score: number;
   home_care: string[] | null;
@@ -284,7 +285,7 @@ const TREATMENT_RECORD_COLS =
 const MESSAGE_COLS =
   "id,consultation_id,sender,source_text,source_locale,intent,translations,created_at";
 const REPORT_COLS =
-  "consultation_id,report_token,salon_name,salon_slug,designer_name,locale,service_summary,products,hair_state_grade,hair_state_score,home_care,next_visit_weeks,report_date,before_photo_url,after_photo_url,style_request,concerns,cautions";
+  "consultation_id,report_token,salon_name,salon_slug,designer_name,locale,service_summary,color_result,salon_display_name,hair_state_grade,hair_state_score,home_care,next_visit_weeks,report_date,before_photo_url,after_photo_url,style_request,concerns,cautions";
 const ERROR_COLS =
   "id,salon_slug,severity,source,message,detail,consultation_id,created_at";
 const PUSH_SUB_COLS =
@@ -489,11 +490,12 @@ function toHairReport(r: HairReportRow): HairReport {
     consultationId: r.consultation_id,
     reportToken: r.report_token,
     salonName: r.salon_name,
+    salonDisplayName: r.salon_display_name ?? undefined,
     salonSlug: r.salon_slug ?? undefined,
     designerName: r.designer_name,
     locale: r.locale,
     serviceSummary: r.service_summary,
-    products: r.products ?? [],
+    colorResult: r.color_result ?? undefined,
     hairStateGrade: r.hair_state_grade,
     hairStateScore: r.hair_state_score,
     homeCare: r.home_care ?? [],
@@ -1895,11 +1897,12 @@ export class SupabaseRepo implements Repo {
       consultation_id: report.consultationId,
       report_token: report.reportToken,
       salon_name: report.salonName,
+      salon_display_name: report.salonDisplayName ?? null,
       salon_slug: report.salonSlug ?? null,
       designer_name: report.designerName,
       locale: report.locale,
       service_summary: report.serviceSummary,
-      products: report.products,
+      color_result: report.colorResult ?? null,
       hair_state_grade: report.hairStateGrade,
       hair_state_score: report.hairStateScore,
       home_care: report.homeCare,

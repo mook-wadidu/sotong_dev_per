@@ -25,9 +25,6 @@ export default async function CustomerEntryPage({
   await trackEvent("scan", { salonSlug: salon.slug, locale }); // QR 진입(유효 살롱만)
 
   const loc = locale as Locale;
-  const salonName = salon.nameTranslations
-    ? (salon.nameTranslations[loc] ?? salon.name)
-    : salon.name;
 
   // 디자이너 직급 라벨(다국어) — 있으면 "이름 · 직급"을 손님 언어로 표시한다.
   // rankLabel 없으면(미배정/직급 미설정) 이름만 표시(현행).
@@ -44,12 +41,11 @@ export default async function CustomerEntryPage({
           salonSlug={salon.slug}
           locale={loc}
         />
-        {/* 살롱 이름 */}
+        {/* 지점명 없음(의도) — 파일럿은 살롱을 정해놓고 시작하지 않는다. 진입 화면은
+            브랜드 로고 + 언어 선택만(손님 소속 지점을 단정하지 않음). designer 는 살롱 QR
+            진입 시 null 이라 파일럿에선 표시되지 않음. */}
         <div className="animate-rise space-y-3 text-center">
           <LogoSymbol className="animate-logo mx-auto size-11 text-brand" />
-          <h1 className="text-2xl font-bold leading-tight text-foreground">
-            {salonName}
-          </h1>
           {designer ? (
             <p className="text-sm font-medium text-accent-text">
               {designer.name}
@@ -61,9 +57,9 @@ export default async function CustomerEntryPage({
               ) : null}
             </p>
           ) : null}
-          <p className="mx-auto max-w-xs text-pretty text-sm text-muted-foreground">
+          <h1 className="mx-auto max-w-xs text-pretty text-lg font-bold leading-snug text-foreground">
             {t("langSelect.title")}
-          </p>
+          </h1>
         </div>
 
         {/* 언어 선택 */}

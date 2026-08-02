@@ -26,15 +26,10 @@ export default async function IntakePage({
     return <InvalidEntry kind="entry" />;
   }
 
-  const salonName = menu.nameTranslations
-    ? (menu.nameTranslations[locale as Locale] ?? menu.salonName)
-    : menu.salonName;
-
   return (
     <IntakeStepper
       entryToken={token}
       locale={locale as Locale}
-      salonName={salonName}
       categories={menu.categories}
       services={menu.services}
       returning={returning ?? undefined}

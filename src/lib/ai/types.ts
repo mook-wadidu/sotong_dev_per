@@ -52,7 +52,6 @@ export interface ReportInput {
    */
   actualServiceLabelsKo?: string[];
   record?: {
-    products: string[];
     stateGrade?: ThreeLevel;
   };
 }

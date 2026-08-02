@@ -58,8 +58,13 @@
   "present": {
     "title": "매장에서 보여주세요",
     "subtitle": "직원이 이 QR을 스캔하면 상담이 이어져요",
-    "saveLinkHint": "이 링크를 저장해두세요. 나중에 다시 열 수 있어요.",
-    "reshow": "다시 표시"
+    "saveLinkHint": "이 링크를 저장해두세요. 시술 후 리포트도 여기서 확인할 수 있어요.",
+    "reshow": "다시 표시",
+    "myLinkTitle": "내 링크",
+    "copy": "복사",
+    "copied": "링크를 복사했어요",
+    "completed": "시술이 완료됐어요",
+    "viewReport": "리포트 보기"
   },
   "intake": {
     "title": "원하시는 스타일을 알려주세요",

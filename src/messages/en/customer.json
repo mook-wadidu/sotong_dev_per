@@ -58,8 +58,13 @@
   "present": {
     "title": "Show this at the salon",
     "subtitle": "Staff will scan this QR to continue your consultation",
-    "saveLinkHint": "Save this link — you can reopen it later.",
-    "reshow": "Show again"
+    "saveLinkHint": "Save this link — you can also view your report here after the service.",
+    "reshow": "Show again",
+    "myLinkTitle": "My link",
+    "copy": "Copy",
+    "copied": "Link copied",
+    "completed": "Your service is complete",
+    "viewReport": "View report"
   },
   "intake": {
     "title": "Tell us the style you want",

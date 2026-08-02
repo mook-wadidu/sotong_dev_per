@@ -58,8 +58,13 @@
   "present": {
     "title": "请在店内出示",
     "subtitle": "店员扫描此二维码即可继续为您服务",
-    "saveLinkHint": "请保存此链接，稍后可再次打开。",
-    "reshow": "重新显示"
+    "saveLinkHint": "请保存此链接，护理后也可在此查看您的报告。",
+    "reshow": "重新显示",
+    "myLinkTitle": "我的链接",
+    "copy": "复制",
+    "copied": "已复制链接",
+    "completed": "您的护理已完成",
+    "viewReport": "查看报告"
   },
   "intake": {
     "title": "请告诉我们您想要的风格",

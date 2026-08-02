@@ -147,6 +147,12 @@ export default async function DesignerSummaryPage({
               </Badge>
             ) : null}
           </div>
+          {/* 손님이 이름을 남긴 경우만 호칭용으로 노출(선택 항목) — ko 고정 디자이너 뷰. */}
+          {intake.name?.trim() ? (
+            <p className="text-sm font-medium text-foreground">
+              손님: {intake.name.trim()}
+            </p>
+          ) : null}
         </div>
 
         {/* 주의사항 강조 (알레르기 항상 노출) — 색 대신 굵은 좌측 외곽선 + 라벨로 강조 */}

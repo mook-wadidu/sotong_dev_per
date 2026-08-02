@@ -86,6 +86,10 @@ export interface IntakeDraft {
   age?: number;
   /** 손님 성별 (선택) — 시술명/추천 보정에 참고. */
   gender?: "female" | "male" | "other";
+  /** 손님 이름 (선택) — 표시·호칭용. */
+  name?: string;
+  /** 손님 국적 (선택, NATIONALITIES 지역 코드) — 로케일 추정(customerLocale)과 별개로 손님이 명시 입력. */
+  nationality?: string;
   /**
    * 손님이 고른 **큰 시술 분류**(컷·펌·염색·클리닉/케어·스타일링·기타).
    * MVP: 손님은 분류만 고르고, 실제 세부 시술(serviceIds)은 디자이너가 기록폼에서 정한다.

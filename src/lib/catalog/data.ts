@@ -502,3 +502,17 @@ export const COLOR_TONES: CatalogItem[] = [
   { id: "red", label: L("레드", "レッド", "Red", "红色") },
   { id: "natural", label: L("내추럴", "ナチュラル", "Natural", "自然色") },
 ];
+
+/* ── 국적(지역) 카탈로그 — 인테이크 손님 자기입력(선택) ─────────────
+ * 로케일 추정(customerLocale)과 별개로 손님이 명시 고르는 coarse 지역 집합.
+ * IntakeDraft.nationality 에 id 로 저장. 라벨은 각 로케일로 노출.
+ */
+export const NATIONALITIES: CatalogItem[] = [
+  { id: "japan", label: L("일본", "日本", "Japan", "日本") },
+  { id: "china", label: L("중국", "中国", "China", "中国") },
+  { id: "taiwan", label: L("대만", "台湾", "Taiwan", "台湾") },
+  { id: "hongkong", label: L("홍콩", "香港", "Hong Kong", "香港") },
+  { id: "usa", label: L("미국", "アメリカ", "USA", "美国") },
+  { id: "english", label: L("영어권", "英語圏", "English-speaking", "英语圈") },
+  { id: "other", label: L("기타", "その他", "Other", "其他") },
+];

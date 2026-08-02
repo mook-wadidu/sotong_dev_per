@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import {
   Button,
   Checkbox,
+  Input,
   MobileFrame,
   ProgressSteps,
   RadioGroup,
@@ -30,6 +31,7 @@ import {
   CROWN_VOLUME,
   FACE_SHAPES,
   INTAKE_CATEGORIES,
+  NATIONALITIES,
 } from "@/lib/catalog";
 import { submitIntake } from "@/lib/actions";
 import {
@@ -951,6 +953,36 @@ function BodyStyleStep({
       <p className="-mt-2 text-sm text-muted-foreground">
         {t("intake.bodyStyle.hint")}
       </p>
+
+      {/* 이름(선택) — 표시·호칭용. 게이트 없음. */}
+      <div className="space-y-2">
+        <SectionLabel className="mb-1.5">
+          {t("intake.bodyStyle.name")}
+        </SectionLabel>
+        <Input
+          value={draft.name ?? ""}
+          onChange={(e) => patch({ name: e.target.value || undefined })}
+          placeholder={t("intake.bodyStyle.namePlaceholder")}
+          aria-label={t("intake.bodyStyle.name")}
+        />
+      </div>
+
+      {/* 국적(선택) — 로케일 추정과 별개로 손님이 명시 선택. */}
+      <div className="space-y-2">
+        <SectionLabel className="mb-1.5">
+          {t("intake.bodyStyle.nationality")}
+        </SectionLabel>
+        <RadioGroup
+          variant="grid"
+          label={t("intake.bodyStyle.nationality")}
+          options={NATIONALITIES.map<RadioOption<string>>((n) => ({
+            value: n.id,
+            label: n.label[locale] ?? n.label.ko,
+          }))}
+          value={draft.nationality ?? null}
+          onValueChange={(x) => patch({ nationality: x })}
+        />
+      </div>
 
       <div className="space-y-2">
         <SectionLabel className="mb-1.5">

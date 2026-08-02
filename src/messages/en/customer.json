@@ -162,6 +162,9 @@
     },
     "bodyStyle": {
       "title": "Tell us your face shape, crown & color",
+      "name": "Name (optional)",
+      "namePlaceholder": "What should we call you?",
+      "nationality": "Nationality (optional)",
       "faceShape": "Face shape",
       "crown": "Crown (top volume)",
       "color": "Desired color",
@@ -318,7 +321,7 @@
     "purposeH": "2. Purposes",
     "purposeB": "(i) Running the multilingual consultation (real-time translation); (ii) creating and delivering your after-service hair report; (iii) recognizing your history on return visits; (iv) with separate consent, using pseudonymized data to improve the AI service and train models. We do not use your data for other purposes.",
     "itemsH": "3. Data we collect",
-    "itemsB": "· Required: language preference, requested service category, consultation messages, confirmation that you are 14 or older, consent records (timestamps)\n· Optional: contact number, hair/style reference photos, before-and-after photos, free-text notes on style and concerns, recent treatment history, concern tags\n· Only with separate consent: allergy status and related notes (health data)\n· Entered by your stylist: face shape, crown volume, hair density, hair type, cowlick, gender, treatment records and notes, hair condition grade\n· Generated automatically: a device cookie (sotong_did) and service operation logs\nWe do not collect your date of birth, age, or name.",
+    "itemsB": "· Required: language preference, requested service category, consultation messages, confirmation that you are 14 or older, consent records (timestamps)\n· Optional: contact number, name, nationality, hair/style reference photos, before-and-after photos, free-text notes on style and concerns, recent treatment history, concern tags\n· Only with separate consent: allergy status and related notes (health data)\n· Entered by your stylist: face shape, crown volume, hair density, hair type, cowlick, gender, treatment records and notes, hair condition grade\n· Generated automatically: a device cookie (sotong_did) and service operation logs\nWe do not collect your date of birth or age.",
     "sensitiveH": "4. Sensitive data (health)",
     "sensitiveB": "Allergy information is health data and therefore sensitive. We collect and use it only where you have given **separate consent, distinct from other data**, and only to verify safety for chemical treatments. Declining does not restrict your service — we simply do not collect it, and your stylist will ask you directly before any chemical treatment.",
     "retentionH": "5. Retention and deletion",

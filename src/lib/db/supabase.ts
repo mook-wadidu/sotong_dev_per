@@ -1065,50 +1065,60 @@ export class SupabaseRepo implements Repo {
     if (error) fail("updateStatus", error);
   }
 
-  // set-if-null(.is(col,null)) — 최초 1회만 기록, 재열람/재호출은 무시(0012 write-on-read 패턴).
-  async markDesignerViewed(designerToken: string): Promise<void> {
-    const { error } = await this.client
+  // set-if-null(.is(col,null)) — 최초 1회만 기록. .select() 로 affected rows 반환(0=이미 set 또는 미매치).
+  async markDesignerViewed(designerToken: string): Promise<number> {
+    const { data, error } = await this.client
       .from("consultations")
       .update({ designer_viewed_at: new Date().toISOString() })
       .eq("designer_token", designerToken)
-      .is("designer_viewed_at", null);
+      .is("designer_viewed_at", null)
+      .select("id");
     if (error) fail("markDesignerViewed", error);
+    return data?.length ?? 0;
   }
 
-  async markChatStarted(designerToken: string): Promise<void> {
-    const { error } = await this.client
+  async markChatStarted(designerToken: string): Promise<number> {
+    const { data, error } = await this.client
       .from("consultations")
       .update({ chat_started_at: new Date().toISOString() })
       .eq("designer_token", designerToken)
-      .is("chat_started_at", null);
+      .is("chat_started_at", null)
+      .select("id");
     if (error) fail("markChatStarted", error);
+    return data?.length ?? 0;
   }
 
-  async markDesignerEditing(designerToken: string): Promise<void> {
-    const { error } = await this.client
+  async markDesignerEditing(designerToken: string): Promise<number> {
+    const { data, error } = await this.client
       .from("consultations")
       .update({ designer_editing_at: new Date().toISOString() })
       .eq("designer_token", designerToken)
-      .is("designer_editing_at", null);
+      .is("designer_editing_at", null)
+      .select("id");
     if (error) fail("markDesignerEditing", error);
+    return data?.length ?? 0;
   }
 
-  async requestConsent(designerToken: string): Promise<void> {
-    const { error } = await this.client
+  async requestConsent(designerToken: string): Promise<number> {
+    const { data, error } = await this.client
       .from("consultations")
       .update({ plan_ready_at: new Date().toISOString() })
       .eq("designer_token", designerToken)
-      .is("plan_ready_at", null);
+      .is("plan_ready_at", null)
+      .select("id");
     if (error) fail("requestConsent", error);
+    return data?.length ?? 0;
   }
 
-  async markConsented(consultationToken: string): Promise<void> {
-    const { error } = await this.client
+  async markConsented(consultationToken: string): Promise<number> {
+    const { data, error } = await this.client
       .from("consultations")
       .update({ customer_consented_at: new Date().toISOString() })
       .eq("consultation_token", consultationToken)
-      .is("customer_consented_at", null);
+      .is("customer_consented_at", null)
+      .select("id");
     if (error) fail("markConsented", error);
+    return data?.length ?? 0;
   }
 
   async claimConsultationForCompletion(id: string): Promise<boolean> {

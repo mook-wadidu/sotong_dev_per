@@ -983,49 +983,68 @@ export async function getConsultationStatus(
   };
 }
 
-/** 디자이너가 요약을 연 시점 기록(손님 "확인 중" 신호) — best-effort, 읽기 경로 무영향. */
+/** 여정 신호 기록 공통 — best-effort지만 **에러/0rows를 삼키지 않고 logIssue로 남긴다**
+ * (디버깅 인프라: 파일럿 중 silent write 실패 방지 + 진단용 진입/count/error 3갈래). */
+async function markSignal(
+  name: string,
+  token: string,
+  run: () => Promise<number>,
+): Promise<void> {
+  try {
+    const rows = await run();
+    // 0 rows 는 set-if-null 이라 대개 "이미 기록됨"(정상). consent 계열만 미매치 시 문제라 남긴다.
+    if (rows === 0 && (name === "consented" || name === "requestConsent")) {
+      await logIssue({
+        severity: "warning",
+        source: `signal:${name}`,
+        message: "0 rows(이미 처리됐거나 WHERE 미매치)",
+        detail: `token=${token.slice(0, 12)}`,
+      });
+    }
+  } catch (e) {
+    // 빈 catch 로 삼키지 않는다 — 파일럿 중 silent write 실패 방지(디버깅 인프라).
+    await logIssue({
+      severity: "error",
+      source: `signal:${name}`,
+      message: "신호 기록 실패",
+      detail: e instanceof Error ? e.message : String(e),
+    });
+  }
+}
+
+/** 디자이너가 요약을 연 시점 기록(손님 "확인 중" 신호). */
 export async function markDesignerViewed(designerToken: string): Promise<void> {
-  try {
-    await getRepo().markDesignerViewed(designerToken);
-  } catch {
-    /* 신호 기록 실패는 무시(요약 열람 자체엔 영향 없음) */
-  }
+  await markSignal("viewed", designerToken, () =>
+    getRepo().markDesignerViewed(designerToken),
+  );
 }
 
-/** 디자이너 "상담 시작" 시점 기록(손님 채팅 자동입장 신호) — best-effort. */
+/** 디자이너 "상담 시작" 시점 기록(손님 채팅 자동입장 신호). */
 export async function markChatStarted(designerToken: string): Promise<void> {
-  try {
-    await getRepo().markChatStarted(designerToken);
-  } catch {
-    /* 무시 */
-  }
+  await markSignal("chat", designerToken, () =>
+    getRepo().markChatStarted(designerToken),
+  );
 }
 
-/** 디자이너가 모발상태 입력을 시작한 시점 기록(손님 "입력 중" 신호) — best-effort. */
+/** 디자이너가 모발상태 입력을 시작한 시점 기록(손님 "입력 중" 신호). */
 export async function markDesignerEditing(designerToken: string): Promise<void> {
-  try {
-    await getRepo().markDesignerEditing(designerToken);
-  } catch {
-    /* 무시 */
-  }
+  await markSignal("editing", designerToken, () =>
+    getRepo().markDesignerEditing(designerToken),
+  );
 }
 
-/** 디자이너 "시술 시작" 1차 press → 손님 동의 요청(plan_ready_at) — best-effort. */
+/** 디자이너 "시술 시작" 1차 press → 손님 동의 요청(plan_ready_at). */
 export async function requestConsent(designerToken: string): Promise<void> {
-  try {
-    await getRepo().requestConsent(designerToken);
-  } catch {
-    /* 무시 */
-  }
+  await markSignal("requestConsent", designerToken, () =>
+    getRepo().requestConsent(designerToken),
+  );
 }
 
 /** 손님 [확인했어요] → customer_consented_at 기록. consultationToken 키. */
 export async function markConsented(consultationToken: string): Promise<void> {
-  try {
-    await getRepo().markConsented(consultationToken);
-  } catch {
-    /* 무시 */
-  }
+  await markSignal("consented", consultationToken, () =>
+    getRepo().markConsented(consultationToken),
+  );
 }
 
 /** 디자이너 버튼 폴링용 — 동의 요청/완료 여부(designerToken 키). 레이트리밋. */

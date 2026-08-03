@@ -16,12 +16,7 @@ import {
   toast,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import {
-  getConsultationStatus,
-  pollMessages,
-  sendMessage,
-  markConsented,
-} from "@/lib/actions";
+import { getConsultationStatus, pollMessages, sendMessage } from "@/lib/actions";
 import { reportPath } from "@/lib/links";
 import { JourneyBar, type JourneyStage } from "@/components/customer/journey-bar";
 import { ConsultationSummary } from "@/components/shared/consultation-summary";
@@ -89,8 +84,8 @@ export function CustomerThread({
   // 동의 핸드셰이크(B동의) — plan_ready && !consented 면 "시술 계획 확인" 프롬프트.
   const [planReadyAt, setPlanReadyAt] = React.useState<string | undefined>();
   const [consentedAt, setConsentedAt] = React.useState<string | undefined>();
-  // 동의 전송 — 평범한 async(중단 불가). useTransition 은 폴의 800ms setState 로 인터럽트되어
-  // 진행 중 서버액션이 abort 됐다(ERR_ABORTED). boolean state 로 pending 만 표시.
+  // 동의 전송 pending(버튼 disabled). markConsented 는 `/api/consent`(fetch) — 서버액션이
+  // 폴 도는 컴포넌트에서 dispatch 안 닿는 문제 우회(route handler 참고).
   const [consenting, setConsenting] = React.useState(false);
   // 시술중 화면 ↔ 채팅 토글 — 시술중이어도 "추가 질문" 누르면 채팅으로.
   const [showChat, setShowChat] = React.useState(false);
@@ -312,6 +307,8 @@ export function CustomerThread({
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               {t("thread.consentHint")}
             </p>
+            {/* route handler(fetch) — 폴 도는 컴포넌트에서 markConsented 를 서버액션(imperative·form)
+                으로 부르면 dispatch 가 서버에 안 닿아 hang. 평범한 POST 로 우회. 배너는 폴이 내린다. */}
             <Button
               variant="accent"
               size="lg"
@@ -320,8 +317,12 @@ export function CustomerThread({
               onClick={async () => {
                 setConsenting(true);
                 try {
-                  await markConsented(token);
-                  setConsentedAt(new Date().toISOString());
+                  const res = await fetch("/api/consent", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token }),
+                  });
+                  if (res.ok) setConsentedAt(new Date().toISOString());
                 } catch {
                   /* 실패해도 폴이 상태를 재확인 */
                 } finally {

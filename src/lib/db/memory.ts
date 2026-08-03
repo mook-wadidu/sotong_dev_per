@@ -664,50 +664,59 @@ export class MemoryRepo implements Repo {
     if (c) c.status = status;
   }
 
-  async markDesignerViewed(designerToken: string): Promise<void> {
+  async markDesignerViewed(designerToken: string): Promise<number> {
     for (const c of store.consultations.values()) {
       if (c.designerToken === designerToken) {
-        if (!c.designerViewedAt) c.designerViewedAt = new Date().toISOString();
-        return;
+        if (c.designerViewedAt) return 0;
+        c.designerViewedAt = new Date().toISOString();
+        return 1;
       }
     }
+    return 0;
   }
 
-  async markChatStarted(designerToken: string): Promise<void> {
+  async markChatStarted(designerToken: string): Promise<number> {
     for (const c of store.consultations.values()) {
       if (c.designerToken === designerToken) {
-        if (!c.chatStartedAt) c.chatStartedAt = new Date().toISOString();
-        return;
+        if (c.chatStartedAt) return 0;
+        c.chatStartedAt = new Date().toISOString();
+        return 1;
       }
     }
+    return 0;
   }
 
-  async markDesignerEditing(designerToken: string): Promise<void> {
+  async markDesignerEditing(designerToken: string): Promise<number> {
     for (const c of store.consultations.values()) {
       if (c.designerToken === designerToken) {
-        if (!c.designerEditingAt) c.designerEditingAt = new Date().toISOString();
-        return;
+        if (c.designerEditingAt) return 0;
+        c.designerEditingAt = new Date().toISOString();
+        return 1;
       }
     }
+    return 0;
   }
 
-  async requestConsent(designerToken: string): Promise<void> {
+  async requestConsent(designerToken: string): Promise<number> {
     for (const c of store.consultations.values()) {
       if (c.designerToken === designerToken) {
-        if (!c.planReadyAt) c.planReadyAt = new Date().toISOString();
-        return;
+        if (c.planReadyAt) return 0;
+        c.planReadyAt = new Date().toISOString();
+        return 1;
       }
     }
+    return 0;
   }
 
-  async markConsented(consultationToken: string): Promise<void> {
+  async markConsented(consultationToken: string): Promise<number> {
     for (const c of store.consultations.values()) {
       if (c.consultationToken === consultationToken) {
-        if (!c.customerConsentedAt)
-          c.customerConsentedAt = new Date().toISOString();
-        return;
+        if (c.customerConsentedAt) return 0;
+        c.customerConsentedAt = new Date().toISOString();
+        return 1;
       }
     }
+    return 0;
   }
 
   async claimConsultationForCompletion(id: string): Promise<boolean> {

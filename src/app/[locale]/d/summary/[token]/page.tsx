@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { after } from "next/server";
 import { getTranslations } from "next-intl/server";
-import { getDesignerView } from "@/lib/service";
+import { getDesignerView, markDesignerViewed } from "@/lib/service";
 import {
   MobileFrame,
   ScreenHeader,
@@ -16,6 +17,7 @@ import { BackToInbox } from "@/components/designer/back-to-inbox";
 import { BeforePhotoCapture } from "@/components/designer/before-photo-capture";
 import { DesignerHairInput } from "@/components/designer/designer-hair-input";
 import { StartServiceButton } from "@/components/designer/start-service-button";
+import { StartConsultButton } from "@/components/designer/start-consult-button";
 import { DesignerEmr } from "@/components/designer/designer-emr";
 import { CustomerHistory } from "@/components/salon-console/customer-history";
 import { ConsultationSummary } from "@/components/shared/consultation-summary";
@@ -26,7 +28,7 @@ import {
   CareIcon,
   CalendarIcon,
 } from "@/components/icons";
-import { designerThreadPath, designerReportViewPath } from "@/lib/links";
+import { designerReportViewPath } from "@/lib/links";
 import { serviceLabels, INTAKE_CATEGORIES } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 import type { ConsultationStatus } from "@/lib/domain/types";
@@ -44,6 +46,9 @@ export default async function DesignerSummaryPage({
   const { token } = await params;
   const t = await getTranslations("Designer");
   const view = await getDesignerView(token);
+  // 디자이너가 요약을 연 시점 기록(set-if-null) → 손님 present 화면 "확인 중" 신호(B1).
+  // after(): 응답 후 백그라운드·best-effort — 읽기 경로 지연 0.
+  after(() => markDesignerViewed(token));
 
   if (!view) {
     return (
@@ -326,15 +331,10 @@ export default async function DesignerSummaryPage({
       {isCompleted ? null : (
         <ScreenFooter>
           <div className="flex w-full flex-col gap-2">
-            <Link
-              href={designerThreadPath(token)}
-              className={cn(
-                buttonVariants({ variant: "accent", size: "lg" }),
-                "w-full",
-              )}
-            >
-              {t("summary.startConsult")}
-            </Link>
+            <StartConsultButton
+              designerToken={token}
+              label={t("summary.startConsult")}
+            />
             <StartServiceButton
               designerToken={token}
               status={status}
@@ -342,6 +342,7 @@ export default async function DesignerSummaryPage({
                 start: t("summary.startService"),
                 inService: t("inbox.inService"),
                 failed: t("summary.startServiceFailed"),
+                waiting: t("summary.waitingConsent"),
               }}
             />
           </div>

@@ -340,6 +340,16 @@ export interface Consultation {
   reportToken?: string;
   /** 디자이너용 한국어(ko) 리포트 토큰 — 손님용 reportToken 과 별개의 무인증 접근 키. */
   designerReportToken?: string;
+  /** 디자이너가 요약을 연 시점 — 손님 화면 "확인 중" 신호(B1). */
+  designerViewedAt?: string;
+  /** 디자이너 "상담 시작" 시점 — 손님 채팅 자동입장 신호(B1). */
+  chatStartedAt?: string;
+  /** 디자이너가 모발상태 입력을 시작한 시점 — 손님 "입력 중" 신호(B2). */
+  designerEditingAt?: string;
+  /** 디자이너 "시술 시작" 1차 press — 손님 동의 요청 시점(B동의). */
+  planReadyAt?: string;
+  /** 손님 [확인했어요] 시점 — 시술 시작 게이트 해제(B동의). */
+  customerConsentedAt?: string;
   createdAt: string;
 }
 

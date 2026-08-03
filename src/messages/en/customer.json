@@ -55,7 +55,18 @@
     "thread": "We couldn't find this consultation. Please double-check the link you received.",
     "report": "We couldn't find this report. Please double-check the link you received."
   },
+  "journey": {
+    "submitted": "Submitted",
+    "reviewing": "Review",
+    "consulting": "Consult",
+    "service": "Service",
+    "report": "Report"
+  },
   "present": {
+    "reviewingTitle": "The designer is reviewing your intake",
+    "editingTitle": "The designer is checking your hair",
+    "reviewingHint": "Just a moment, please",
+    "reshowQr": "Show QR again",
     "title": "Show this at the salon",
     "subtitle": "Staff will scan this QR to continue your consultation",
     "saveLinkHint": "Save this link — you can also view your report here after the service.",
@@ -182,6 +193,9 @@
       "optOut": "No contact number (traveler)"
     },
     "consent": {
+      "agreeAllRequired": "Agree to all required",
+      "requiredGroup": "Required",
+      "optionalGroup": "Optional (you can still proceed)",
       "label": "I agree to the collection of my information and photos for style consultation.",
       "detail": "Your information (including contact details and photos) is used only for consultation and records. Your contact details, original photos, free-text notes and chat messages are deleted **90 days after your visit**; de-identified records such as service type and hair condition are kept for statistics.",
       "crossBorder": "To enable multilingual consultation, your text input and chat messages are sent to and processed by Google LLC's Gemini AI (USA) — original photos are not sent. Your data is also stored via Supabase in the **Korea (Seoul) region**, and the service runs on Vercel (USA).",
@@ -207,6 +221,9 @@
     "photosRestoreNotice": "Photos aren't saved between sessions — please re-attach your reference photos"
   },
   "thread": {
+    "consentTitle": "Ready to begin?",
+    "consentHint": "We'll proceed as we discussed.",
+    "consentConfirm": "Yes, go ahead",
     "title": "Chat with your designer",
     "placeholder": "Type a message",
     "send": "Send",

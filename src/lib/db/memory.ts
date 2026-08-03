@@ -664,6 +664,52 @@ export class MemoryRepo implements Repo {
     if (c) c.status = status;
   }
 
+  async markDesignerViewed(designerToken: string): Promise<void> {
+    for (const c of store.consultations.values()) {
+      if (c.designerToken === designerToken) {
+        if (!c.designerViewedAt) c.designerViewedAt = new Date().toISOString();
+        return;
+      }
+    }
+  }
+
+  async markChatStarted(designerToken: string): Promise<void> {
+    for (const c of store.consultations.values()) {
+      if (c.designerToken === designerToken) {
+        if (!c.chatStartedAt) c.chatStartedAt = new Date().toISOString();
+        return;
+      }
+    }
+  }
+
+  async markDesignerEditing(designerToken: string): Promise<void> {
+    for (const c of store.consultations.values()) {
+      if (c.designerToken === designerToken) {
+        if (!c.designerEditingAt) c.designerEditingAt = new Date().toISOString();
+        return;
+      }
+    }
+  }
+
+  async requestConsent(designerToken: string): Promise<void> {
+    for (const c of store.consultations.values()) {
+      if (c.designerToken === designerToken) {
+        if (!c.planReadyAt) c.planReadyAt = new Date().toISOString();
+        return;
+      }
+    }
+  }
+
+  async markConsented(consultationToken: string): Promise<void> {
+    for (const c of store.consultations.values()) {
+      if (c.consultationToken === consultationToken) {
+        if (!c.customerConsentedAt)
+          c.customerConsentedAt = new Date().toISOString();
+        return;
+      }
+    }
+  }
+
   async claimConsultationForCompletion(id: string): Promise<boolean> {
     const c = store.consultations.get(id);
     if (!c || (c.status !== "in_service" && c.status !== "consulting")) {

@@ -956,14 +956,91 @@ export async function getCustomerView(
  */
 export async function getConsultationStatus(
   consultationToken: string,
-): Promise<{ status: ConsultationStatus; reportToken?: string } | null> {
+): Promise<{
+  status: ConsultationStatus;
+  reportToken?: string;
+  // 여정 신호(B1/B2/B동의) — 손님 화면이 파생 상태(열람중/입력중/동의대기…)를 계산해 라이브 표시.
+  designerViewedAt?: string;
+  chatStartedAt?: string;
+  designerEditingAt?: string;
+  planReadyAt?: string;
+  customerConsentedAt?: string;
+} | null> {
   // 폴링 레이트리밋(P0) — consultationToken 당 분당 상한(폴 폭주 방지, getMessagesSince 와 동급).
   await enforceRate(`status:${consultationToken}`, 120, 60_000, {
     source: "status",
   });
   const c = await getRepo().getByConsultationToken(consultationToken);
   if (!c) return null;
-  return { status: c.status, reportToken: c.reportToken };
+  return {
+    status: c.status,
+    reportToken: c.reportToken,
+    designerViewedAt: c.designerViewedAt,
+    chatStartedAt: c.chatStartedAt,
+    designerEditingAt: c.designerEditingAt,
+    planReadyAt: c.planReadyAt,
+    customerConsentedAt: c.customerConsentedAt,
+  };
+}
+
+/** 디자이너가 요약을 연 시점 기록(손님 "확인 중" 신호) — best-effort, 읽기 경로 무영향. */
+export async function markDesignerViewed(designerToken: string): Promise<void> {
+  try {
+    await getRepo().markDesignerViewed(designerToken);
+  } catch {
+    /* 신호 기록 실패는 무시(요약 열람 자체엔 영향 없음) */
+  }
+}
+
+/** 디자이너 "상담 시작" 시점 기록(손님 채팅 자동입장 신호) — best-effort. */
+export async function markChatStarted(designerToken: string): Promise<void> {
+  try {
+    await getRepo().markChatStarted(designerToken);
+  } catch {
+    /* 무시 */
+  }
+}
+
+/** 디자이너가 모발상태 입력을 시작한 시점 기록(손님 "입력 중" 신호) — best-effort. */
+export async function markDesignerEditing(designerToken: string): Promise<void> {
+  try {
+    await getRepo().markDesignerEditing(designerToken);
+  } catch {
+    /* 무시 */
+  }
+}
+
+/** 디자이너 "시술 시작" 1차 press → 손님 동의 요청(plan_ready_at) — best-effort. */
+export async function requestConsent(designerToken: string): Promise<void> {
+  try {
+    await getRepo().requestConsent(designerToken);
+  } catch {
+    /* 무시 */
+  }
+}
+
+/** 손님 [확인했어요] → customer_consented_at 기록. consultationToken 키. */
+export async function markConsented(consultationToken: string): Promise<void> {
+  try {
+    await getRepo().markConsented(consultationToken);
+  } catch {
+    /* 무시 */
+  }
+}
+
+/** 디자이너 버튼 폴링용 — 동의 요청/완료 여부(designerToken 키). 레이트리밋. */
+export async function getConsentState(
+  designerToken: string,
+): Promise<{ planReady: boolean; consented: boolean } | null> {
+  await enforceRate(`consent:${designerToken}`, 120, 60_000, {
+    source: "consent",
+  });
+  const c = await getRepo().getByDesignerToken(designerToken);
+  if (!c) return null;
+  return {
+    planReady: !!c.planReadyAt,
+    consented: !!c.customerConsentedAt,
+  };
 }
 
 /** 손님 뷰 PII 제거 — phone / intake.phone 미반환(P1-37). */

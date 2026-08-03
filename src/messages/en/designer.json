@@ -84,6 +84,7 @@
     "fullSummary": "AI summary",
     "startConsult": "Start consultation",
     "startService": "Start service",
+    "waitingConsent": "Waiting for guest confirmation",
     "startServiceFailed": "Couldn't start the service. Please try again.",
     "openThread": "Open chat",
     "report": "Report"

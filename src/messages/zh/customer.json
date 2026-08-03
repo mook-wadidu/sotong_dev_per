@@ -55,7 +55,18 @@
     "thread": "找不到该咨询。请重新确认您收到的链接。",
     "report": "找不到该报告。请重新确认您收到的链接。"
   },
+  "journey": {
+    "submitted": "已填写",
+    "reviewing": "查看",
+    "consulting": "咨询",
+    "service": "护理",
+    "report": "报告"
+  },
   "present": {
+    "reviewingTitle": "设计师正在查看您的咨询表",
+    "editingTitle": "设计师正在确认您的发质状态",
+    "reviewingHint": "请稍候",
+    "reshowQr": "再次显示二维码",
     "title": "请在店内出示",
     "subtitle": "店员扫描此二维码即可继续为您服务",
     "saveLinkHint": "请保存此链接，护理后也可在此查看您的报告。",
@@ -182,6 +193,9 @@
       "optOut": "无联系方式（游客）"
     },
     "consent": {
+      "agreeAllRequired": "同意全部必填项",
+      "requiredGroup": "必填",
+      "optionalGroup": "选填（不同意也可使用）",
       "label": "我同意为风格咨询而收集所填写的信息及照片。",
       "detail": "所收集的信息（含联系方式与照片）仅用于咨询与记录。联系方式、照片原件、自由填写内容及对话记录将在**到店之日起 90 天**后销毁；护理类型、发质状态等去标识化记录会为统计目的保留。",
       "crossBorder": "为提供多语言咨询，您输入的文本与对话内容会发送至 Google LLC（美国）的 Gemini AI 处理（不发送照片原件）。数据还通过 Supabase 存储于**韩国（首尔）区域**，服务运行使用 Vercel（美国）。",
@@ -207,6 +221,9 @@
     "photosRestoreNotice": "照片不会被临时保存 — 请重新添加参考照片"
   },
   "thread": {
+    "consentTitle": "可以开始了吗？",
+    "consentHint": "将按咨询内容进行。",
+    "consentConfirm": "确认",
     "title": "与设计师对话",
     "placeholder": "请输入消息",
     "send": "发送",

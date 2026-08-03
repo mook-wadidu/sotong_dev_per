@@ -16,8 +16,14 @@ import {
   toast,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { getConsultationStatus, pollMessages, sendMessage } from "@/lib/actions";
+import {
+  getConsultationStatus,
+  pollMessages,
+  sendMessage,
+  markConsented,
+} from "@/lib/actions";
 import { reportPath } from "@/lib/links";
+import { JourneyBar, type JourneyStage } from "@/components/customer/journey-bar";
 import { ConsultationSummary } from "@/components/shared/consultation-summary";
 import {
   isAwaitingTranslation,
@@ -77,6 +83,15 @@ export function CustomerThread({
   const [status, setStatus] = React.useState<ConsultationStatus | undefined>(
     initialStatus,
   );
+  // 폴 주기 분기용 — tick 클로저가 최신 status 를 읽게(시술중 저빈도).
+  const statusRef = React.useRef(status);
+  statusRef.current = status;
+  // 동의 핸드셰이크(B동의) — plan_ready && !consented 면 "시술 계획 확인" 프롬프트.
+  const [planReadyAt, setPlanReadyAt] = React.useState<string | undefined>();
+  const [consentedAt, setConsentedAt] = React.useState<string | undefined>();
+  // 동의 전송 — 평범한 async(중단 불가). useTransition 은 폴의 800ms setState 로 인터럽트되어
+  // 진행 중 서버액션이 abort 됐다(ERR_ABORTED). boolean state 로 pending 만 표시.
+  const [consenting, setConsenting] = React.useState(false);
   // 시술중 화면 ↔ 채팅 토글 — 시술중이어도 "추가 질문" 누르면 채팅으로.
   const [showChat, setShowChat] = React.useState(false);
   const endRef = React.useRef<HTMLDivElement>(null);
@@ -100,7 +115,15 @@ export function CustomerThread({
     let active = true;
     // 리포트 도착을 이미 알면 status 폴링은 더 안 한다(자동이동 없이 CTA 만 띄움).
     let reportArrived = initialStatus === "completed" && !!initialReportToken;
+    let serviceTicks = 0;
     const tick = async () => {
+      // 시술 중엔 저빈도(~30s) — 배터리·레이트리밋(800ms*38≈30s). 손님은 대개 폰 놓고 시술받음.
+      // 완전 중단이 아니라 저빈도 → 리포트 도착을 화면이 놓치지 않는다(거짓 "시술 중" 방지).
+      if (statusRef.current === "in_service") {
+        if (serviceTicks++ % 38 !== 0) return;
+      } else {
+        serviceTicks = 0;
+      }
       try {
         const next = await pollMessages({
           token,
@@ -131,6 +154,8 @@ export function CustomerThread({
           if (!active) return;
           if (st) {
             setStatus(st.status);
+            setPlanReadyAt(st.planReadyAt);
+            setConsentedAt(st.customerConsentedAt);
             if (st.status === "completed" && st.reportToken) {
               reportArrived = true;
               setReportToken(st.reportToken);
@@ -211,6 +236,13 @@ export function CustomerThread({
 
   // 시술중 모드: 상태가 in_service 이고, 손님이 채팅으로 전환하지 않았고, 요약 데이터가 있을 때.
   const inServiceMode = status === "in_service" && !showChat && !!summary;
+  // 채팅화면은 상담 이후(chat_started) 도달 → 진행바 단계는 status 로 파생.
+  const threadStage: JourneyStage =
+    status === "completed"
+      ? "report"
+      : status === "in_service"
+        ? "service"
+        : "consulting";
 
   if (inServiceMode && summary) {
     return (
@@ -219,6 +251,9 @@ export function CustomerThread({
           title={t("thread.title")}
           subtitle={t("thread.translatedNote")}
         />
+        <div className="px-4 pt-3">
+          <JourneyBar stage={threadStage} />
+        </div>
         <ScreenBody className="space-y-4 pb-4">
           <div className="rounded-2xl border border-foreground bg-foreground px-4 py-5 text-center text-background">
             <p className="text-lg font-bold">{t("thread.inServiceTitle")}</p>
@@ -263,7 +298,41 @@ export function CustomerThread({
         subtitle={t("thread.translatedNote")}
       />
 
+      <div className="px-4 pt-3">
+        <JourneyBar stage={threadStage} />
+      </div>
+
       <ScreenBody className="flex flex-col gap-3 pb-4">
+        {/* 동의 대기(B동의) — 디자이너가 시술 시작 요청 → 손님이 [확인했어요]로 게이트 해제. */}
+        {planReadyAt && !consentedAt ? (
+          <div className="rounded-2xl border border-foreground bg-accent-soft/60 px-4 py-4 text-center">
+            <p className="text-sm font-bold text-foreground">
+              {t("thread.consentTitle")}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {t("thread.consentHint")}
+            </p>
+            <Button
+              variant="accent"
+              size="lg"
+              className="mt-3 w-full"
+              disabled={consenting}
+              onClick={async () => {
+                setConsenting(true);
+                try {
+                  await markConsented(token);
+                  setConsentedAt(new Date().toISOString());
+                } catch {
+                  /* 실패해도 폴이 상태를 재확인 */
+                } finally {
+                  setConsenting(false);
+                }
+              }}
+            >
+              {t("thread.consentConfirm")}
+            </Button>
+          </div>
+        ) : null}
         <div className="flex flex-1 flex-col gap-3">
           {/* 시술중에 채팅을 연 경우 — 시술 정보로 복귀 */}
           {status === "in_service" && summary ? (

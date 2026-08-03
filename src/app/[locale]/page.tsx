@@ -7,6 +7,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { MobileFrame, ScreenBody } from "@/components/ui/mobile-frame";
 import { LogoSymbol } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
+import { config } from "@/lib/config";
+import { makeSalonEntryToken } from "@/lib/entry";
 import type { Locale } from "@/lib/domain/types";
 
 // zh 손님 카피는 Phase 3(메시지)에서 채운다. 여기 데모 랜딩은 미정 로케일을 ko 로 폴백.
@@ -54,6 +56,13 @@ export default async function Home({
   if (!hasLocale(routing.locales, locale)) notFound();
   const t = COPY[locale as Locale] ?? COPY.ko!;
 
+  // 손님 진입: 기본(파일럿) 살롱이 설정돼 있으면 스캔 없이 바로 인테이크로
+  // (손님 사전작성 모델 — 진입 토큰은 피켓 QR과 동일, 결정론적). 없으면 QR
+  // 스캐너(/scan) 폴백 — 멀티살롱/온사이트용.
+  const customerHref = config.entrySalonSlug
+    ? `/${locale}/c/e/${makeSalonEntryToken(config.entrySalonSlug)}/intake`
+    : `/${locale}/scan`;
+
   return (
     <MobileFrame>
       <ScreenBody className="flex flex-col justify-center gap-8 py-10">
@@ -87,9 +96,9 @@ export default async function Home({
           className="animate-rise space-y-3"
           style={{ animationDelay: "60ms" }}
         >
-          {/* 손님 진입 (주 CTA) — 매장/디자이너 QR 스캔으로(살롱 가정 X) */}
+          {/* 손님 진입 (주 CTA) — 기본 살롱 설정 시 인테이크 직행, 아니면 QR 스캔 */}
           <Link
-            href={`/${locale}/scan`}
+            href={customerHref}
             className={cn(
               buttonVariants({ variant: "accent", size: "xl" }),
               "w-full",

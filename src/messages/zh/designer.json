@@ -84,6 +84,7 @@
     "fullSummary": "AI 摘要",
     "startConsult": "开始咨询",
     "startService": "开始施术",
+    "waitingConsent": "等待顾客确认",
     "startServiceFailed": "开始施术处理失败，请重试。",
     "openThread": "去对话",
     "report": "报告"

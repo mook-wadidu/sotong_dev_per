@@ -15,7 +15,7 @@ import {
   HAIR_DENSITY,
   HAIR_TYPE,
 } from "@/lib/catalog";
-import { recordDesignerIntake } from "@/lib/actions";
+import { recordDesignerIntake, markDesignerEditing } from "@/lib/actions";
 import type {
   DesignerHairInput as DesignerHairInputT,
   FaceShape,
@@ -59,10 +59,16 @@ export function DesignerHairInput({
   const [v, setV] = React.useState<DesignerHairInputT>(initial ?? {});
   const [pending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(false);
+  // 첫 입력 상호작용 시 1회만 "입력 중" 신호(B2) — 손님 present 화면이 폴로 감지.
+  const editedRef = React.useRef(false);
 
   const patch = (p: Partial<DesignerHairInputT>) => {
     setV((s) => ({ ...s, ...p }));
     setSaved(false);
+    if (!editedRef.current) {
+      editedRef.current = true;
+      void markDesignerEditing(designerToken); // best-effort, fire-and-forget
+    }
   };
 
   const save = () => {

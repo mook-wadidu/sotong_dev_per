@@ -41,6 +41,12 @@ import {
   saveBeforePhoto as saveBeforePhotoSvc,
   saveDesignerPush,
   startService as startServiceSvc,
+  markChatStarted as markChatStartedSvc,
+  markDesignerViewed as markDesignerViewedSvc,
+  markDesignerEditing as markDesignerEditingSvc,
+  requestConsent as requestConsentSvc,
+  markConsented as markConsentedSvc,
+  getConsentState as getConsentStateSvc,
   rotateSalonEntryKey as rotateSalonEntryKeySvc,
   rotateDesignerEntryKey as rotateDesignerEntryKeySvc,
   rotateDesignerStaffToken as rotateDesignerStaffTokenSvc,
@@ -59,6 +65,7 @@ import {
   type IntakeMenu,
   type SalonConsoleData,
 } from "@/lib/service";
+import { trackEvent } from "@/lib/track";
 import type { AdminAnalytics } from "@/lib/admin-analytics";
 import type { AdminDesignerStats } from "@/lib/admin-designers";
 import type { AdminReportRow } from "@/lib/admin-reports";
@@ -129,6 +136,19 @@ export async function submitIntake(input: {
   return startConsultation(input);
 }
 
+/* ── 손님: 인테이크 진입 이벤트 (완료율 분모) ──────────────
+ * 홈·피켓 어느 경로든 인테이크를 열면 1건 기록. 세션당 1회 제한은
+ * 클라(스텝퍼)가 sessionStorage 가드로 담당 — 언어전환·새로고침 재발화 방지.
+ * 무효 토큰이면 미기록(랜딩 "scan" 이벤트와 동일하게 유효 살롱만). */
+export async function trackIntakeOpen(
+  entryToken: string,
+  locale: Locale,
+): Promise<void> {
+  const { salon } = await getSalonInfoByEntry(entryToken);
+  if (!salon) return;
+  await trackEvent("intake_open", { salonSlug: salon.slug, locale });
+}
+
 /* ── 스레드: 메시지 전송 / 폴링 ────────────────────────── */
 export async function sendMessage(input: {
   token: string;
@@ -157,10 +177,18 @@ export async function saveSatisfactionRating(
   return saveSatisfactionRatingSvc(reportToken, score);
 }
 
-/* ── 손님: 상담 상태 폴링 (완료 + 리포트 도착 감지) ─────────── */
+/* ── 손님: 상담 상태 폴링 (완료·리포트 + 여정 신호 감지) ─────── */
 export async function getConsultationStatus(
   consultationToken: string,
-): Promise<{ status: ConsultationStatus; reportToken?: string } | null> {
+): Promise<{
+  status: ConsultationStatus;
+  reportToken?: string;
+  designerViewedAt?: string;
+  chatStartedAt?: string;
+  designerEditingAt?: string;
+  planReadyAt?: string;
+  customerConsentedAt?: string;
+} | null> {
   return getConsultationStatusSvc(consultationToken);
 }
 
@@ -169,6 +197,34 @@ export async function startService(
   designerToken: string,
 ): Promise<{ ok: boolean }> {
   return startServiceSvc(designerToken);
+}
+
+/* ── 디자이너: "상담 시작"(채팅 입장) 신호 — 손님 자동입장 트리거 ── */
+export async function markChatStarted(designerToken: string): Promise<void> {
+  return markChatStartedSvc(designerToken);
+}
+
+/* ── 디자이너: 요약 열람 신호(손님 "확인 중") ── */
+export async function markDesignerViewed(designerToken: string): Promise<void> {
+  return markDesignerViewedSvc(designerToken);
+}
+
+/* ── 디자이너: 모발상태 입력 시작 신호(손님 "입력 중") ── */
+export async function markDesignerEditing(designerToken: string): Promise<void> {
+  return markDesignerEditingSvc(designerToken);
+}
+
+/* ── 동의 핸드셰이크(B동의) ── */
+export async function requestConsent(designerToken: string): Promise<void> {
+  return requestConsentSvc(designerToken);
+}
+export async function markConsented(consultationToken: string): Promise<void> {
+  return markConsentedSvc(consultationToken);
+}
+export async function getConsentState(
+  designerToken: string,
+): Promise<{ planReady: boolean; consented: boolean } | null> {
+  return getConsentStateSvc(designerToken);
 }
 
 /* ── 디자이너: 시술 완료 → 리포트 발송 (+카르테 영속) ───────── */

@@ -153,6 +153,11 @@ interface ConsultationRow {
   report_token: string | null;
   designer_report_token: string | null;
   before_photo_url: string | null;
+  designer_viewed_at: string | null;
+  chat_started_at: string | null;
+  designer_editing_at: string | null;
+  plan_ready_at: string | null;
+  customer_consented_at: string | null;
   created_at: string;
 }
 
@@ -275,7 +280,7 @@ const SALON_SERVICE_CATEGORY_COLS =
 const SALON_SERVICE_COLS =
   "id,salon_slug,category_id,label_ko,label_translations,base_price_from,rank_prices,active";
 const CONSULTATION_COLS =
-  "id,salon_slug,designer_id,designer_name,customer_id,customer_locale,status,phone,is_returning,intake,summary,designer_input,consultation_token,designer_token,report_token,designer_report_token,before_photo_url,created_at";
+  "id,salon_slug,designer_id,designer_name,customer_id,customer_locale,status,phone,is_returning,intake,summary,designer_input,consultation_token,designer_token,report_token,designer_report_token,before_photo_url,designer_viewed_at,chat_started_at,designer_editing_at,plan_ready_at,customer_consented_at,created_at";
 const CUSTOMER_COLS =
   "id,salon_slug,device_token,phone,contact_opt_out,locale,is_returning,created_at";
 const CUSTOMER_HAIR_PROFILE_COLS =
@@ -408,6 +413,11 @@ function toConsultation(r: ConsultationRow): Consultation {
     reportToken: r.report_token ?? undefined,
     designerReportToken: r.designer_report_token ?? undefined,
     beforePhotoUrl: r.before_photo_url ?? undefined,
+    designerViewedAt: r.designer_viewed_at ?? undefined,
+    chatStartedAt: r.chat_started_at ?? undefined,
+    designerEditingAt: r.designer_editing_at ?? undefined,
+    planReadyAt: r.plan_ready_at ?? undefined,
+    customerConsentedAt: r.customer_consented_at ?? undefined,
     createdAt: r.created_at,
   };
 }
@@ -1053,6 +1063,52 @@ export class SupabaseRepo implements Repo {
       .update({ status })
       .eq("id", id);
     if (error) fail("updateStatus", error);
+  }
+
+  // set-if-null(.is(col,null)) — 최초 1회만 기록, 재열람/재호출은 무시(0012 write-on-read 패턴).
+  async markDesignerViewed(designerToken: string): Promise<void> {
+    const { error } = await this.client
+      .from("consultations")
+      .update({ designer_viewed_at: new Date().toISOString() })
+      .eq("designer_token", designerToken)
+      .is("designer_viewed_at", null);
+    if (error) fail("markDesignerViewed", error);
+  }
+
+  async markChatStarted(designerToken: string): Promise<void> {
+    const { error } = await this.client
+      .from("consultations")
+      .update({ chat_started_at: new Date().toISOString() })
+      .eq("designer_token", designerToken)
+      .is("chat_started_at", null);
+    if (error) fail("markChatStarted", error);
+  }
+
+  async markDesignerEditing(designerToken: string): Promise<void> {
+    const { error } = await this.client
+      .from("consultations")
+      .update({ designer_editing_at: new Date().toISOString() })
+      .eq("designer_token", designerToken)
+      .is("designer_editing_at", null);
+    if (error) fail("markDesignerEditing", error);
+  }
+
+  async requestConsent(designerToken: string): Promise<void> {
+    const { error } = await this.client
+      .from("consultations")
+      .update({ plan_ready_at: new Date().toISOString() })
+      .eq("designer_token", designerToken)
+      .is("plan_ready_at", null);
+    if (error) fail("requestConsent", error);
+  }
+
+  async markConsented(consultationToken: string): Promise<void> {
+    const { error } = await this.client
+      .from("consultations")
+      .update({ customer_consented_at: new Date().toISOString() })
+      .eq("consultation_token", consultationToken)
+      .is("customer_consented_at", null);
+    if (error) fail("markConsented", error);
   }
 
   async claimConsultationForCompletion(id: string): Promise<boolean> {

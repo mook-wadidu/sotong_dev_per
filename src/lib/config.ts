@@ -88,6 +88,13 @@ export const config = {
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL ?? "",
 
   /**
+   * 홈 "손님으로 시작하기"가 바로 인테이크로 보낼 기본(파일럿) 살롱 slug.
+   * 설정되면 홈 CTA가 그 살롱 진입 토큰을 만들어 인테이크 직행(스캔 불필요).
+   * 비면 기존 QR 스캐너(/scan) 폴백 — 멀티살롱/온사이트용.
+   */
+  entrySalonSlug: process.env.SOTONG_ENTRY_SALON_SLUG ?? "",
+
+  /**
    * PII 파기 크론 보호 시크릿(PIPA). Vercel Cron 이 보내는
    * `Authorization: Bearer <CRON_SECRET>` 검증용. 비면 크론 라우트는 무인증
    * 호출을 모두 거부(파기 잡이 외부에서 트리거되지 않게).

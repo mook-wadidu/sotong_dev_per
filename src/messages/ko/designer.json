@@ -84,6 +84,7 @@
     "fullSummary": "AI 요약",
     "startConsult": "상담 시작",
     "startService": "시술 시작",
+    "waitingConsent": "손님 동의 대기 중",
     "startServiceFailed": "시술 시작을 처리하지 못했어요. 다시 시도해 주세요.",
     "openThread": "대화하기",
     "report": "리포트"

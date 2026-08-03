@@ -562,6 +562,16 @@ export interface Repo {
   getConsultationById(id: string): Promise<Consultation | null>;
 
   updateStatus(id: string, status: ConsultationStatus): Promise<void>;
+  /** 디자이너가 요약을 연 시점 기록(set-if-null, best-effort) — 손님 "확인 중" 신호(B1). */
+  markDesignerViewed(designerToken: string): Promise<void>;
+  /** 디자이너 "상담 시작" 시점 기록(set-if-null, best-effort) — 손님 채팅 자동입장 신호(B1). */
+  markChatStarted(designerToken: string): Promise<void>;
+  /** 디자이너가 모발상태 입력을 시작한 시점 기록(set-if-null, best-effort) — 손님 "입력 중" 신호(B2). */
+  markDesignerEditing(designerToken: string): Promise<void>;
+  /** 디자이너 "시술 시작" 1차 press — 동의 요청(plan_ready_at) set-if-null(B동의). */
+  requestConsent(designerToken: string): Promise<void>;
+  /** 손님 [확인했어요] — customer_consented_at set-if-null. consultationToken 키(B동의). */
+  markConsented(consultationToken: string): Promise<void>;
   /**
    * 완결 클레임 — status 가 in_service/consulting 인 경우에만 'completed' 로 원자 전이하고
    * 승자면 true. 동시 이중완결 시 1건만 body 실행 → 중복 카르테/학습샘플 방지.

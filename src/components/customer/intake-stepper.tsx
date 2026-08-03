@@ -33,7 +33,8 @@ import {
   INTAKE_CATEGORIES,
   NATIONALITIES,
 } from "@/lib/catalog";
-import { submitIntake } from "@/lib/actions";
+import { submitIntake, trackIntakeOpen } from "@/lib/actions";
+import { LocaleSwitch } from "@/components/ui/locale-switch";
 import {
   getServiceCategoryIcon,
   getConcernIcon,
@@ -281,6 +282,19 @@ export function IntakeStepper({
     titleRef.current?.focus();
   }, [step, phase]);
 
+  // 인테이크 진입 1회 기록(완료율 분모) — 언어전환·새로고침 재발화는
+  // sessionStorage 가드로 차단(브라우저 세션·entryToken당 1건).
+  React.useEffect(() => {
+    const key = `sotong:intake_open:${entryToken}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      /* 프라이빗 모드 등 — 가드 실패해도 진행 */
+    }
+    void trackIntakeOpen(entryToken, locale);
+  }, [entryToken, locale]);
+
   // 건강정보 동의를 한 경우에만 알레르기 답변을 강제한다(A4 안전).
   // 미동의는 진짜 선택지 — 그 경우 항목을 수집하지 않으므로 답변도 요구하지 않는다(PIPA §23/§22⑤).
   const allergyAnswerNeeded =
@@ -377,7 +391,7 @@ export function IntakeStepper({
       <MobileFrame tone="muted">
         {/* 지점명 없음(의도) — 파일럿은 살롱을 정해놓고 시작하지 않는다(손님이 먼저 작성→
             디자이너에게 제시하는 흐름 검증). 손님 화면에 소속 지점을 단정하지 않는다. */}
-        <ScreenHeader />
+        <ScreenHeader trailing={<LocaleSwitch />} />
         <ScreenBody className="flex flex-1 flex-col justify-center space-y-5 pb-6">
           <div className="space-y-1.5">
             <h1
@@ -442,6 +456,7 @@ export function IntakeStepper({
             </button>
           ) : undefined
         }
+        trailing={<LocaleSwitch />}
       />
 
       <div className="space-y-1.5 px-4 pt-3">
@@ -1016,25 +1031,28 @@ function BodyStyleStep({
         />
       </div>
 
-      <div className="space-y-2">
-        <SectionLabel className="mb-1.5">
-          {t("intake.bodyStyle.color")}
-        </SectionLabel>
-        <RadioGroup
-          variant="grid"
-          label={t("intake.bodyStyle.color")}
-          options={COLOR_TONES.map<RadioOption<string>>((c) => ({
-            value: c.id,
-            label: c.label[locale] ?? c.label.ko,
-          }))}
-          value={selectedColorId}
-          onValueChange={(x) =>
-            patch({
-              desiredColor: COLOR_TONES.find((c) => c.id === x)?.label.ko,
-            })
-          }
-        />
-      </div>
+      {/* 색: 염색 선택 시에만(시술종류별 조건부) */}
+      {draft.serviceCategoryIds.includes("color") && (
+        <div className="space-y-2">
+          <SectionLabel className="mb-1.5">
+            {t("intake.bodyStyle.color")}
+          </SectionLabel>
+          <RadioGroup
+            variant="grid"
+            label={t("intake.bodyStyle.color")}
+            options={COLOR_TONES.map<RadioOption<string>>((c) => ({
+              value: c.id,
+              label: c.label[locale] ?? c.label.ko,
+            }))}
+            value={selectedColorId}
+            onValueChange={(x) =>
+              patch({
+                desiredColor: COLOR_TONES.find((c) => c.id === x)?.label.ko,
+              })
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -1069,41 +1087,59 @@ function ConsentStep({
   const [open, setOpen] = React.useState(false);
   return (
     <div className="space-y-5">
-      <Checkbox
-        checked={consent}
-        onChange={(e) => onChange(e.target.checked)}
-        aria-invalid={error ? true : undefined}
-        label={t("intake.consent.label")}
-      />
+      {/* 필수 항목 전체 동의 — 학습(선택)은 미포함(명시적 선택 필요: 데이터 사업 근거 강화). */}
+      <button
+        type="button"
+        onClick={() => {
+          onChange(true);
+          onAge14Change(true);
+        }}
+        className="flex w-full items-center justify-center rounded-xl border border-foreground bg-card px-4 py-3 text-sm font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        {t("intake.consent.agreeAllRequired")}
+      </button>
 
-      {/* 만 14세 이상 확인(필수) — PIPA §22-6. 생년월일·나이를 저장하지 않고 자기확인만 기록. */}
-      <div className="space-y-1.5">
+      {/* 필수 */}
+      <div className="space-y-3">
+        <SectionLabel>{t("intake.consent.requiredGroup")}</SectionLabel>
         <Checkbox
-          checked={age14}
-          onChange={(e) => onAge14Change(e.target.checked)}
-          aria-invalid={error && !age14 ? true : undefined}
-          label={t("intake.consent.age14Label")}
+          checked={consent}
+          onChange={(e) => onChange(e.target.checked)}
+          aria-invalid={error ? true : undefined}
+          label={t("intake.consent.label")}
         />
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          {t("intake.consent.age14Hint")}
-        </p>
+        {/* 만 14세 이상 확인(필수) — PIPA §22-6. 생년월일·나이 미저장, 자기확인만. */}
+        <div className="space-y-1.5">
+          <Checkbox
+            checked={age14}
+            onChange={(e) => onAge14Change(e.target.checked)}
+            aria-invalid={error && !age14 ? true : undefined}
+            label={t("intake.consent.age14Label")}
+          />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {t("intake.consent.age14Hint")}
+          </p>
+        </div>
       </div>
 
-      {/* (선택) AI 학습 활용 — 필수 아님. 가명처리·통계 목적. */}
-      <Checkbox
-        checked={trainingConsent}
-        onChange={(e) => onTrainingChange(e.target.checked)}
-        label={t("intake.consent.trainingLabel")}
-        description={t("intake.consent.trainingHint")}
-      />
-
-      {/* (선택) 사진 학습 활용 — 비포/애프터·스타일만(셀카/얼굴 제외). */}
-      <Checkbox
-        checked={photoTrainingConsent}
-        onChange={(e) => onPhotoTrainingChange(e.target.checked)}
-        label={t("intake.consent.photoTrainingLabel")}
-        description={t("intake.consent.photoTrainingHint")}
-      />
+      {/* 선택 — 미동의해도 서비스 이용 가능. 학습 동의는 전체동의에서 제외. */}
+      <div className="space-y-3">
+        <SectionLabel>{t("intake.consent.optionalGroup")}</SectionLabel>
+        {/* (선택) AI 학습 활용 — 가명처리·통계. */}
+        <Checkbox
+          checked={trainingConsent}
+          onChange={(e) => onTrainingChange(e.target.checked)}
+          label={t("intake.consent.trainingLabel")}
+          description={t("intake.consent.trainingHint")}
+        />
+        {/* (선택) 사진 학습 활용 — 비포/애프터·스타일만(셀카/얼굴 제외). */}
+        <Checkbox
+          checked={photoTrainingConsent}
+          onChange={(e) => onPhotoTrainingChange(e.target.checked)}
+          label={t("intake.consent.photoTrainingLabel")}
+          description={t("intake.consent.photoTrainingHint")}
+        />
+      </div>
 
       <button
         type="button"

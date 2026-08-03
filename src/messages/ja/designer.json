@@ -84,6 +84,7 @@
     "fullSummary": "AI要約",
     "startConsult": "相談を開始",
     "startService": "施術を開始",
+    "waitingConsent": "お客様の確認待ち",
     "startServiceFailed": "施術の開始を処理できませんでした。もう一度お試しください。",
     "openThread": "やり取りする",
     "report": "レポート"

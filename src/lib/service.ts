@@ -107,8 +107,34 @@ class RateLimitError extends Error {
 }
 
 /**
+ * 요청의 클라이언트 IP. **없으면 `null` 이고, 호출부가 그걸 판단해야 한다.**
+ *
+ * ⚠️ `?? "unknown"` 폴백을 두면 안 된다(예전엔 세 곳이 그랬다). IP 를 못 읽은 요청
+ * 전부가 **한 버킷을 공유**하게 되고, 그러면 둘 다 깨진다 — 누가 그 버킷을 태우면
+ * 무관한 사람들이 같이 막히고, 반대로 헤더를 지우기만 하면 자기 상한 밖으로 숨는다.
+ * 상한을 거는 목적 자체가 없어진다.
+ */
+async function clientIp(): Promise<string | null> {
+  const h = await headers();
+  const real = h.get("x-real-ip")?.trim();
+  if (real) return real;
+  return h.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+}
+
+/**
  * key 에 대해 windowMs 윈도우 내 최대 max 회 허용. 초과 시 logIssue + throw.
  * repo.rateLimitHit 의 증가 후 count 가 max 를 넘으면 차단한다.
+ *
+ * ## fail-open 이되, **조용하지는 않다**
+ *
+ * 리미터가 죽으면 통과시킨다(가용성 우선) — 매장에 손님이 서 있는데 카운터가 못
+ * 돌아서 상담을 못 만드는 건 더 나쁘다. 다만 예전에는 그 통과가 **이중이고 무음**
+ * 이었다: 드라이버가 RPC 에러를 삼키고 `0` 을 돌려주면 여기서는 그걸 「비가용」으로
+ * 읽고 통과시키는데, 남는 건 `console.error` 한 줄뿐이었다. **상한이 통째로
+ * 사라진 채로 며칠이 지나도 아무도 모른다.**
+ *
+ * 이제 통과는 한 군데서만 결정되고(`catch`), 그 사실이 `logIssue` 로 남는다 —
+ * 운영자가 보는 곳이다.
  */
 async function enforceRate(
   key: string,
@@ -121,12 +147,19 @@ async function enforceRate(
   try {
     count = await getRepo().rateLimitHit(key, windowStart);
   } catch (e) {
-    // 리미터 자체 실패는 서비스를 막지 않는다(가용성 우선) — 흔적만 남긴다.
+    // 리미터 자체 실패는 서비스를 막지 않는다(가용성 우선) — 대신 **보이게** 남긴다.
     console.error("[sotong] enforceRate failed (allowing)", e);
+    await logIssue({
+      salonSlug: ctx.salonSlug,
+      severity: "error",
+      source: ctx.source,
+      message: "레이트리밋 비가용 — 상한 없이 통과시킴",
+      detail: e instanceof Error ? e.message : String(e),
+      consultationId: ctx.consultationId,
+    }).catch(() => undefined);
     return;
   }
-  // count===0 은 리미터 비가용(폴백 통과). 정상 경로는 1 이상.
-  if (count === 0 || count <= max) return;
+  if (count <= max) return;
   // key 에 capability 토큰이 섞여 있으므로 로그엔 프리픽스 + 꼬리 6자만(재사용 방지).
   const dot = key.indexOf(":");
   const safeKey =
@@ -577,8 +610,30 @@ export async function startConsultation(input: {
   if (!resolved) throw new Error("유효하지 않은 입장 토큰입니다.");
   const { salonSlug, designerId, designerName, designer } = resolved;
 
-  // 2) 레이트리밋 — 입장 토큰당 분당 상담 생성 상한
-  await enforceRate(`intake:${input.entryToken}`, 8, 60_000, {
+  // 2) 레이트리밋 — **주 상한은 IP 다. 입장 토큰이 아니다.**
+  //
+  // 예전에는 `intake:${entryToken}` 8/분 하나였다. 파일럿은 살롱 QR 하나를 전
+  // 손님이 쓰므로 그 버킷은 **매장 전체가 공유**한다 — 토큰만 알면(인쇄물이라
+  // 알기 쉽다) 원격에서 분당 8번만 찔러도 그 매장의 접수가 통째로 막힌다.
+  // 손님은 디자이너 앞에 서 있는데 폼이 안 넘어간다.
+  //
+  // IP 를 주 상한으로 두면 원격 공격자는 **자기 버킷만** 태운다. 매장은 NAT 뒤라
+  // 손님끼리 IP 를 공유하지만 그쪽은 전부 정상 트래픽이고, 20/분이면 실제 접수
+  // 속도보다 한참 위다.
+  //
+  // ⚠️ **순서를 뒤집으면 효과가 0이다.** `rateLimitHit` 은 조회가 아니라 증분이라,
+  // 토큰 버킷을 먼저 올리면 IP 로 막힌 요청도 이미 토큰 버킷을 태운 뒤다. IP 가
+  // 먼저 끊어야 토큰 천장이 안 닳는다.
+  const ip = await clientIp();
+  if (ip) {
+    await enforceRate(`intake-ip:${ip}`, 20, 60_000, {
+      salonSlug,
+      source: "intake",
+    });
+  }
+  // 토큰 천장은 남긴다 — IP 를 갈아타는 분산 시도에 대한 상한이고, IP 를 못 읽었을
+  // 때의 유일한 상한이기도 하다. 정상 매장은 여기 근처도 안 간다.
+  await enforceRate(`intake:${input.entryToken}`, ip ? 60 : 20, 60_000, {
     salonSlug,
     source: "intake",
   });
@@ -3293,11 +3348,10 @@ export async function getInviteView(
   token: string,
 ): Promise<{ salonName: string } | null> {
   // 초대 토큰 프로빙 방어 — IP당 분당 30회 초과 시 무효 취급.
-  const h = await headers();
-  const ip =
-    h.get("x-real-ip") ??
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown";
+  // IP 를 못 읽으면 상한을 걸 수단이 없다. 초대 토큰 프로빙은 상한이 전부이므로
+  // **면제가 아니라 거절**이다 — 헤더를 지우는 것만으로 나가면 안 된다.
+  const ip = await clientIp();
+  if (!ip) return null;
   if (!(await rateLimitOk(`invite-view:${ip}`, 30, 60_000, "invite"))) {
     return null;
   }
@@ -3326,11 +3380,10 @@ export async function acceptSalonInvite(input: {
 
   // rate limit(공개 계정 생성 — IP당 분당 10회).
   try {
-    const h = await headers();
-    const ip =
-      h.get("x-real-ip") ??
-      h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      "unknown";
+    // 공개 계정 생성이다. IP 를 못 읽으면 거절한다 — 상한 없는 계정 생성 경로를
+    // 열어두느니 재시도를 요구하는 편이 낫다.
+    const ip = await clientIp();
+    if (!ip) throw new RateLimitError();
     await enforceRate(`accept-invite:${ip}`, 10, 60_000, { source: "invite" });
   } catch {
     return { ok: false, error: "잠시 후 다시 시도해 주세요." };
@@ -3402,11 +3455,10 @@ export async function signUpDesigner(input: {
 
   // 스팸 계정 생성 방어 — IP당 분당 5회(공개 엔드포인트).
   try {
-    const h = await headers();
-    const ip =
-      h.get("x-real-ip") ??
-      h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      "unknown";
+    // 공개 계정 생성이다. IP 를 못 읽으면 거절한다 — 상한 없는 계정 생성 경로를
+    // 열어두느니 재시도를 요구하는 편이 낫다.
+    const ip = await clientIp();
+    if (!ip) throw new RateLimitError();
     await enforceRate(`signup:${ip}`, 5, 60_000, { source: "signup" });
   } catch {
     return { ok: false, error: "잠시 후 다시 시도해 주세요." };

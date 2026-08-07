@@ -2122,17 +2122,23 @@ export class SupabaseRepo implements Repo {
    * 고정 윈도우 레이트리밋(P0) — 0003_rate_limits.sql 의 rate_limit_hit() RPC 로
    * (bucket, window_start) 행을 원자적으로 +1 하고 증가 후 count 를 반환.
    * 서버리스 멀티인스턴스에서도 공유 카운터가 보장된다.
-   * 실패(권한/네트워크 등) 시 0 을 돌려 서비스 차단을 유발하지 않는다(가용성 우선).
+   *
+   * ⚠️ **실패하면 던진다.** 예전에는 여기서 `0` 을 돌려줬고 `enforceRate` 가 그걸
+   * 「리미터 비가용」으로 읽어 통과시켰다 — 즉 통과 결정이 **두 군데**에 있었고
+   * 이쪽 흔적은 `console.error` 뿐이었다. 상한이 통째로 없어져도 운영자가 보는
+   * 곳에는 아무것도 안 남는다.
+   *
+   * 통과 여부는 `enforceRate` 한 곳에서만 정한다. 드라이버는 사실만 말한다.
    */
   async rateLimitHit(bucket: string, windowStartMs: number): Promise<number> {
     const { data, error } = await this.client.rpc("rate_limit_hit", {
       p_bucket: bucket,
       p_window_start: new Date(windowStartMs).toISOString(),
     });
-    if (error) {
-      console.error("[sotong] rateLimitHit RPC failed", error);
-      return 0;
+    if (error) throw new Error(`rate_limit_hit RPC failed: ${error.message}`);
+    if (typeof data !== "number") {
+      throw new Error("rate_limit_hit returned a non-numeric count");
     }
-    return typeof data === "number" ? data : 0;
+    return data;
   }
 }

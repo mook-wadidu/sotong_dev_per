@@ -6,9 +6,12 @@ import {
   MobileFrame,
   ScreenHeader,
   ScreenBody,
+  Card,
+  CardContent,
 } from "@/components/ui";
 import { RecordForm } from "@/components/designer/record-form";
 import { BackToInbox } from "@/components/designer/back-to-inbox";
+import { INTAKE_CATEGORIES } from "@/lib/catalog";
 
 /**
  * D5 — 30초 기록 → 리포트 발송(ko 고정).
@@ -41,19 +44,25 @@ export default async function DesignerReportPage({
     );
   }
 
-  const { consultation, staffToken, customerTreatments, salonServiceOptions } =
-    view;
+  const { consultation, staffToken, customerTreatments } = view;
+  const s = consultation.summary;
+  const intake = consultation.intake;
+  // 상담 내용 요약(읽기전용) — 디자이너가 시술 확정 전 검토. 시술 분류는 ko 라벨로.
+  const categoryLabelsKo = (intake.serviceCategoryIds ?? [])
+    .map((id) => INTAKE_CATEGORIES.find((c) => c.id === id)?.label.ko)
+    .filter((x): x is string => !!x);
+  const styleText = s?.styleDetail?.trim() || intake.styleNote?.trim();
+  const concernText = s?.concerns?.trim() || intake.concernNote?.trim();
+  const cautionText = s?.hairCautions?.trim();
+  const allergyText = intake.allergy
+    ? intake.allergyNote?.trim() || "있음"
+    : "없음";
   // 손님 리포트 절대 URL prefix — 완결 후 손님 reportToken 을 붙여 인체어 QR 로 전달(B7).
   const h = await headers();
   const origin = shareOrigin(
     h.get("host"),
     h.get("x-forwarded-proto") ?? "http",
   );
-  // 실제 시술 선택지(살롱 메뉴, ko 라벨) — 디자이너가 실제 한 시술 기록.
-  const serviceOptions = salonServiceOptions.map((s) => ({
-    value: s.id,
-    label: s.label.ko,
-  }));
   // 재방문 프리필(PRD NOW #5) — 가장 최근 지난 시술의 모발 상태를 기록폼 기본값으로.
   const lastTreatment = consultation.isReturning
     ? customerTreatments[0]
@@ -68,21 +77,32 @@ export default async function DesignerReportPage({
           <BackToInbox staffToken={staffToken} label={t("inbox.backToInbox")} />
         }
       />
-      <ScreenBody>
+      <ScreenBody className="space-y-4">
+        {/* 상담 내용(읽기전용) — 시술 확정 전 검토. */}
+        <Card>
+          <CardContent className="space-y-2 p-4">
+            <p className="text-sm font-bold text-foreground">상담 내용</p>
+            <RecapRow label="시술 분류" value={categoryLabelsKo.join(", ") || "—"} />
+            {styleText ? <RecapRow label="원하는 스타일" value={styleText} /> : null}
+            {concernText ? <RecapRow label="고민" value={concernText} /> : null}
+            {intake.desiredColor ? (
+              <RecapRow label="희망 색감" value={intake.desiredColor} />
+            ) : null}
+            {cautionText ? <RecapRow label="주의" value={cautionText} /> : null}
+            <RecapRow label="알레르기" value={allergyText} />
+          </CardContent>
+        </Card>
+
         <RecordForm
           token={token}
           beforeUrl={consultation.beforePhotoUrl}
           defaultGrade={lastTreatment?.stateGrade}
-          serviceOptions={serviceOptions}
+          requestedCategoryIds={intake.serviceCategoryIds ?? []}
           customerReportOrigin={origin}
           customerLocale={consultation.customerLocale}
           labels={{
             reportQrTitle: t("record.reportQrTitle"),
             reportQrHint: t("record.reportQrHint"),
-            colorResult: t("record.colorResult"),
-            colorResultHint: t("record.colorResultHint"),
-            salonName: t("record.salonName"),
-            salonNameHint: t("record.salonNameHint"),
             stateGrade: t("record.stateGrade"),
             beforePhoto: t("record.beforePhoto"),
             afterPhoto: t("record.afterPhoto"),
@@ -104,5 +124,15 @@ export default async function DesignerReportPage({
         />
       </ScreenBody>
     </MobileFrame>
+  );
+}
+
+/** 상담 내용 recap 한 줄 — 라벨 + 값. */
+function RecapRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-2 text-sm">
+      <span className="w-20 shrink-0 text-muted-foreground">{label}</span>
+      <span className="flex-1 whitespace-pre-wrap text-foreground">{value}</span>
+    </div>
   );
 }

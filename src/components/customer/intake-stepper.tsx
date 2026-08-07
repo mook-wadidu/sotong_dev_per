@@ -16,7 +16,6 @@ import {
   SectionLabel,
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   Textarea,
@@ -31,7 +30,6 @@ import {
   CROWN_VOLUME,
   FACE_SHAPES,
   INTAKE_CATEGORIES,
-  NATIONALITIES,
 } from "@/lib/catalog";
 import { submitIntake, trackIntakeOpen } from "@/lib/actions";
 import { LocaleSwitch } from "@/components/ui/locale-switch";
@@ -54,9 +52,24 @@ import {
   type TreatmentRecency,
 } from "@/lib/domain/types";
 import { resizeImageToDataUrl } from "./resize-image";
+import { NationalityPicker } from "./nationality-picker";
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 const MAX_PHOTOS = 5;
+
+/** 국적 로케일 1차 기본값(변경 가능) — ko 는 매칭 국적 없어 미설정. */
+const LOCALE_DEFAULT_NATIONALITY: Partial<Record<Locale, string>> = {
+  ja: "japan",
+  zh: "china",
+  en: "english",
+};
+
+/** emptyIntake 위에 국적 로케일 기본값을 얹는다(미설정일 때만). 동기 초기화라 첫 렌더부터 반영. */
+function withLocaleNationality(d: IntakeDraft, locale: Locale): IntakeDraft {
+  if (d.nationality !== undefined) return d;
+  const def = LOCALE_DEFAULT_NATIONALITY[locale];
+  return def ? { ...d, nationality: def } : d;
+}
 
 /** 살롱별 메뉴(서버에서 해석한 가격 포함) — 전역 catalog 대체 */
 export interface IntakeMenuCategory {
@@ -157,7 +170,9 @@ export function IntakeStepper({
   const [prefilled, setPrefilled] = React.useState(false);
 
   const [step, setStep] = React.useState(1);
-  const [draft, setDraft] = React.useState<IntakeDraft>(() => emptyIntake());
+  const [draft, setDraft] = React.useState<IntakeDraft>(() =>
+    withLocaleNationality(emptyIntake(), locale),
+  );
   const [consent, setConsent] = React.useState(false);
   // 만 14세 이상 확인(필수) — PIPA §22-6. 나이를 저장하지 않고 확인 사실만 기록.
   const [age14, setAge14] = React.useState(false);
@@ -177,7 +192,7 @@ export function IntakeStepper({
     setPhase("form");
   };
   const startNewStyle = () => {
-    setDraft(emptyIntake());
+    setDraft(withLocaleNationality(emptyIntake(), locale));
     setPrefilled(false);
     setStep(1);
     setPhase("form");
@@ -190,7 +205,9 @@ export function IntakeStepper({
 
   // ── draft 자동저장/복원 (새로고침·앱전환 손실 방지) ───────────────
   // entryToken 키 sessionStorage. 사진(dataURL)은 용량(쿼터) 때문에 제외 — 재촬영.
-  const storageKey = `sotong:intake:v1:${entryToken}`;
+  // v2: 인사 스텝 추가로 step 번호 레이아웃이 바뀜 → v1 잔여 세션의 옛 step 번호가
+  // 새 레이아웃에 오적용되지 않도록 키를 올린다.
+  const storageKey = `sotong:intake:v2:${entryToken}`;
   const restoredRef = React.useRef(false);
 
   // 복원 — 마운트 1회. 저장된 진행이 있으면 폼으로 진입 + 상태 복원.
@@ -306,12 +323,12 @@ export function IntakeStepper({
     !allergyAnswerNeeded;
 
   const goNext = () => {
-    if (step === 1 && draft.serviceCategoryIds.length < 1) {
+    if (step === 2 && draft.serviceCategoryIds.length < 1) {
       toast.error(t("intake.needService"));
       return;
     }
-    // 알레르기(5단계): 건강정보 동의 시에만 명시 답변 강제 — 미응답을 "없음"으로 넘기지 않는다.
-    if (step === 5 && allergyAnswerNeeded) {
+    // 알레르기(6단계): 건강정보 동의 시에만 명시 답변 강제 — 미응답을 "없음"으로 넘기지 않는다.
+    if (step === 6 && allergyAnswerNeeded) {
       toast.error(t("intake.allergy.needAnswer"));
       return;
     }
@@ -325,12 +342,12 @@ export function IntakeStepper({
 
   const onSubmit = async () => {
     if (draft.serviceCategoryIds.length < 1) {
-      setStep(1);
+      setStep(2);
       toast.error(t("intake.needService"));
       return;
     }
     if (allergyAnswerNeeded) {
-      setStep(5);
+      setStep(6);
       toast.error(t("intake.allergy.needAnswer"));
       return;
     }
@@ -489,20 +506,23 @@ export function IntakeStepper({
         ) : null}
 
         {step === 1 && (
+          <GreetingStep t={t} locale={locale} draft={draft} patch={patch} />
+        )}
+        {step === 2 && (
           <ServicesStep t={t} locale={locale} draft={draft} patch={patch} />
         )}
-        {step === 2 && <PhotosStep t={t} draft={draft} patch={patch} />}
-        {step === 3 && (
+        {step === 3 && <PhotosStep t={t} draft={draft} patch={patch} />}
+        {step === 4 && (
           <HistoryStep t={t} locale={locale} draft={draft} patch={patch} />
         )}
-        {step === 4 && (
+        {step === 5 && (
           <ConcernStep t={t} locale={locale} draft={draft} patch={patch} />
         )}
-        {step === 5 && <AllergyStep t={t} draft={draft} patch={patch} />}
-        {step === 6 && (
+        {step === 6 && <AllergyStep t={t} draft={draft} patch={patch} />}
+        {step === 7 && (
           <BodyStyleStep t={t} locale={locale} draft={draft} patch={patch} />
         )}
-        {step === 7 && (
+        {step === 8 && (
           <ConsentStep
             t={t}
             locale={locale}
@@ -533,8 +553,8 @@ export function IntakeStepper({
             className="w-full"
             onClick={goNext}
           >
-            {/* 사진 스텝: 0장이면 '사진 없이 진행', 1장 이상이면 '다음' */}
-            {step === 2 && draft.stylePhotoUrls.length === 0
+            {/* 사진 스텝(3): 0장이면 '사진 없이 진행', 1장 이상이면 '다음' */}
+            {step === 3 && draft.stylePhotoUrls.length === 0
               ? t("intake.photos.skip")
               : t("intake.next")}
           </Button>
@@ -564,6 +584,22 @@ export function IntakeStepper({
 type T = ReturnType<typeof useTranslations<"Customer">>;
 type Patch = (p: Partial<IntakeDraft>) => void;
 
+/** 라벨 앞 색 접두 — 필수(강조색)/선택(옅은색)을 한눈에. 그룹 라벨과 중복 표기 금지. */
+function ReqTag({ t }: { t: T }) {
+  return (
+    <span className="font-semibold text-accent-text">
+      {t("intake.tag.required")}{" "}
+    </span>
+  );
+}
+function OptTag({ t }: { t: T }) {
+  return (
+    <span className="font-semibold text-muted-foreground">
+      {t("intake.tag.optional")}{" "}
+    </span>
+  );
+}
+
 const INTL_LOCALE: Record<Locale, string> = {
   ko: "ko-KR",
   ja: "ja-JP",
@@ -583,6 +619,7 @@ function formatLastVisit(iso: string, locale: Locale): string {
 }
 
 const STEP_TITLE_KEYS = [
+  "intake.step.greeting",
   "intake.step.services",
   "intake.step.photos",
   "intake.step.history",
@@ -592,7 +629,61 @@ const STEP_TITLE_KEYS = [
   "intake.step.consent",
 ] as const;
 
-/* ── ① 시술 분류 (큰 분류만 — 세부·가격은 디자이너가) ─────── */
+/* ── ① 인사 + 이름·국적 (첫 인상 — 편하게 시작) ──────────── */
+function GreetingStep({
+  t,
+  locale,
+  draft,
+  patch,
+}: {
+  t: T;
+  locale: Locale;
+  draft: IntakeDraft;
+  patch: Patch;
+}) {
+  const tCommon = useTranslations("Common");
+  // 국적 로케일 1차 기본값은 부모 useState 초기화(withLocaleNationality)에서 동기 세팅 —
+  // 첫 렌더부터 반영(마운트 이펙트 타이밍 회피). 여기선 손님 선택만 반영.
+  return (
+    <div className="space-y-5">
+      <p className="-mt-2 text-sm text-muted-foreground">
+        {t("intake.greeting.hint")}
+      </p>
+
+      {/* 이름(선택) — 표시·호칭용. 게이트 없음. */}
+      <div className="space-y-1.5">
+        <SectionLabel className="mb-1.5">
+          <OptTag t={t} />
+          {t("intake.bodyStyle.name")}
+        </SectionLabel>
+        <Input
+          value={draft.name ?? ""}
+          onChange={(e) => patch({ name: e.target.value || undefined })}
+          placeholder={t("intake.bodyStyle.namePlaceholder")}
+          aria-label={t("intake.bodyStyle.name")}
+        />
+      </div>
+
+      {/* 국적(선택) — 다이얼(드롭다운) 피커. 로케일 기본값 위에서 프리셋. */}
+      <div className="space-y-1.5">
+        <SectionLabel className="mb-1.5">
+          <OptTag t={t} />
+          {t("intake.bodyStyle.nationality")}
+        </SectionLabel>
+        <NationalityPicker
+          value={draft.nationality ?? null}
+          onChange={(v) => patch({ nationality: v })}
+          locale={locale}
+          label={t("intake.bodyStyle.nationality")}
+          placeholder={t("intake.greeting.nationalityPlaceholder")}
+          closeLabel={tCommon("close")}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ── ② 시술 분류 (큰 분류만 — 세부·가격은 디자이너가) ─────── */
 function ServicesStep({
   t,
   locale,
@@ -667,21 +758,14 @@ function PhotosStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patc
 
   return (
     <div className="space-y-5">
-      {/* 원하는 스타일 메모 (손님 언어, 요약에 번역 반영) — 위 */}
-      <div className="space-y-1.5">
-        <SectionLabel className="mb-1">
-          {t("intake.services.styleNote")}
-        </SectionLabel>
-        <Textarea
-          value={draft.styleNote ?? ""}
-          onChange={(e) => patch({ styleNote: e.target.value })}
-          placeholder={t("intake.services.styleNotePlaceholder")}
-          aria-label={t("intake.services.styleNote")}
-        />
-      </div>
-
-      {/* 참고 사진 — 아래 */}
-      <p className="text-sm text-muted-foreground">{t("intake.photos.hint")}</p>
+      {/* 참고 사진 — 위 (선택) */}
+      <SectionLabel className="mb-1">
+        <OptTag t={t} />
+        {t("intake.photos.label")}
+      </SectionLabel>
+      <p className="-mt-2.5 text-sm text-muted-foreground">
+        {t("intake.photos.hint")}
+      </p>
 
       <div className="grid grid-cols-3 gap-2.5">
         {photos.map((url, i) => (
@@ -739,11 +823,25 @@ function PhotosStep({ t, draft, patch }: { t: T; draft: IntakeDraft; patch: Patc
         className="sr-only"
         onChange={(e) => onFiles(e.target.files)}
       />
+
+      {/* 원하는 스타일 메모 — 아래 (선택). 손님 언어, 요약에 번역 반영. */}
+      <div className="space-y-1.5">
+        <SectionLabel className="mb-1">
+          <OptTag t={t} />
+          {t("intake.services.styleNote")}
+        </SectionLabel>
+        <Textarea
+          value={draft.styleNote ?? ""}
+          onChange={(e) => patch({ styleNote: e.target.value })}
+          placeholder={t("intake.services.styleNotePlaceholder")}
+          aria-label={t("intake.services.styleNote")}
+        />
+      </div>
     </div>
   );
 }
 
-/* ── ③ 최근 시술 이력 (타입 다중 + 선택 타입별 시기) ─────── */
+/* ── ④ 최근 시술 이력 (타입 다중 + 선택 타입별 시기) ─────── */
 function HistoryStep({
   t,
   locale,
@@ -969,36 +1067,6 @@ function BodyStyleStep({
         {t("intake.bodyStyle.hint")}
       </p>
 
-      {/* 이름(선택) — 표시·호칭용. 게이트 없음. */}
-      <div className="space-y-2">
-        <SectionLabel className="mb-1.5">
-          {t("intake.bodyStyle.name")}
-        </SectionLabel>
-        <Input
-          value={draft.name ?? ""}
-          onChange={(e) => patch({ name: e.target.value || undefined })}
-          placeholder={t("intake.bodyStyle.namePlaceholder")}
-          aria-label={t("intake.bodyStyle.name")}
-        />
-      </div>
-
-      {/* 국적(선택) — 로케일 추정과 별개로 손님이 명시 선택. */}
-      <div className="space-y-2">
-        <SectionLabel className="mb-1.5">
-          {t("intake.bodyStyle.nationality")}
-        </SectionLabel>
-        <RadioGroup
-          variant="grid"
-          label={t("intake.bodyStyle.nationality")}
-          options={NATIONALITIES.map<RadioOption<string>>((n) => ({
-            value: n.id,
-            label: n.label[locale] ?? n.label.ko,
-          }))}
-          value={draft.nationality ?? null}
-          onValueChange={(x) => patch({ nationality: x })}
-        />
-      </div>
-
       <div className="space-y-2">
         <SectionLabel className="mb-1.5">
           {t("intake.bodyStyle.faceShape")}
@@ -1057,7 +1125,7 @@ function BodyStyleStep({
   );
 }
 
-/* ── ⑦ 동의 (필수) + 상세 Sheet ──────────────────────── */
+/* ── ⑧ 동의 (필수) + 상세 Sheet ──────────────────────── */
 function ConsentStep({
   t,
   locale,
@@ -1086,68 +1154,87 @@ function ConsentStep({
   const tCommon = useTranslations("Common");
   const [open, setOpen] = React.useState(false);
   return (
-    <div className="space-y-5">
-      {/* 필수 항목 전체 동의 — 학습(선택)은 미포함(명시적 선택 필요: 데이터 사업 근거 강화). */}
-      <button
-        type="button"
-        onClick={() => {
-          onChange(true);
-          onAge14Change(true);
-        }}
-        className="flex w-full items-center justify-center rounded-xl border border-foreground bg-card px-4 py-3 text-sm font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      >
-        {t("intake.consent.agreeAllRequired")}
-      </button>
+    <div className="space-y-4">
+      {/* 동의 카드 — 전체동의(상단) + 항목 + 자세히 보기를 한 덩어리로(혼자 안 뜨게). */}
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        {/* 전체 동의 = 필수 2개만(consent·age14). */}
+        <div className="px-4 py-3.5">
+          <Checkbox
+            checked={consent && age14}
+            onChange={(e) => {
+              const v = e.target.checked;
+              // 선택 항목 제외 — 학습동의(training·photoTraining)는 명시적 선택이 B2B
+              // 라이선싱 근거로 강함. 전체동의로 자동 안 켬. 법무 회신 후 확대 검토(의도적 보수).
+              onChange(v);
+              onAge14Change(v);
+            }}
+            label={
+              <span className="font-semibold text-foreground">
+                {t("intake.consent.agreeAllRequired")}
+              </span>
+            }
+          />
+        </div>
 
-      {/* 필수 */}
-      <div className="space-y-3">
-        <SectionLabel>{t("intake.consent.requiredGroup")}</SectionLabel>
-        <Checkbox
-          checked={consent}
-          onChange={(e) => onChange(e.target.checked)}
-          aria-invalid={error ? true : undefined}
-          label={t("intake.consent.label")}
-        />
-        {/* 만 14세 이상 확인(필수) — PIPA §22-6. 생년월일·나이 미저장, 자기확인만. */}
-        <div className="space-y-1.5">
+        {/* 개별 항목 — 제목만(상세는 자세히 보기 드로어). (필수)/(선택) 색 접두. */}
+        <div className="space-y-3 border-t border-border px-4 py-3.5">
+          <Checkbox
+            checked={consent}
+            onChange={(e) => onChange(e.target.checked)}
+            aria-invalid={error ? true : undefined}
+            label={
+              <>
+                <ReqTag t={t} />
+                {t("intake.consent.label")}
+              </>
+            }
+          />
+          {/* 만 14세 이상 확인(필수) — PIPA §22-6. 생년월일·나이 미저장, 자기확인만. */}
           <Checkbox
             checked={age14}
             onChange={(e) => onAge14Change(e.target.checked)}
             aria-invalid={error && !age14 ? true : undefined}
-            label={t("intake.consent.age14Label")}
+            label={
+              <>
+                <ReqTag t={t} />
+                {t("intake.consent.age14Label")}
+              </>
+            }
           />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {t("intake.consent.age14Hint")}
-          </p>
+          {/* (선택) AI 학습 활용 — 가명처리·통계. */}
+          <Checkbox
+            checked={trainingConsent}
+            onChange={(e) => onTrainingChange(e.target.checked)}
+            label={
+              <>
+                <OptTag t={t} />
+                {t("intake.consent.trainingLabel")}
+              </>
+            }
+          />
+          {/* (선택) 사진 학습 활용 — 비포/애프터·스타일만(셀카/얼굴 제외). */}
+          <Checkbox
+            checked={photoTrainingConsent}
+            onChange={(e) => onPhotoTrainingChange(e.target.checked)}
+            label={
+              <>
+                <OptTag t={t} />
+                {t("intake.consent.photoTrainingLabel")}
+              </>
+            }
+          />
         </div>
-      </div>
 
-      {/* 선택 — 미동의해도 서비스 이용 가능. 학습 동의는 전체동의에서 제외. */}
-      <div className="space-y-3">
-        <SectionLabel>{t("intake.consent.optionalGroup")}</SectionLabel>
-        {/* (선택) AI 학습 활용 — 가명처리·통계. */}
-        <Checkbox
-          checked={trainingConsent}
-          onChange={(e) => onTrainingChange(e.target.checked)}
-          label={t("intake.consent.trainingLabel")}
-          description={t("intake.consent.trainingHint")}
-        />
-        {/* (선택) 사진 학습 활용 — 비포/애프터·스타일만(셀카/얼굴 제외). */}
-        <Checkbox
-          checked={photoTrainingConsent}
-          onChange={(e) => onPhotoTrainingChange(e.target.checked)}
-          label={t("intake.consent.photoTrainingLabel")}
-          description={t("intake.consent.photoTrainingHint")}
-        />
+        {/* 자세히 보기 — 각 항목 상세·국외이전·처리방침을 드로어에. */}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center justify-between border-t border-border px-4 py-3 text-sm font-medium text-accent-text outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
+          {t("intake.consent.detailMore")}
+          <span aria-hidden="true">›</span>
+        </button>
       </div>
-
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="text-sm font-medium text-accent-text underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      >
-        {t("intake.step.consent")}
-      </button>
 
       {error && (
         <p className="text-xs font-medium text-destructive">
@@ -1155,13 +1242,29 @@ function ConsentStep({
         </p>
       )}
 
+      {/* 상세 드로어 — 각 동의 항목 설명 + 국외이전 + 처리방침 링크. */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent closeLabel={tCommon("close")}>
           <SheetHeader>
             <SheetTitle>{t("intake.step.consent")}</SheetTitle>
-            <SheetDescription>{t("intake.consent.detail")}</SheetDescription>
           </SheetHeader>
-          <div className="mt-4 space-y-3">
+          <div className="mt-3 space-y-4 overflow-y-auto">
+            <DetailItem
+              title={t("intake.consent.label")}
+              body={t("intake.consent.detail")}
+            />
+            <DetailItem
+              title={t("intake.consent.age14Label")}
+              body={t("intake.consent.age14Hint")}
+            />
+            <DetailItem
+              title={t("intake.consent.trainingLabel")}
+              body={t("intake.consent.trainingHint")}
+            />
+            <DetailItem
+              title={t("intake.consent.photoTrainingLabel")}
+              body={t("intake.consent.photoTrainingHint")}
+            />
             <p className="text-sm leading-relaxed text-muted-foreground">
               {t("intake.consent.crossBorder")}
             </p>
@@ -1176,6 +1279,16 @@ function ConsentStep({
           </div>
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+/** 동의 상세 드로어의 한 항목 — 제목 + 설명. */
+function DetailItem({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-sm font-semibold text-foreground">{title}</p>
+      <p className="text-xs leading-relaxed text-muted-foreground">{body}</p>
     </div>
   );
 }

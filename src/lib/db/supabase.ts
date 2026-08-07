@@ -246,6 +246,8 @@ interface HairReportRow {
   style_request: string | null;
   concerns: string | null;
   cautions: string | null;
+  /** NULL = 0031 이전 행(추정 여부를 알 수 없음). 아래 toHairReport 참조. */
+  state_estimated: boolean | null;
 }
 
 interface ErrorLogRow {
@@ -290,7 +292,7 @@ const TREATMENT_RECORD_COLS =
 const MESSAGE_COLS =
   "id,consultation_id,sender,source_text,source_locale,intent,translations,created_at";
 const REPORT_COLS =
-  "consultation_id,report_token,salon_name,salon_slug,designer_name,locale,service_summary,color_result,salon_display_name,hair_state_grade,hair_state_score,home_care,next_visit_weeks,report_date,before_photo_url,after_photo_url,style_request,concerns,cautions";
+  "consultation_id,report_token,salon_name,salon_slug,designer_name,locale,service_summary,color_result,salon_display_name,hair_state_grade,hair_state_score,home_care,next_visit_weeks,report_date,before_photo_url,after_photo_url,style_request,concerns,cautions,state_estimated";
 const ERROR_COLS =
   "id,salon_slug,severity,source,message,detail,consultation_id,created_at";
 const PUSH_SUB_COLS =
@@ -495,8 +497,25 @@ function toMessage(r: MessageRow): Message {
   };
 }
 
+/**
+ * ★ `state_estimated` 의 NULL 을 "추정됨" 으로 읽는다 — 안전한 방향이기 때문.
+ *
+ * 이 플래그가 true 면 report-view 가 모발 점수 행을 감춘다(디자이너가 등급을
+ * 입력하지 않았으므로 점수는 `scoreFromGrade("mid")` 상수일 뿐, 측정값이 아니다).
+ *
+ * 0031 이전에 저장된 행은 컬럼이 없어 NULL 이고, 그 행이 측정값이었는지
+ * 추정값이었는지 소급해서 알 방법이 없다. 두 방향의 손해가 대칭이 아니다:
+ *   NULL→추정: 진짜 측정한 점수를 감춘다        (정보 손실)
+ *   NULL→측정: 지어낸 점수를 측정값처럼 보여준다 (손님에게 거짓)
+ * 앞쪽이 낫다. 모르면 주장하지 않는다.
+ *
+ * 이 컬럼이 없던 동안 실제로 벌어진 일(2026-08-05 확인): 발송된 리포트 2건 중
+ * 1건이 디자이너 미입력인데도 mid/68 을 측정값처럼 표시하고 있었다.
+ * 0031 이후 행은 항상 명시적 값이 들어가므로 NULL 은 과거 행에만 남는다.
+ */
 function toHairReport(r: HairReportRow): HairReport {
   return {
+    stateEstimated: r.state_estimated ?? true,
     consultationId: r.consultation_id,
     reportToken: r.report_token,
     salonName: r.salon_name,
@@ -934,6 +953,23 @@ export class SupabaseRepo implements Repo {
       phone: input.phone ?? null,
       is_returning: input.isReturning,
       intake: input.intake,
+      // ── 민감정보 동의: 이 컬럼이 정본이다 ─────────────────────────────
+      // 같은 값이 `intake` jsonb 안에도 남지만(앱 로직이 인테이크 초안을
+      // 그대로 들고 다니기 때문), **"누가 언제 동의했는가" 를 답할 때는 항상
+      // 이 컬럼을 쓴다.** jsonb 쪽은 레거시 사본으로 취급하고 컴플라이언스
+      // 조회에 쓰지 않는다 — 인덱스도 안 걸리고, jsonb 를 기준으로 세면
+      // 0031 이전 행과 이후 행의 집계 방식이 갈려 답이 두 개가 된다.
+      //
+      // 이 컬럼이 필요한 이유는 법무다. 보유기간 관리와 삭제요청 대응을 하려면
+      // 동의자 목록을 뽑을 수 있어야 하는데, jsonb 안에 있으면 그게 안 된다.
+      //
+      // 백필은 하지 않았다 — 0031 이전 행은 내부 테스트 3건뿐이라 값어치가
+      // 없고, 규칙만 명확하면 된다. 그 3건은 이 컬럼이 NULL 이다.
+      //
+      // 값 자체는 startConsultation 이 서버 시각으로 다시 쓴 뒤 넘어온다
+      // (클라 시계를 믿지 않는다). 미동의면 그쪽에서 알레르기 필드를 지우므로
+      // 여기서 추가로 검사하지 않는다.
+      sensitive_consented_at: input.intake.sensitiveConsentedAt ?? null,
       consultation_token: token(),
       designer_token: token(),
     };
@@ -1979,6 +2015,9 @@ export class SupabaseRepo implements Repo {
       style_request: report.styleRequest ?? null,
       concerns: report.concerns ?? null,
       cautions: report.cautions ?? null,
+      // 값이 없으면 true(추정) 쪽으로 —  toHairReport 와 같은 이유다.
+      // completeConsultation 이 항상 채우므로 실제로는 `??` 가 타지 않는다.
+      state_estimated: report.stateEstimated ?? true,
     };
     const { error } = await this.client
       .from("hair_reports")

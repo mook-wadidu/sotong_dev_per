@@ -124,7 +124,7 @@
     "customer": "Guest",
     "me": "Me",
     "pending": "Sending…",
-    "reportCta": "Record service",
+    "reportCta": "Confirm service",
     "translatedNote": "Automatically translated into the guest's language",
     "translating": "Translating…",
     "sendError": "Couldn't send the message. Please try again.",
@@ -157,8 +157,8 @@
     "done": "Captured"
   },
   "record": {
-    "title": "Service record",
-    "subtitle": "Log today's service",
+    "title": "Confirm service",
+    "subtitle": "Review the consultation and confirm the service",
     "colorResult": "Color result",
     "colorResultHint": "Select the color tones you achieved today",
     "salonName": "Actual salon name",
@@ -168,7 +168,7 @@
     "afterPhoto": "After photo",
     "addPhoto": "Add photo",
     "removePhoto": "Remove",
-    "finish": "Finish & send report",
+    "finish": "Confirm & send report",
     "finishing": "Sending…",
     "sent": "Report sent",
     "failed": "Failed to send. Please try again.",

@@ -124,7 +124,7 @@
     "customer": "손님",
     "me": "나",
     "pending": "전송 중…",
-    "reportCta": "시술 기록",
+    "reportCta": "시술 확정",
     "translatedNote": "손님 언어로 자동 번역됩니다",
     "translating": "번역 중…",
     "sendError": "메시지를 보내지 못했어요. 다시 시도해 주세요.",
@@ -157,8 +157,8 @@
     "done": "촬영됨"
   },
   "record": {
-    "title": "시술 기록",
-    "subtitle": "오늘 시술을 남겨주세요",
+    "title": "시술 확정",
+    "subtitle": "상담 내용을 확인하고 시술을 확정하세요",
     "colorResult": "색감",
     "colorResultHint": "오늘 낸 컬러 색감을 골라주세요",
     "salonName": "실제 매장명",
@@ -168,7 +168,7 @@
     "afterPhoto": "시술 후 사진",
     "addPhoto": "사진 추가",
     "removePhoto": "삭제",
-    "finish": "종료하고 리포트 발송",
+    "finish": "시술 확정하고 리포트 발송",
     "finishing": "발송 중…",
     "sent": "리포트를 발송했어요",
     "failed": "발송에 실패했어요. 다시 시도해 주세요.",

@@ -124,7 +124,7 @@
     "customer": "お客様",
     "me": "自分",
     "pending": "送信中…",
-    "reportCta": "施術記録",
+    "reportCta": "施術確定",
     "translatedNote": "お客様の言語へ自動翻訳されます",
     "translating": "翻訳中…",
     "sendError": "メッセージを送信できませんでした。もう一度お試しください。",
@@ -157,8 +157,8 @@
     "done": "撮影済み"
   },
   "record": {
-    "title": "施術記録",
-    "subtitle": "本日の施術を残してください",
+    "title": "施術確定",
+    "subtitle": "相談内容を確認して施術を確定します",
     "colorResult": "色味",
     "colorResultHint": "本日のカラーの色味を選んでください",
     "salonName": "実際の店舗名",
@@ -168,7 +168,7 @@
     "afterPhoto": "施術後の写真",
     "addPhoto": "写真を追加",
     "removePhoto": "削除",
-    "finish": "終了してレポートを送信",
+    "finish": "施術を確定してレポートを送信",
     "finishing": "送信中…",
     "sent": "レポートを送信しました",
     "failed": "送信に失敗しました。もう一度お試しください。",

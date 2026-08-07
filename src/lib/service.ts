@@ -40,6 +40,7 @@ import {
   HAIR_DENSITY,
   HAIR_TYPE,
   INTAKE_CATEGORIES,
+  ALL_SERVICES,
 } from "@/lib/catalog";
 import {
   makeDesignerEntryToken,
@@ -1136,6 +1137,11 @@ export async function getDesignerView(
       consultationId: c.id,
     });
   }
+  // 정적 카탈로그 라벨 폴백 — 시술확정이 정적 id(cut_women 등)를 저장하므로 EMR·이력
+  // 표시에서 살롱 메뉴에 없어도 ko 라벨로 해석(2d). 살롱 메뉴 id 는 위에서 우선 등록됨.
+  for (const s of ALL_SERVICES) {
+    if (!serviceLabelMap[s.id]) serviceLabelMap[s.id] = s.label;
+  }
 
   return {
     salon: salon ? toPublicSalon(salon) : null,
@@ -1532,9 +1538,15 @@ export async function completeConsultation(input: {
     const salonServicesForLabels = reportServiceIds.length
       ? await repo.listServices(c.salonSlug)
       : [];
+    // 정적 카탈로그(cut_women 등) 우선 폴백 — 시술확정이 정적 id 를 쓰므로 살롱 메뉴에
+    // 없어도 카탈로그 ko 라벨로 해석(라벨 유실=리포트에 raw id 노출 방지, 2d).
     const actualServiceLabelsKo = reportServiceIds.length
       ? reportServiceIds
-          .map((id) => salonServicesForLabels.find((s) => s.id === id)?.label.ko)
+          .map(
+            (id) =>
+              salonServicesForLabels.find((s) => s.id === id)?.label.ko ??
+              ALL_SERVICES.find((s) => s.id === id)?.label.ko,
+          )
           .filter((x): x is string => !!x)
       : undefined;
     const draft = await ai.draftReport({
@@ -2107,6 +2119,10 @@ export async function getCustomerHistory(
   const serviceLabels: Record<string, LocalizedText> = {};
   for (const s of salonServices) {
     if (neededIds.has(s.id)) serviceLabels[s.id] = s.label;
+  }
+  // 정적 카탈로그 폴백 — 카르테 serviceId 가 정적 id 면 살롱 메뉴에 없음(2d).
+  for (const s of ALL_SERVICES) {
+    if (neededIds.has(s.id) && !serviceLabels[s.id]) serviceLabels[s.id] = s.label;
   }
 
   return { customer, treatments: scoped, serviceLabels };

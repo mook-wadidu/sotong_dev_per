@@ -6,7 +6,6 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import {
   Button,
-  Input,
   ToggleGroup,
   RadioGroup,
   Spinner,
@@ -15,7 +14,7 @@ import {
   toast,
   buttonVariants,
 } from "@/components/ui";
-import { COLOR_TONES } from "@/lib/catalog";
+import { SERVICE_CATEGORIES } from "@/lib/catalog";
 import { finishAndSendReport } from "@/lib/actions";
 import { designerReportViewPath, reportPath } from "@/lib/links";
 import { resizeToDataUrl } from "@/lib/image";
@@ -23,10 +22,6 @@ import { cn } from "@/lib/utils";
 import type { Locale, ThreeLevel } from "@/lib/domain/types";
 
 type Labels = {
-  colorResult: string;
-  colorResultHint: string;
-  salonName: string;
-  salonNameHint: string;
   stateGrade: string;
   beforePhoto: string;
   afterPhoto: string;
@@ -57,7 +52,7 @@ export function RecordForm({
   token,
   beforeUrl,
   defaultGrade,
-  serviceOptions,
+  requestedCategoryIds,
   customerReportOrigin,
   customerLocale,
   labels,
@@ -67,8 +62,8 @@ export function RecordForm({
   beforeUrl?: string;
   /** 재방문 손님의 지난 모발 상태 등급. */
   defaultGrade?: ThreeLevel;
-  /** 실제 시술 선택지(살롱 메뉴 id + ko 라벨) — 디자이너가 실제 한 시술 기록(학습 정답). */
-  serviceOptions?: { value: string; label: string }[];
+  /** 손님이 고른 시술 분류(intake.serviceCategoryIds) — 이 분류를 위로 정렬·강조. */
+  requestedCategoryIds?: string[];
   /** 손님 리포트 QR 용 절대 origin(서버 Host 기반). */
   customerReportOrigin: string;
   /** 손님 언어 — QR 이 가리키는 리포트 URL 로케일. */
@@ -76,11 +71,8 @@ export function RecordForm({
   labels: Labels;
 }) {
   const router = useRouter();
+  // 실제 시술(정적 카탈로그 서브 id, 다중). 손님이 고른 분류를 위로 정렬·강조해 확정.
   const [serviceIds, setServiceIds] = React.useState<string[]>([]);
-  // 색감(컬러 결과) — 다중 선택 톤. 손님 리포트에 ko 라벨을 ", "로 이어 표기.
-  const [colorTones, setColorTones] = React.useState<string[]>([]);
-  // 실매장명 — 있으면 DB 살롱명 대신 손님 리포트에 표기(수동 입력).
-  const [salonDisplayName, setSalonDisplayName] = React.useState("");
   const [grade, setGrade] = React.useState<ThreeLevel | null>(
     defaultGrade ?? null,
   );
@@ -101,10 +93,17 @@ export function RecordForm({
     string | undefined
   >();
 
-  const colorToneOptions = COLOR_TONES.map((c) => ({
-    value: c.id,
-    label: c.label.ko,
-  }));
+  // 손님이 고른 분류(강조)를 위로, 나머지는 아래로 정렬한 카테고리 목록.
+  const requested = requestedCategoryIds ?? [];
+  const orderedCategories = [
+    ...SERVICE_CATEGORIES.filter((c) => requested.includes(c.id)),
+    ...SERVICE_CATEGORIES.filter((c) => !requested.includes(c.id)),
+  ];
+  // 카테고리별 토글: 해당 카테고리 서브 id 만 그 그룹 값으로, 나머지는 보존하며 병합.
+  const toggleCategory = (catServiceIds: string[], nextForCat: string[]) => {
+    const others = serviceIds.filter((id) => !catServiceIds.includes(id));
+    setServiceIds([...others, ...nextForCat]);
+  };
 
   const gradeOptions = [
     { value: "high" as const, label: labels.gradeHigh },
@@ -146,15 +145,7 @@ export function RecordForm({
         const res = await finishAndSendReport({
           designerToken: token,
           record: {
-            // 색감 — 선택 톤의 ko 라벨을 ", "로 이어 손님 리포트에 표기(없으면 미표기).
-            colorResult: colorTones.length
-              ? colorTones
-                  .map((id) => COLOR_TONES.find((c) => c.id === id)?.label.ko)
-                  .filter((l): l is string => Boolean(l))
-                  .join(", ")
-              : undefined,
-            // 실매장명 — 비면 미전송(리포트가 DB 살롱명으로 폴백).
-            salonDisplayName: salonDisplayName.trim() || undefined,
+            // 색감·실매장명은 시술확정에서 제거됨(색감 미표기, 매장명은 DB 살롱명 폴백/수기).
             stateGrade: grade ?? undefined,
             // 만족도는 디자이너가 추정하지 않는다 — 손님이 리포트에서 별점으로 직접 입력(#4b).
             // 실제 한 시술(있으면) → 학습 'actual'. 없으면 서버가 손님 분류로 폴백(intent 태그).
@@ -237,47 +228,41 @@ export function RecordForm({
         </div>
       ) : null}
 
-      {/* 실제 시술 (살롱 메뉴) — 손님 분류를 보고 실제 한 시술 확정(학습 정답) */}
-      {serviceOptions && serviceOptions.length > 0 ? (
-        <section>
-          <SectionLabel>실제 시술</SectionLabel>
-          <p className="mb-2.5 text-xs text-muted-foreground">
-            손님이 고른 분류를 보고, 실제로 한 시술을 골라주세요.
-          </p>
-          <ToggleGroup
-            options={serviceOptions}
-            value={serviceIds}
-            onValueChange={setServiceIds}
-            label="실제 시술"
-          />
-        </section>
-      ) : null}
-
-      {/* 색감 (컬러 결과, 다중) — 손님 리포트에 표기 */}
+      {/* 시술 내용 (정적 카탈로그, 카테고리별 서브시술) — 손님 분류를 위로 강조,
+          디자이너가 실제 한 세부 시술을 확정(학습 정답). 색감·매장명은 제거됨. */}
       <section>
-        <SectionLabel>{labels.colorResult}</SectionLabel>
-        <p className="mb-2.5 text-xs text-muted-foreground">
-          {labels.colorResultHint}
+        <SectionLabel>시술 내용</SectionLabel>
+        <p className="mb-3 text-xs text-muted-foreground">
+          손님이 고른 분류를 위에 두었어요. 실제로 한 시술을 골라주세요.
         </p>
-        <ToggleGroup
-          options={colorToneOptions}
-          value={colorTones}
-          onValueChange={setColorTones}
-          label={labels.colorResult}
-        />
-      </section>
-
-      {/* 실매장명 (수동입력) — 있으면 DB 살롱명 대신 손님 리포트에 표기 */}
-      <section>
-        <SectionLabel>{labels.salonName}</SectionLabel>
-        <p className="mb-2.5 text-xs text-muted-foreground">
-          {labels.salonNameHint}
-        </p>
-        <Input
-          value={salonDisplayName}
-          onChange={(e) => setSalonDisplayName(e.target.value)}
-          className="h-11"
-        />
+        <div className="space-y-4">
+          {orderedCategories.map((cat) => {
+            const catServiceIds = cat.services.map((s) => s.id);
+            const value = serviceIds.filter((id) => catServiceIds.includes(id));
+            const isRequested = requested.includes(cat.id);
+            return (
+              <div key={cat.id}>
+                <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                  {cat.label.ko}
+                  {isRequested ? (
+                    <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold text-accent-text">
+                      손님 선택
+                    </span>
+                  ) : null}
+                </p>
+                <ToggleGroup
+                  options={cat.services.map((s) => ({
+                    value: s.id,
+                    label: s.label.ko,
+                  }))}
+                  value={value}
+                  onValueChange={(next) => toggleCategory(catServiceIds, next)}
+                  label={cat.label.ko}
+                />
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {/* 모발 상태 (단일: 상/중/하) */}

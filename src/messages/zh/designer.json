@@ -124,7 +124,7 @@
     "customer": "顾客",
     "me": "我",
     "pending": "发送中…",
-    "reportCta": "施术记录",
+    "reportCta": "确认施术",
     "translatedNote": "将自动翻译为顾客的语言",
     "translating": "翻译中…",
     "sendError": "消息发送失败，请重试。",
@@ -157,8 +157,8 @@
     "done": "已拍摄"
   },
   "record": {
-    "title": "施术记录",
-    "subtitle": "请留下今天的施术记录",
+    "title": "确认施术",
+    "subtitle": "确认咨询内容并确定施术",
     "colorResult": "色调",
     "colorResultHint": "请选择今天做出的色调",
     "salonName": "实际门店名称",
@@ -168,7 +168,7 @@
     "afterPhoto": "施术后照片",
     "addPhoto": "添加照片",
     "removePhoto": "删除",
-    "finish": "结束并发送报告",
+    "finish": "确认施术并发送报告",
     "finishing": "发送中…",
     "sent": "已发送报告",
     "failed": "发送失败，请重试。",

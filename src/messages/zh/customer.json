@@ -93,6 +93,7 @@
       "reviewProfile": "重新确认发质信息"
     },
     "step": {
+      "greeting": "您好！",
       "services": "您想做哪些项目？",
       "photos": "想要的风格",
       "face": "请选择脸型",
@@ -104,14 +105,23 @@
       "about": "再多告诉我们一些（选填）",
       "consent": "个人信息收集同意"
     },
+    "greeting": {
+      "hint": "先轻松开始 — 请先告诉我们称呼您的姓名和国籍。",
+      "nationalityPlaceholder": "请选择国籍"
+    },
+    "tag": {
+      "required": "（必填）",
+      "optional": "（选填）"
+    },
     "services": {
       "hint": "可以多选",
       "estimate": "预估价格",
       "estimateNone": "选择项目后即可显示预估价格",
-      "styleNote": "风格备注（选填）",
+      "styleNote": "风格备注",
       "styleNotePlaceholder": "请写下想要的长度、感觉或参考事项"
     },
     "photos": {
+      "label": "参考图片",
       "hint": "请上传您想要的风格照片",
       "add": "添加照片",
       "skip": "不上传照片继续",
@@ -178,9 +188,9 @@
     },
     "bodyStyle": {
       "title": "请告诉我们脸型、头型和发色",
-      "name": "姓名（选填）",
+      "name": "姓名",
       "namePlaceholder": "请填写方便称呼的名字",
-      "nationality": "国籍（选填）",
+      "nationality": "国籍",
       "faceShape": "脸型",
       "crown": "头型（头顶蓬松度）",
       "color": "想要的发色",
@@ -194,6 +204,7 @@
     },
     "consent": {
       "agreeAllRequired": "同意全部必填项",
+      "detailMore": "查看详情",
       "requiredGroup": "必填",
       "optionalGroup": "选填（不同意也可使用）",
       "label": "我同意为风格咨询而收集所填写的信息及照片。",
@@ -201,11 +212,11 @@
       "crossBorder": "为提供多语言咨询，您输入的文本与对话内容会发送至 Google LLC（美国）的 Gemini AI 处理（不发送照片原件）。数据还通过 Supabase 存储于**韩国（首尔）区域**，服务运行使用 Vercel（美国）。",
       "policyLink": "详情请查看隐私政策。",
       "required": "需要同意才能继续",
-      "trainingLabel": "(可选) 我同意将所填信息与护理结果进行假名化处理，用于改进 AI 服务及模型训练。",
+      "trainingLabel": "我同意将所填信息与护理结果进行假名化处理，用于改进 AI 服务及模型训练。",
       "trainingHint": "不含照片、联系方式、姓名与自由填写内容，并以假名保存（假名信息 — 若与额外信息结合仍可能被识别）。不同意也不影响使用；如需撤回，请告知您到访的沙龙。",
-      "photoTrainingLabel": "(可选) 我同意将照片（护理前后·风格参考）用于 AI 训练。",
+      "photoTrainingLabel": "我同意将照片（护理前后·风格参考）用于 AI 训练。",
       "photoTrainingHint": "拍摄以护理部位为主、避免拍到面部，并与身份分离（假名化）保存。不同意也不影响使用；如需撤回，请告知沙龙。",
-      "age14Label": "我已年满 14 周岁。(必填)",
+      "age14Label": "我已年满 14 周岁。",
       "age14Hint": "未满 14 周岁需法定代理人同意，无法使用在线登记。请咨询前台。",
       "age14Required": "需要确认已年满 14 周岁"
     },

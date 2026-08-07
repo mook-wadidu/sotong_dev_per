@@ -93,6 +93,7 @@
       "reviewProfile": "Review my hair details again"
     },
     "step": {
+      "greeting": "Hello!",
       "services": "What service would you like?",
       "photos": "Your desired style",
       "face": "Choose your face shape",
@@ -104,14 +105,23 @@
       "about": "Tell us a bit more (optional)",
       "consent": "Consent to data collection"
     },
+    "greeting": {
+      "hint": "Let's start easy — just tell us your name and nationality first.",
+      "nationalityPlaceholder": "Choose your nationality"
+    },
+    "tag": {
+      "required": "(Required)",
+      "optional": "(Optional)"
+    },
     "services": {
       "hint": "You can pick more than one",
       "estimate": "Estimated price",
       "estimateNone": "Pick a service to see the estimated price",
-      "styleNote": "Style note (optional)",
+      "styleNote": "Style note",
       "styleNotePlaceholder": "Tell us the length, look, or any reference you have in mind"
     },
     "photos": {
+      "label": "Reference photos",
       "hint": "Upload photos of the style you want",
       "add": "Add photo",
       "skip": "Continue without photos",
@@ -178,9 +188,9 @@
     },
     "bodyStyle": {
       "title": "Tell us your face shape, crown & color",
-      "name": "Name (optional)",
+      "name": "Name",
       "namePlaceholder": "What should we call you?",
-      "nationality": "Nationality (optional)",
+      "nationality": "Nationality",
       "faceShape": "Face shape",
       "crown": "Crown (top volume)",
       "color": "Desired color",
@@ -194,6 +204,7 @@
     },
     "consent": {
       "agreeAllRequired": "Agree to all required",
+      "detailMore": "See details",
       "requiredGroup": "Required",
       "optionalGroup": "Optional (you can still proceed)",
       "label": "I agree to the collection of my information and photos for style consultation.",
@@ -201,11 +212,11 @@
       "crossBorder": "To enable multilingual consultation, your text input and chat messages are sent to and processed by Google LLC's Gemini AI (USA) — original photos are not sent. Your data is also stored via Supabase in the **Korea (Seoul) region**, and the service runs on Vercel (USA).",
       "policyLink": "See our Privacy Policy for details.",
       "required": "Consent is required to continue",
-      "trainingLabel": "(Optional) I agree to let my info and results be pseudonymized and used to improve the AI service and train models.",
+      "trainingLabel": "I agree to let my info and results be pseudonymized and used to improve the AI service and train models.",
       "trainingHint": "Photos, contact details, name and free-text are excluded, and data is stored under a pseudonym (pseudonymized — re-identification remains possible if combined with additional information). Declining won't affect your service; to withdraw, please tell the salon you visited.",
-      "photoTrainingLabel": "(Optional) I agree to let my photos (before/after & style references) be used for AI training.",
+      "photoTrainingLabel": "I agree to let my photos (before/after & style references) be used for AI training.",
       "photoTrainingHint": "Photos are taken focusing on the treated hair so your face is not shown, and are stored separately from your identity (pseudonymized). Declining won't affect your service; to withdraw, please tell the salon.",
-      "age14Label": "I am 14 years of age or older. (Required)",
+      "age14Label": "I am 14 years of age or older.",
       "age14Hint": "Guests under 14 need a legal guardian's consent and cannot use online check-in. Please speak to the front desk.",
       "age14Required": "Please confirm you are 14 or older"
     },

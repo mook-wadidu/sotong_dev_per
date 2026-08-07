@@ -64,6 +64,10 @@ supabase start && supabase db reset   # migrations/0001_core.sql + seed.sql 적�
 - 런타임 스모크: 허브·C1·C2·C3·어드민(키/무키)·디자이너 인박스 전부 HTTP 200, 무효 토큰 친절 안내, 토큰 경로 보안 헤더 적용 확인.
 
 ## 문서
+- [`docs/pilot/운영-결정.md`](docs/pilot/운영-결정.md) — **파일럿 운영 규칙.** 코드엔 안 드러나지만
+  고칠 때 전제가 되는 것들(인테이크 도달 경로 · 어드민 안 열기 · `profiles.role` 불변식 ·
+  손님 계정 병합 규칙 · **인용하면 안 되는 만료된 사실들**)
+- [`CLAUDE.md`](CLAUDE.md) — 배포(`main` push)와 시크릿 취급
 - [`docs/AGENTS_CONTRACT.md`](docs/AGENTS_CONTRACT.md) — 모듈 계약(API·라우팅·UI 키트·규칙)
 - [`docs/FEEDBACK.md`](docs/FEEDBACK.md) — 세계최고 디자이너·사용자 패널 1차 피드백(P0/P1/P2)
 - [`docs/FEEDBACK_FINAL.md`](docs/FEEDBACK_FINAL.md) — 실물 재리뷰 결과(해결/잔여)

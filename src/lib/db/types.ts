@@ -561,6 +561,17 @@ export interface Repo {
   /** 상담 id 직접 조회 — 리포트(consultationId)에서 손님 프로필·카르테 연결용. */
   getConsultationById(id: string): Promise<Consultation | null>;
 
+  /**
+   * 삭제 요청 — 이 손님의 연락처와 **재방문 앵커를 함께** 끊는다.
+   *
+   * ⚠️ `scrubExpiredCustomers`(보관기간 만료)와 다르다. 저쪽은 `device_token` 을
+   * 보존한다 — 「연락처를 지운다」지 「이 사람을 잊는다」가 아니라서 재방문 인식을
+   * 유지하는 게 맞다. **삭제 요청은 잊어달라는 요청이므로 앵커도 끊는다.**
+   */
+  purgeCustomerById(
+    id: string,
+  ): Promise<{ customers: number; hairProfiles: number }>;
+
   updateStatus(id: string, status: ConsultationStatus): Promise<void>;
   // set-if-null 기록 — 반환 = affected rows(0=이미 set 또는 WHERE 미매치). 진단·infra 로깅용.
   /** 디자이너가 요약을 연 시점 기록 — 손님 "확인 중" 신호(B1). */

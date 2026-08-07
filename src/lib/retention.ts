@@ -319,3 +319,78 @@ export async function cleanupExpiredPII(
 
   return result;
 }
+
+/* -------------------------------------------------------------------------- */
+/* 삭제 요청 — id 로 지정해서 즉시 파기                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 손님이 삭제를 요청했을 때. **보관기간과 무관하게 지금 파기한다.**
+ *
+ * ## 왜 크론과 같은 코드를 쓰는가
+ *
+ * 파기 대상 목록이 **두 곳에 적히면 반드시 갈라진다.** 이 파일이 이미 그걸로
+ * 한 번 데였다 — `hasPii` 와 `redactConsultationPii` 가 각자 필드를 나열해서,
+ * 자유텍스트만 남은 상담이 선정 자체가 안 됐다.
+ *
+ * 그래서 여기서는 **선정 조건만 바꾸고**(기간 만료 → id 지정) 파기 자체는
+ * `redactConsultationPii` + `scrubConsultationPii` 를 그대로 지난다. 그 경로가
+ * 덮는 것: `consultations`(전화·intake·시술전사진) · `hair_reports`(before/after
+ * 사진·style_request·concerns·cautions) · `messages` · `training_samples` 링크.
+ *
+ * ## 왜 MAKEDOL 이 직접 안 지우는가
+ *
+ * 스키마 소유자는 소통이다. MAKEDOL 이 이 테이블에 쓰기 시작하면 소통
+ * 마이그레이션이 MAKEDOL 을 깨뜨리는 **역방향 결합**이 생긴다. MAKEDOL 은
+ * `bookings` 에서 모은 id 를 넘겨줄 뿐이고, 실행은 여기서 한다.
+ *
+ * ⚠️ **예약에 연결되지 않은 상담은 애초에 여기 도달하지 못한다.** 소통은 손님을
+ * device 단위로 기록해 이메일 컬럼이 없고, 연결은 어드민이 수동으로 넣는다.
+ * 그 한계는 손님에게 고지해야 한다.
+ */
+export interface TargetedPurgeResult {
+  consultations: number;
+  customers: number;
+  hairProfiles: number;
+  /** 요청받았지만 찾지 못한 id. 호출부가 이걸 보고 손님에게 고지한다. */
+  notFound: string[];
+}
+
+export async function purgeByIds(
+  input: { consultationIds?: string[]; customerIds?: string[] },
+  scrub: PiiScrubber = repoScrubber,
+): Promise<TargetedPurgeResult> {
+  const repo = getRepo();
+  const out: TargetedPurgeResult = {
+    consultations: 0,
+    customers: 0,
+    hairProfiles: 0,
+    notFound: [],
+  };
+
+  for (const id of input.consultationIds ?? []) {
+    const c = await repo.getConsultationById(id);
+    if (!c) {
+      out.notFound.push(id);
+      continue;
+    }
+    // 이미 파기된 건도 다시 돌린다 — 멱등하고, 「했다고 했는데 안 됐다」보다
+    // 한 번 더 도는 편이 낫다.
+    await scrub(redactConsultationPii(c));
+    out.consultations += 1;
+  }
+
+  for (const id of input.customerIds ?? []) {
+    // 연락처와 재방문 앵커를 함께 끊는다.
+    //
+    // ⚠️ 크론(`scrubExpiredCustomers`)은 `device_token` 을 **보존한다** — 보관기간
+    // 만료는 「연락처를 지운다」지 「이 사람을 잊는다」가 아니라서 재방문 인식을
+    // 유지하는 게 맞다. 삭제 요청은 다르다. **잊어달라는 요청이므로 앵커도 끊는다.**
+    const n = await repo.purgeCustomerById(id);
+    out.customers += n.customers;
+    out.hairProfiles += n.hairProfiles;
+    if (n.customers === 0) out.notFound.push(id);
+  }
+
+  return out;
+}

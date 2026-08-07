@@ -627,6 +627,28 @@ export class MemoryRepo implements Repo {
     return n;
   }
 
+  async purgeCustomerById(
+    id: string,
+  ): Promise<{ customers: number; hairProfiles: number }> {
+    // 삭제 요청 — scrubExpiredCustomers 와 달리 deviceToken 도 끊는다.
+    // supabase 드라이버와 동일 semantics.
+    let hairProfiles = 0;
+    for (const [pid, p] of store.hairProfiles) {
+      if (p.customerId !== id) continue;
+      store.hairProfiles.set(pid, {
+        ...p,
+        styleNote: undefined,
+        concernNote: undefined,
+        allergyNote: undefined,
+      });
+      hairProfiles += 1;
+    }
+    const c = store.customers.get(id);
+    if (!c) return { customers: 0, hairProfiles };
+    store.customers.set(id, { ...c, phone: undefined, deviceToken: undefined });
+    return { customers: 1, hairProfiles };
+  }
+
   async scrubExpiredCustomers(before: string): Promise<number> {
     // customers.phone — 상담 파기 경로가 못 건드리던 유일한 잔존 전화번호 사본.
     // deviceToken 은 보존(연락처 아님 · 재방문 앵커). supabase 와 동일 semantics.

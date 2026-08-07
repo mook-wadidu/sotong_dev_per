@@ -1059,6 +1059,32 @@ export class SupabaseRepo implements Repo {
     return (data ?? []).length;
   }
 
+  async purgeCustomerById(
+    id: string,
+  ): Promise<{ customers: number; hairProfiles: number }> {
+    // 자유텍스트는 크론(`scrubExpiredHairProfiles`)과 **같은 세 필드**다.
+    // 목록이 갈라지지 않게 여기서 늘리지 않는다 — 늘려야 하면 저쪽부터.
+    const { data: profiles, error: pErr } = await this.client
+      .from("customer_hair_profiles")
+      .update({ style_note: null, concern_note: null, allergy_note: null })
+      .eq("customer_id", id)
+      .select("id");
+    if (pErr) fail("purgeCustomerById(profiles)", pErr);
+
+    // device_token 까지 끊는다 — 크론과 갈리는 유일한 지점이고 의도적이다.
+    const { data, error } = await this.client
+      .from("customers")
+      .update({ phone: null, device_token: null })
+      .eq("id", id)
+      .select("id");
+    if (error) fail("purgeCustomerById", error);
+
+    return {
+      customers: (data ?? []).length,
+      hairProfiles: (profiles ?? []).length,
+    };
+  }
+
   private async getByToken(
     column: "consultation_token" | "designer_token" | "report_token",
     value: string,

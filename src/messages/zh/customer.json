@@ -92,6 +92,14 @@
       "skipProfile": "发质信息沿用上次的",
       "reviewProfile": "重新确认发质信息"
     },
+    "resume": {
+      "title": "有未完成的填写",
+      "subtitle": "这台设备上还留着填写到一半的内容。如果不是你的，请重新开始。",
+      "continue": "继续填写",
+      "continueHint": "载入之前保存的内容",
+      "fresh": "重新开始",
+      "freshHint": "清除保存的内容，重新填写"
+    },
     "step": {
       "greeting": "您好！",
       "services": "您想做哪些项目？",

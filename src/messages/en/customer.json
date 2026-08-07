@@ -92,6 +92,14 @@
       "skipProfile": "Keep my hair details as they are",
       "reviewProfile": "Review my hair details again"
     },
+    "resume": {
+      "title": "You have an unfinished form",
+      "subtitle": "There is an in-progress form saved on this device. If it is not yours, please start fresh.",
+      "continue": "Continue",
+      "continueHint": "Load what was saved",
+      "fresh": "Start fresh",
+      "freshHint": "Discard what was saved and begin again"
+    },
     "step": {
       "greeting": "Hello!",
       "services": "What service would you like?",

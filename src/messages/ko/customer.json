@@ -92,6 +92,14 @@
       "skipProfile": "머릿결 정보는 그대로 쓸게요",
       "reviewProfile": "머릿결 정보 다시 확인하기"
     },
+    "resume": {
+      "title": "작성하던 내용이 있어요",
+      "subtitle": "이 기기에서 작성 중이던 내용이 남아 있습니다. 본인이 아니라면 처음부터 시작해주세요.",
+      "continue": "이어서 작성",
+      "continueHint": "남아 있던 내용을 불러옵니다",
+      "fresh": "처음부터",
+      "freshHint": "남아 있던 내용을 지우고 새로 시작합니다"
+    },
     "step": {
       "greeting": "안녕하세요!",
       "services": "어떤 시술을 원하세요?",

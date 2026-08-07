@@ -145,6 +145,46 @@ function prefilledDraft(
   };
 }
 
+/**
+ * 저장분에서 **제외**하는 필드. 자동저장은 편의 기능이지 보관소가 아니다.
+ *
+ *   allergy·allergyNote  건강정보. `prefilledDraft` 가 A4(공유기기에서 타인의 값이
+ *                        실려 실제 알레르기가 은폐된 안전 결함) 때문에 이미 프리필을
+ *                        금지했다. **저장소도 같은 규칙을 받는다.**
+ *   name·phone           식별자. 이어받으면 남의 이름으로 제출될 수 있다
+ *   stylePhotoUrls·selfiePhotoUrl  용량(쿼터). 원래부터 제외였다
+ *
+ * ⚠️ `styleNote`·`concernNote` 는 **남긴다** — `retention.ts` 는 이 둘도 PII 로 분류해
+ * 파기하지만, 여기서 가르는 기준은 「분류」가 아니라 **「틀리면 누가 언제 잡나」** 다.
+ * 남의 스타일 메모가 실리면 상담 테이블에서 손님 앞에서 즉시 드러난다("그런 말 한 적
+ * 없는데"). 알레르기는 아무도 못 잡고 시술 후에 드러난다 — 그래서 그것만 뺀다.
+ * 이름·전화는 손님이 아니라 **제출 결과**가 틀리는 값이라 같이 뺀다.
+ *
+ * 아래 `resume` 확인 화면이 이어받기 자체를 명시적 선택으로 만든다.
+ */
+const DRAFT_STRIP = [
+  "allergy",
+  "allergyNote",
+  "name",
+  "phone",
+  "stylePhotoUrls",
+  "selfiePhotoUrl",
+] as const;
+
+/** 저장분이 유효한 시간. 지나면 버린다 — 30분 전에 떠난 사람의 폼을 물려주지 않는다. */
+const DRAFT_TTL_MS = 30 * 60 * 1000;
+
+type SavedDraft = {
+  savedAt?: number;
+  step?: number;
+  consent?: boolean;
+  age14?: boolean;
+  trainingConsent?: boolean;
+  photoTrainingConsent?: boolean;
+  photosDropped?: boolean;
+  draft?: Partial<IntakeDraft>;
+};
+
 export function IntakeStepper({
   entryToken,
   locale,
@@ -163,8 +203,12 @@ export function IntakeStepper({
   // 재방문(기기 토큰 매칭)이면 인테이크 전에 분기 화면("지난번처럼 / 새 스타일")을 띄운다.
   const isReturning = !!returning?.isReturning;
   // "지난번처럼"을 고르기 전까지는 분기 화면(intro)에서 대기. 신규는 곧장 스텝 1.
-  const [phase, setPhase] = React.useState<"intro" | "form">(
+  const [phase, setPhase] = React.useState<"intro" | "resume" | "form">(
     isReturning ? "intro" : "form",
+  );
+  /** 복원 대기 중인 저장분. `resume` 화면이 이걸 보여주고, 고르기 전엔 적용하지 않는다. */
+  const [pendingResume, setPendingResume] = React.useState<SavedDraft | null>(
+    null,
   );
   // "지난번처럼"으로 들어왔는지 — 프리필 + 프로필 재질문 스킵 옵션 노출에 사용.
   const [prefilled, setPrefilled] = React.useState(false);
@@ -204,14 +248,32 @@ export function IntakeStepper({
   );
 
   // ── draft 자동저장/복원 (새로고침·앱전환 손실 방지) ───────────────
-  // entryToken 키 sessionStorage. 사진(dataURL)은 용량(쿼터) 때문에 제외 — 재촬영.
-  // v2: 인사 스텝 추가로 step 번호 레이아웃이 바뀜 → v1 잔여 세션의 옛 step 번호가
-  // 새 레이아웃에 오적용되지 않도록 키를 올린다.
-  const storageKey = `sotong:intake:v2:${entryToken}`;
+  //
+  // ⚠️ 이 저장소는 **손님을 가르지 못한다.** 키가 `entryToken` 단위인데 파일럿은
+  // 살롱 QR 하나를 전 손님이 쓴다 — 매장 태블릿에서는 모두가 같은 키를 공유한다.
+  // sessionStorage 는 탭이 닫힐 때 비워지지만, 매장 태블릿의 탭은 안 닫힌다.
+  //
+  // 예전엔 이게 세 가지로 새고 있었다:
+  //   ① 사진만 빼고 **전부** 저장했다 — allergy·allergyNote 포함
+  //   ② 복원되면 `setPhase("form")` 로 **intro 도 배너도 건너뛰고** 바로 폼에 들어갔다
+  //   ③ 정리가 **제출 성공 시에만** 이뤄져 중도 이탈분이 남았다
+  // 앞사람이 알레르기까지 적고 나가면 다음 사람이 아무 고지 없이 그걸 이어받았다.
+  // `prefilledDraft` 가 A4 로 막아놓은 알레르기 오염이 이 경로로 되살아나 있었다.
+  //
+  // 그래서 셋을 바꾼다:
+  //   ① 민감·식별 필드는 **애초에 저장하지 않는다**(아래 STRIP). 알레르기는 재방문
+  //      프리필로도 안 채운다는 A4 규칙과 같은 이유 — 저장소도 예외가 아니다
+  //   ② 복원은 **명시적 선택**을 거친다(`resume` 화면). 조용히 이어받지 않는다
+  //   ③ 오래된 저장분은 **만료**시킨다. 30분 전에 떠난 사람의 폼을 지금 사람에게
+  //      물려줄 이유가 없다
+  //
+  // v3: 저장 모양이 바뀌었다(민감 필드 제외 + savedAt). v2 잔여분이 새 규칙을
+  // 우회하지 않도록 키를 올린다.
+  const storageKey = `sotong:intake:v3:${entryToken}`;
   const restoredRef = React.useRef(false);
 
-  // 복원 — 마운트 1회. 저장된 진행이 있으면 폼으로 진입 + 상태 복원.
-  // 적용은 queueMicrotask 로 지연(effect 동기 setState 회피 — 마운트 후 1틱).
+  // 복원 — 마운트 1회. **조용히 적용하지 않는다.** 저장분이 있으면 `resume` 화면을
+  // 띄우고 손님이 [이어서 작성]을 고를 때만 반영한다.
   React.useEffect(() => {
     if (typeof window === "undefined") {
       restoredRef.current = true;
@@ -229,25 +291,21 @@ export function IntakeStepper({
     }
     queueMicrotask(() => {
       try {
-        const saved = JSON.parse(raw as string) as {
-          step?: number;
-          consent?: boolean;
-          age14?: boolean;
-          trainingConsent?: boolean;
-          photoTrainingConsent?: boolean;
-          photosDropped?: boolean;
-          draft?: Partial<IntakeDraft>;
-        };
-        if (saved.draft) setDraft((d) => ({ ...d, ...saved.draft }));
-        if (typeof saved.step === "number") setStep(saved.step);
-        if (saved.consent) setConsent(true);
-        if (saved.age14) setAge14(true);
-        if (saved.trainingConsent) setTrainingConsent(true);
-        if (saved.photoTrainingConsent) setPhotoTrainingConsent(true);
-        setPhase("form"); // 진행 중이던 폼으로 복귀(재방문 intro 건너뜀)
-        setPrefilled(false);
-        // 사진은 저장 안 되므로, 있었다면 재첨부 안내(무고지 소실 방지, B11).
-        if (saved.photosDropped) toast.info(t("intake.photosRestoreNotice"));
+        const saved = JSON.parse(raw as string) as SavedDraft;
+        const fresh =
+          typeof saved.savedAt === "number" &&
+          Date.now() - saved.savedAt < DRAFT_TTL_MS;
+        if (!fresh) {
+          // 만료 — 조용히 버린다. 이 화면을 보는 사람은 저장한 사람이 아닐 수 있다.
+          try {
+            sessionStorage.removeItem(storageKey);
+          } catch {
+            /* 무시 */
+          }
+        } else if (saved.draft && Object.keys(saved.draft).length > 0) {
+          setPendingResume(saved);
+          setPhase("resume");
+        }
       } catch {
         /* 손상된 저장값 무시 */
       }
@@ -256,25 +314,61 @@ export function IntakeStepper({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** [이어서 작성] — 저장분을 실제로 반영한다. */
+  const applyResume = () => {
+    const saved = pendingResume;
+    setPendingResume(null);
+    setPhase("form");
+    if (!saved) return;
+    if (saved.draft) setDraft((d) => ({ ...d, ...saved.draft }));
+    if (typeof saved.step === "number") setStep(saved.step);
+    if (saved.consent) setConsent(true);
+    if (saved.age14) setAge14(true);
+    if (saved.trainingConsent) setTrainingConsent(true);
+    if (saved.photoTrainingConsent) setPhotoTrainingConsent(true);
+    setPrefilled(false);
+    // 사진은 저장 안 되므로, 있었다면 재첨부 안내(무고지 소실 방지, B11).
+    if (saved.photosDropped) toast.info(t("intake.photosRestoreNotice"));
+  };
+
+  /** [처음부터] — 저장분을 버리고 빈 폼으로. 다음 손님이 고르는 쪽이 이것이다. */
+  const discardResume = () => {
+    setPendingResume(null);
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch {
+      /* 무시 */
+    }
+    setDraft(withLocaleNationality(emptyIntake(), locale));
+    setStep(1);
+    setPrefilled(false);
+    setPhase(isReturning ? "intro" : "form");
+  };
+
   // 저장 — 복원 후 + 폼 단계에서만. 사진 필드는 비워 저장(용량). 디바운스.
   React.useEffect(() => {
     if (!restoredRef.current || typeof window === "undefined") return;
     if (phase !== "form") return;
     const id = setTimeout(() => {
       try {
-        const { stylePhotoUrls: _s, selfiePhotoUrl: _f, ...rest } = draft;
-        const photosDropped = (_s?.length ?? 0) > 0 || !!_f;
+        const photosDropped =
+          (draft.stylePhotoUrls?.length ?? 0) > 0 || !!draft.selfiePhotoUrl;
+        // DRAFT_STRIP 이 단일 출처다. 여기서 필드를 따로 나열하지 않는다 —
+        // 그렇게 하면 새 민감 필드가 조용히 저장된다.
+        const safe: Partial<IntakeDraft> = { ...draft };
+        for (const k of DRAFT_STRIP) delete safe[k];
         sessionStorage.setItem(
           storageKey,
           JSON.stringify({
+            savedAt: Date.now(),
             step,
             consent,
             age14,
             trainingConsent,
             photoTrainingConsent,
             photosDropped,
-            draft: { ...rest, stylePhotoUrls: [], selfiePhotoUrl: undefined },
-          }),
+            draft: safe,
+          } satisfies SavedDraft),
         );
       } catch {
         /* 쿼터 초과 등 무시 — 저장 실패해도 작성은 계속 */
@@ -398,6 +492,57 @@ export function IntakeStepper({
   };
 
   const stepTitleKey = STEP_TITLE_KEYS[step - 1];
+
+  // 작성하던 내용이 있을 때 — **조용히 이어받지 않는다.**
+  // 매장 태블릿에서는 이 화면을 보는 사람이 저장한 사람이 아닐 수 있다.
+  if (phase === "resume") {
+    return (
+      <MobileFrame tone="muted">
+        <ScreenHeader trailing={<LocaleSwitch />} />
+        <ScreenBody className="flex flex-1 flex-col justify-center space-y-5 pb-6">
+          <div className="space-y-1.5">
+            <h1
+              ref={titleRef}
+              tabIndex={-1}
+              className="text-2xl font-bold leading-snug tracking-tight text-foreground outline-none"
+            >
+              {t("intake.resume.title")}
+            </h1>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {t("intake.resume.subtitle")}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={applyResume}
+              className="w-full rounded-2xl border-2 border-foreground bg-card px-5 py-4 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <p className="text-base font-bold text-foreground">
+                {t("intake.resume.continue")}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {t("intake.resume.continueHint")}
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={discardResume}
+              className="w-full rounded-2xl border border-border bg-card px-5 py-4 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <p className="text-base font-bold text-foreground">
+                {t("intake.resume.fresh")}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {t("intake.resume.freshHint")}
+              </p>
+            </button>
+          </div>
+        </ScreenBody>
+      </MobileFrame>
+    );
+  }
 
   // 재방문 분기 화면 — "지난번처럼 / 새 스타일" 선택 전까지 폼을 가린다.
   if (phase === "intro") {

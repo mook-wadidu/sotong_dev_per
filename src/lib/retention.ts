@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getRepo } from "@/lib/db";
-import type { Consultation } from "@/lib/domain/types";
+import type { Consultation, IntakeDraft } from "@/lib/domain/types";
 
 /**
  * 보관/파기 정책 (PIPA 대응) — Phase 2.
@@ -66,15 +66,88 @@ export function isPiiExpired(
   return now - created > retentionDays * DAY_MS;
 }
 
+/* ── 인테이크 필드 분류 (단일 출처) ──────────────────────────
+ *
+ * `IntakeDraft` 의 **모든** 필드를 「지움/보존」 중 하나로 분류한다.
+ * `hasPii()`(선정)와 `redactConsultationPii()`(마스킹)가 **같은 이 맵을 본다.**
+ *
+ * ## 왜 맵인가 — 두 함수가 실제로 어긋나 있었다
+ *
+ * 예전엔 두 함수가 각자 필드를 나열했고, `hasPii` 는 전화·사진만 봤다. 그래서
+ * `styleNote`·`concernNote`·`allergyNote` 만 남은 상담은 **선정 자체가 안 돼**
+ * redact 가 지우도록 돼 있는 값이 영원히 남았다. 목록이 둘이면 반드시 갈라진다.
+ *
+ * ## 왜 `Record<keyof IntakeDraft, …>` 인가
+ *
+ * `IntakeDraft` 에 필드를 하나 더하면 **여기 분류를 안 적는 한 `tsc` 가 깨진다.**
+ * 파기는 "명시한 것만 지운다" 는 위험한 기본값 위에 서 있었다 — 새 필드는 조용히
+ * 보존됐고, 실제로 `name`(손님 이름)이 그렇게 파기를 통과하고 있었다.
+ * 열거로 메우지 말고 **다음 사람이 반드시 판단하게** 만든다.
+ *
+ * ⚠️ 이 맵은 `consultations` 안만 덮는다. 알레르기 **서사**는 `hair_reports.cautions`
+ * 에 쌓이고 그건 `repo.scrubConsultationPii` 가 따로 지운다.
+ */
+type IntakeDisposition = "clear" | "keep";
+
+const INTAKE_PII: Record<keyof IntakeDraft, IntakeDisposition> = {
+  /* 직접 식별자 */
+  phone: "clear",
+  name: "clear", // 손님 이름. 같은 파일이 trainingConsentedAt 주석에서 스스로 PII 로 분류한다
+
+  /* 사진 — 원본 dataURL */
+  stylePhotoUrls: "clear",
+  selfiePhotoUrl: "clear", // 얼굴 = 생체정보
+
+  /* 자유 텍스트 — 무엇이 적힐지 통제할 수 없다 */
+  styleNote: "clear",
+  concernNote: "clear",
+  allergyNote: "clear",
+
+  /* 건강정보(PIPA §23). allergyNote 만 지우고 boolean 을 남기면
+     "이 사람은 알레르기가 있다" 가 그대로 남는다 — 그 자체가 민감정보다. */
+  allergy: "clear",
+
+  /* 동의 증거 — 지우면 "동의를 받았다" 를 증명할 수 없다. 파기 대상이 아니다. */
+  consentedAt: "keep",
+  age14ConfirmedAt: "keep",
+  sensitiveConsentedAt: "keep",
+  trainingConsentedAt: "keep",
+  photoTrainingConsentedAt: "keep",
+
+  /* 통계·운영용 비식별 값. summary 가 nationality 를 통계로 유지하는 것과 같은 기준. */
+  contactOptOut: "keep",
+  age: "keep",
+  gender: "keep",
+  nationality: "keep",
+  serviceCategoryIds: "keep",
+  serviceIds: "keep",
+  desiredColor: "keep",
+  faceShape: "keep",
+  crownVolume: "keep",
+  hairDensity: "keep",
+  hairType: "keep",
+  cowlickWhorl: "keep",
+  cowlickSticking: "keep",
+  treatmentHistory: "keep",
+  concernIds: "keep",
+};
+
+const INTAKE_CLEAR_KEYS = (
+  Object.keys(INTAKE_PII) as (keyof IntakeDraft)[]
+).filter((k) => INTAKE_PII[k] === "clear");
+
+/** 값이 실제로 남아 있는가(빈 배열·빈 문자열은 없는 것으로 본다). */
+function present(v: unknown): boolean {
+  if (v === undefined || v === null || v === false) return false;
+  if (typeof v === "string") return v.length > 0;
+  if (Array.isArray(v)) return v.length > 0;
+  return true;
+}
+
 /** 상담에 파기 대상 PII 가 실제로 남아 있는지(이미 비워졌으면 skip). */
 export function hasPii(c: Consultation): boolean {
-  return Boolean(
-    c.phone ||
-      c.intake.phone ||
-      c.beforePhotoUrl ||
-      c.intake.selfiePhotoUrl ||
-      (c.intake.stylePhotoUrls && c.intake.stylePhotoUrls.length > 0),
-  );
+  if (present(c.phone) || present(c.beforePhotoUrl)) return true;
+  return INTAKE_CLEAR_KEYS.some((k) => present(c.intake[k]));
 }
 
 /* ── 마스킹 (순수 함수) ────────────────────────────────────── */
@@ -95,20 +168,23 @@ export function hasPii(c: Consultation): boolean {
  * 로만 매칭 가능해 도메인 Consultation 만으론 못 건드림). 선정은 reportsWithPii 가 담당.
  * 대화(messages)도 동일하게 scrubConsultationPii 가 비운다.
  */
+function clearIntakePii(intake: IntakeDraft): IntakeDraft {
+  const out: IntakeDraft = { ...intake };
+  for (const k of INTAKE_CLEAR_KEYS) {
+    // 배열 필드는 undefined 가 아니라 빈 배열이어야 타입이 유지된다.
+    (out[k] as unknown) = Array.isArray(intake[k]) ? [] : undefined;
+  }
+  return out;
+}
+
 export function redactConsultationPii(c: Consultation): Consultation {
   return {
     ...c,
     phone: undefined,
     beforePhotoUrl: undefined, // 시술 전 사진(컬럼) 파기
-    intake: {
-      ...c.intake,
-      phone: undefined,
-      stylePhotoUrls: [],
-      selfiePhotoUrl: undefined, // 손님 셀카 파기
-      styleNote: undefined,
-      concernNote: undefined,
-      allergyNote: undefined,
-    },
+    // 분류 맵이 단일 출처다. 여기 필드를 손으로 나열하지 않는다 —
+    // 그렇게 해서 hasPii 와 갈라졌었다.
+    intake: clearIntakePii(c.intake),
     // AI 요약의 자유텍스트 파생분 파기(건강정보 포함) — 원문만 지우고 번역본을 남기면 무의미.
     summary: c.summary
       ? {
